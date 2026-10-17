@@ -1,3 +1,4 @@
+import {isAdmin} from './invitations.js';
 import {createHash,randomUUID,timingSafeEqual} from 'node:crypto';
 import {token,digest} from './auth.js';
 const fail=(message,status=400)=>Object.assign(Error(message),{status});
@@ -9,6 +10,7 @@ export function oauthService(db,origin){
  CREATE TABLE IF NOT EXISTS oauth_codes(hash TEXT PRIMARY KEY,client_id TEXT NOT NULL,user_id TEXT NOT NULL,redirect_uri TEXT NOT NULL,challenge TEXT NOT NULL,scope TEXT NOT NULL,expires INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS oauth_grants(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),client_id TEXT NOT NULL,resource TEXT NOT NULL,scope TEXT NOT NULL,access_hash TEXT UNIQUE NOT NULL,refresh_hash TEXT UNIQUE NOT NULL,access_expires INTEGER NOT NULL,refresh_expires INTEGER NOT NULL,created_at INTEGER NOT NULL,revoked INTEGER NOT NULL DEFAULT 0);
  CREATE TABLE IF NOT EXISTS integration_proposals(id TEXT PRIMARY KEY,grant_id TEXT NOT NULL,user_id TEXT NOT NULL,revision INTEGER NOT NULL,body TEXT NOT NULL,impact TEXT NOT NULL,expires INTEGER NOT NULL);`);
+ db.exec('CREATE TABLE IF NOT EXISTS oauth_manual_clients(client_id TEXT PRIMARY KEY,owner_id TEXT NOT NULL REFERENCES users(id),created_at INTEGER NOT NULL,revoked INTEGER NOT NULL DEFAULT 0)');
  const clientColumns=db.prepare('PRAGMA table_info(oauth_clients)').all().map(c=>c.name);
  if(!clientColumns.includes('auth_method'))db.exec("ALTER TABLE oauth_clients ADD COLUMN auth_method TEXT NOT NULL DEFAULT 'none'");
  if(!clientColumns.includes('secret_hash'))db.exec('ALTER TABLE oauth_clients ADD COLUMN secret_hash TEXT');
@@ -23,7 +25,8 @@ export function oauthService(db,origin){
   }
   if(typeof id!=='string'||id.length>256)throw fail('invalid_client',401);
   const client=db.prepare('SELECT * FROM oauth_clients WHERE id=?').get(id);
-  if(!client||client.auth_method!==method)throw fail('invalid_client',401);
+  const manual=client&&db.prepare('SELECT revoked FROM oauth_manual_clients WHERE client_id=?').get(client.id);
+  if(!client||manual?.revoked||(client.auth_method!==method&&!(manual&&client.auth_method==='client_secret_post'&&method==='client_secret_basic')))throw fail('invalid_client',401);
   if(method!=='none'&&(typeof secret!=='string'||secret.length>256||!client.secret_hash||!timingSafeEqual(Buffer.from(digest(secret),'hex'),Buffer.from(client.secret_hash,'hex'))))throw fail('invalid_client',401);
   return client.id;
  };
@@ -39,7 +42,7 @@ export function oauthService(db,origin){
  };
  const authenticate=req=>{
   const raw=req.headers.authorization?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
-  return raw?db.prepare('SELECT * FROM oauth_grants WHERE access_hash=? AND access_expires>? AND refresh_expires>? AND revoked=0 AND resource=?').get(digest(raw),Date.now(),Date.now(),resource):undefined;
+  return raw?db.prepare('SELECT * FROM oauth_grants WHERE access_hash=? AND access_expires>? AND refresh_expires>? AND revoked=0 AND resource=? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=oauth_grants.client_id AND m.revoked=1)').get(digest(raw),Date.now(),Date.now(),resource):undefined;
  };
  async function routes({path,url,req,res,json,body,readJson,session}){
   if(path.startsWith('/.well-known/')){
@@ -57,7 +60,7 @@ export function oauthService(db,origin){
   }
   if(path==='/oauth/authorize'&&req.method==='GET'){
    cleanup();const q=url.searchParams,client=db.prepare('SELECT * FROM oauth_clients WHERE id=?').get(q.get('client_id'));
-   if(!client||!JSON.parse(client.redirects).includes(q.get('redirect_uri')))throw fail('invalid_client_or_redirect');
+   if(!client||db.prepare('SELECT 1 FROM oauth_manual_clients WHERE client_id=? AND revoked=1').get(client.id)||!JSON.parse(client.redirects).includes(q.get('redirect_uri')))throw fail('invalid_client_or_redirect');
    if(q.get('response_type')!=='code'||q.get('resource')!==resource||q.get('code_challenge_method')!=='S256'||!/^[A-Za-z0-9_-]{43}$/.test(q.get('code_challenge')||'')||(q.get('state')||'').length>2000)throw fail('invalid_request');
    if(db.prepare('SELECT count(*) AS n FROM oauth_requests').get().n>=1000)throw fail('request_limit',429);
    const id=token();db.prepare('INSERT INTO oauth_requests VALUES(?,?,?,?,?,?,?)').run(id,client.id,q.get('redirect_uri'),q.get('code_challenge'),cleanScope(q.get('scope')),q.get('state')||'',Date.now()+600000);
@@ -76,7 +79,7 @@ export function oauthService(db,origin){
    }
    if(form.get('grant_type')==='refresh_token'){
     const raw=form.get('refresh_token');if(!raw)throw fail('invalid_grant');
-    const grant=db.prepare('SELECT * FROM oauth_grants WHERE refresh_hash=? AND client_id=? AND refresh_expires>? AND revoked=0 AND resource=?').get(digest(raw),client,Date.now(),resource);if(!grant)throw fail('invalid_grant');
+    const grant=db.prepare('SELECT * FROM oauth_grants WHERE refresh_hash=? AND client_id=? AND refresh_expires>? AND revoked=0 AND resource=? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=oauth_grants.client_id AND m.revoked=1)').get(digest(raw),client,Date.now(),resource);if(!grant)throw fail('invalid_grant');
     const access=token(),refresh=token();db.prepare('UPDATE oauth_grants SET access_hash=?,refresh_hash=?,access_expires=? WHERE id=?').run(digest(access),digest(refresh),Date.now()+3600000,grant.id);
     json(200,{access_token:access,refresh_token:refresh,token_type:'Bearer',expires_in:3600,scope:grant.scope});return true;
    }
@@ -89,6 +92,33 @@ export function oauthService(db,origin){
   if(path==='/api/connections'||path.startsWith('/api/connections/')){
    if(!session)throw fail('Login required',401);
    if(req.method!=='GET'&&req.headers.origin!==origin)throw fail('Origin rejected',403);
+   if(path==='/api/connections/clients'&&req.method==='GET'){
+    if(!isAdmin(db,session.user_id))throw fail('Administrator required',403);
+    json(200,{clients:db.prepare('SELECT c.id,c.redirects,m.created_at FROM oauth_clients c JOIN oauth_manual_clients m ON m.client_id=c.id WHERE m.owner_id=? AND m.revoked=0 ORDER BY m.created_at DESC').all(session.user_id).map(c=>({id:c.id,redirectUris:JSON.parse(c.redirects),createdAt:c.created_at}))});return true;
+   }
+   if(path==='/api/connections/clients'&&req.method==='POST'){
+    if(!isAdmin(db,session.user_id))throw fail('Administrator required',403);
+    const data=await readJson(16384);
+    if(!data||!Array.isArray(data.redirectUris)||data.redirectUris.length<1||data.redirectUris.length>5)throw fail('invalid_client_metadata');
+    const redirects=[...new Set(data.redirectUris.map(callback))];
+    if(db.prepare('SELECT count(*) AS n FROM oauth_manual_clients WHERE owner_id=? AND revoked=0').get(session.user_id).n>=10)throw fail('manual_client_limit',429);
+    const id=token(),secret=token(),now=Date.now();
+    db.exec('BEGIN IMMEDIATE');try{
+     db.prepare('INSERT INTO oauth_clients(id,redirects,created_at,auth_method,secret_hash) VALUES(?,?,?,?,?)').run(id,JSON.stringify(redirects),now,'client_secret_post',digest(secret));
+     db.prepare('INSERT INTO oauth_manual_clients VALUES(?,?,?,0)').run(id,session.user_id,now);db.exec('COMMIT');
+    }catch(e){db.exec('ROLLBACK');throw e;}
+    json(201,{clientId:id,clientSecret:secret,redirectUris:redirects});return true;
+   }
+   const manualId=path.match(/^\/api\/connections\/clients\/([a-f0-9]{64})$/)?.[1];
+   if(manualId&&req.method==='DELETE'){
+    if(!isAdmin(db,session.user_id))throw fail('Administrator required',403);
+    const changed=db.prepare('UPDATE oauth_manual_clients SET revoked=1 WHERE client_id=? AND owner_id=? AND revoked=0').run(manualId,session.user_id);
+    if(!changed.changes)throw fail('Not found',404);
+    db.prepare('UPDATE oauth_grants SET revoked=1 WHERE client_id=?').run(manualId);
+    db.prepare('DELETE FROM integration_proposals WHERE grant_id IN (SELECT id FROM oauth_grants WHERE client_id=?)').run(manualId);
+    db.prepare('DELETE FROM oauth_requests WHERE client_id=?').run(manualId);db.prepare('DELETE FROM oauth_codes WHERE client_id=?').run(manualId);
+    json(200,{ok:true});return true;
+   }
    if(path==='/api/connections'&&req.method==='GET'){
     cleanup();json(200,{endpoint:resource,connections:db.prepare('SELECT id,scope,created_at,refresh_expires FROM oauth_grants WHERE user_id=? AND revoked=0 ORDER BY created_at DESC').all(session.user_id)});return true;
    }

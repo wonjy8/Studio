@@ -119,3 +119,33 @@ test('all published tool object schemas declare concrete properties for function
  const values=tools.find(t=>t.name==='studio_propose_changes').inputSchema.properties.commands.items.properties.values;
  assert.equal(values.properties.name.type,'string');assert.equal(values.properties.completed.type,'boolean');assert.equal(values.properties.x.type,'number');assert.ok(values.properties.category.enum.includes('sd'));
 });
+test('manual clients require administrator consent and secret auth, never disclose saved secrets, and revoke all grants',async t=>{
+ const f=await fixture(t),path='/api/connections/clients';
+ f.db.prepare("INSERT INTO site_settings VALUES('admin_user_id','alpha')").run();
+ const create=data=>f.call(path,'POST',data,{Origin:f.origin,Cookie:f.cookies.alpha});
+ const metadata={redirectUris:[f.callback]};
+ assert.equal((await f.call(path,'POST',metadata)).status,401);
+ assert.equal((await f.call(path,'POST',metadata,{Origin:f.origin,Cookie:f.cookies.beta})).status,403);
+ assert.equal((await f.call(path,'POST',metadata,{Origin:'https://evil.invalid',Cookie:f.cookies.alpha})).status,403);
+ assert.equal((await create({redirectUris:['https://evil.invalid/callback']})).status,400);
+ const response=await create(metadata);assert.equal(response.status,201);const manual=await response.json();assert.match(manual.clientSecret,/^[a-f0-9]{64}$/);
+ assert.equal(f.db.prepare('SELECT secret_hash FROM oauth_clients WHERE id=?').get(manual.clientId).secret_hash,digest(manual.clientSecret));
+ const client={client_id:manual.clientId},auths=[];
+ for(const method of ['post','basic']){
+  const pending=await f.pending(client),redirect=await f.consent(pending);
+  const data={client_id:manual.clientId,redirect_uri:f.callback,grant_type:'authorization_code',code:redirect.searchParams.get('code'),code_verifier:pending.verifier};
+  assert.equal((await f.form(data)).status,401);
+  const headers=method==='basic'?{Authorization:'Basic '+Buffer.from(manual.clientId+':'+manual.clientSecret).toString('base64')}:{};
+  if(method==='post')data.client_secret=manual.clientSecret;
+  const result=await f.form(data,headers);assert.equal(result.status,200);const auth=await result.json();auths.push(auth);assert.equal((await f.rpc(auth,'studio_list_projects')).response.status,200);
+ }
+ const listed=await (await f.call(path,'GET',undefined,{Cookie:f.cookies.alpha})).json();assert.equal(listed.clients.length,1);assert.equal(JSON.stringify(listed).includes(manual.clientSecret),false);
+ assert.equal((await f.call(path,'GET',undefined,{Cookie:f.cookies.beta})).status,403);
+ const diagnostic=await (await f.call('/api/connections/diagnostics','GET',undefined,{Cookie:f.cookies.alpha})).json();assert.equal(JSON.stringify(diagnostic).includes(manual.clientSecret),false);
+ assert.equal((await f.call(path+'/'+manual.clientId,'DELETE',undefined,{Origin:f.origin,Cookie:f.cookies.beta})).status,403);
+ assert.equal((await f.call(path+'/'+manual.clientId,'DELETE',undefined,{Origin:f.origin,Cookie:f.cookies.alpha})).status,200);
+ for(const auth of auths)assert.equal((await f.rpc(auth,'tools/list')).response.status,401);
+ const p=await f.pending(await f.register());assert.ok(p.id);
+ const bad=new URLSearchParams({...p.params,client_id:manual.clientId});assert.equal((await f.call('/oauth/authorize?'+bad)).status,400);
+ assert.equal((await f.form({client_id:manual.clientId,client_secret:manual.clientSecret,grant_type:'refresh_token',refresh_token:auths[0].refresh_token})).status,401);
+});

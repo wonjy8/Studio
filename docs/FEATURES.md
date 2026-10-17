@@ -84,3 +84,8 @@ The authenticated server stores account-isolated project state and attachments i
 **Data:** account-private workspaces, revision checks and shared domain commands; AI never supplies authoritative account IDs or raw database operations. External content is data, not instructions. Changes target a selected project, report impact, and preserve unrelated projects/files.
 **Reuse:** common command service for external tools, existing account/session and settings controls. No third-party frontend scripts or provider keys in browser storage.
 **Privacy:** users explicitly authorize an external ChatGPT connection before selected workspace data is accessible; tokens are hashed and revocable. ChatGPT connection registration is an external prerequisite, not implied by a successful local test.
+
+## Manual OAuth client setup
+**Why:** provide a supported alternative when app creation stops before dynamic client registration.
+**Flow:** administrator creates a confidential client in Studio, copies the one-time ID/secret into the external app's manual OAuth configuration, then signs in and consents normally. Callback URLs are exact registered HTTPS ChatGPT URLs. Client registration does not grant account/data access.
+**Privacy:** client secrets are shown once, stored only as hashes, and never placed in diagnostics, URLs, browser storage or chat. Administrators can revoke a manual client and its existing grants. This alternative does not establish the cause of platform-side app rejection or guarantee that it will resolve it.
