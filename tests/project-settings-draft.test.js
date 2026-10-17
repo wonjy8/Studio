@@ -1,0 +1,5 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {projectSettingsChanged} from '../src/features/project-settings-draft.js';
+test('project draft detects each editable persisted field, including icon, and clears when restored',()=>{const saved={name:'Fictional',description:'',icon:'camera',color:'blue',date:'',time:'',location:''};assert.equal(projectSettingsChanged({...saved},saved),false);for(const key of Object.keys(saved)){const draft={...saved,[key]:'changed'};assert.equal(projectSettingsChanged(draft,saved),true,key);draft[key]=saved[key];assert.equal(projectSettingsChanged(draft,saved),false,key);}assert.equal(projectSettingsChanged({...saved,'project-icon-choice':'other'},saved),false);});
+test('optional legacy project fields normalize to empty strings without false warnings',()=>{assert.equal(projectSettingsChanged({name:'Legacy',description:'',icon:'camera',color:'blue',date:'',time:'',location:''},{name:'Legacy',icon:'camera',color:'blue'}),false);});
