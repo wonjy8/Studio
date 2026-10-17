@@ -2,7 +2,7 @@
 
 ## Rationale and first release boundary
 
-A crew member must be able to return to the same Project and Shoots from another browser without putting private data in public source. This first release provides NAS-provisioned local accounts, one private project workspace per account, schedule/shoot/member/equipment/camera/reference state, PDF script preview and original download, and private reference images. Public signup, shared workspaces, OAuth, AI credentials and multi-project switching are deferred. A new account starts empty. Existing browser demo edits are never silently imported.
+A crew member must be able to return to the same Project and Shoots from another browser without putting private data in public source. This first release provides NAS-provisioned local accounts, multiple private projects per account, schedule/shoot/member/equipment/camera/reference state, PDF script preview and original download, and private reference images. Public signup, shared workspaces, OAuth, AI credentials are deferred. A new account starts empty. Existing browser demo edits are never silently imported.
 
 ## User flow and reusable modules
 
@@ -20,4 +20,4 @@ The server explicitly serves only index.html and src JS/CSS. It never serves rep
 
 ## Operational limits
 
-This is a small trusted-team deployment, not a general public hosting service. Login budgets are process-local and reset on restart. Storage uses synchronous SQLite operations with bounded payloads. Files replaced in the UI remain in storage; deleting unused attachments and quota management UI are future work. Account workspaces are isolated, not collaborative. Backups are required; the app does not encrypt the NAS disk. NAS administrators control the runtime database. See NAS_DEPLOYMENT.md for deployment and verification.
+This is a small trusted-team deployment, not a general public hosting service. Login budgets are process-local and reset on restart. Storage uses synchronous SQLite operations with bounded payloads. Files replaced in the UI remain in storage; deleting unused attachments and quota management UI are future work. Account workspaces are isolated, not collaborative. Project snapshots stay in the same private account workspace and share its revision check and quota. Older single-project data is retained without destructive database migrations. An old application image can display only the active project and may reject saving the newer multi-project payload; roll forward to this version to resume editing. Backups are required; the app does not encrypt the NAS disk. NAS administrators control the runtime database. See NAS_DEPLOYMENT.md for deployment and verification.

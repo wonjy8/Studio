@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { openStore } from './store.js';
 import { digest, token, hashPassword, verifyPassword } from './auth.js';
-import { validateWorkspace } from '../src/domain/workspace.js';
+import { validateWorkspace, workspaceFileIds } from '../src/domain/workspace.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
 export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false'}={}) {
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
@@ -65,7 +65,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         if(path==='/api/workspace'&&req.method==='PUT') {
           const data=await readJson();
           if(!Number.isSafeInteger(data.revision)||!validateWorkspace(data.state)) return json(400,{error:'Invalid workspace'});
-          const files=[...data.state.refs.flatMap(r=>r.images.map(s=>s.split('/').pop())),...data.state.contents.map(s=>s.scriptFile).filter(Boolean)];
+          const files=workspaceFileIds(data.state);
           if(files.some(id=>!db.prepare('SELECT id FROM files WHERE id=? AND user_id=?').get(id,uid))) return json(400,{error:'Invalid file reference'});
           const row=db.prepare('SELECT revision FROM workspaces WHERE user_id=?').get(uid);
           if((row?.revision||0)!==data.revision) return json(409,{error:'Workspace changed. Reload before editing.'});

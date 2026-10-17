@@ -55,3 +55,11 @@ The authenticated server stores account-isolated project state and attachments i
 **Reuse:** shared color/shape tokens, field and button primitives; dedicated login page composition outside app.js.
 **UX:** white background, centered single-column form, mobile sizing, visible keyboard focus, optional password visibility, administrator help.
 **Privacy:** no external images/fonts, account discovery, or credential persistence in frontend storage.
+
+## Production navigation and multiple projects
+**Why:** keep project selection separate from within-project work.
+**Flow:** production rail → project list → project tabs below the header. Settings and logout are reached from the rail's bottom Settings action.
+**Data:** account-private workspace retains the active Project and a list of inactive Project snapshots. Legacy single-project data is preserved on first use. Switching projects retains each Shoot, schedule, file link, member, equipment and reference set.
+**Reuse:** original vector icon primitive, navigation pattern, project identity form, shell and settings page. Projects select from six icons and six semantic identity colors.
+**UX:** two-column desktop sidebar, persistent workspace rail, mobile project drawer, scrolling project tabs, visible focus and selected state.
+**Privacy:** every attachment across active and inactive projects is validated for account ownership. No screenshots or user project names are fixtures.

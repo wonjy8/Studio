@@ -39,8 +39,14 @@ test('authenticated private workspace and file lifecycle',async t=>{
  assert.equal((await (await call('/api/workspace')).json()).state,null);
  const forged=emptyWorkspace();forged.contents.push({id:'c1',name:'shoot',time:'',location:'',status:'check',script:true,scriptFile:file.id});
  assert.equal((await call('/api/workspace','PUT',{revision:0,state:forged})).status,400);
+ const multi=emptyWorkspace();multi.project.id='beta-project';forged.project.id='archived-project';multi.projects=[forged];
+ assert.equal((await call('/api/workspace','PUT',{revision:0,state:multi})).status,400);
  cookie=alpha;
  assert.equal((await (await call('/api/workspace')).json()).state.project.name,state.project.name);
+ const workspace=emptyWorkspace();workspace.project.id='active';workspace.project.icon='camera';workspace.project.color='blue';
+ const archived=emptyWorkspace();archived.project.id='archive';archived.project.name='Fictional archived production';workspace.projects=[archived];
+ assert.equal((await call('/api/workspace','PUT',{revision:1,state:workspace})).status,200);
+ assert.equal((await (await call('/api/workspace')).json()).state.projects[0].project.name,'Fictional archived production');
  assert.equal((await call('/api/logout','POST')).status,200);
  assert.equal((await call('/api/workspace')).status,401);
  response=await call('/api/login','POST',{username:'alpha',password:'fictional-test-password'});cookie=response.headers.get('set-cookie').split(';')[0];

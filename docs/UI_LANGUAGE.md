@@ -79,3 +79,6 @@ Test: **Can someone holding a phone on set understand what to do next within thr
 Pages and features must compose shared modules rather than restyling their own versions of buttons, cards, badges, sheets, schedule rows, avatars, or reference grids.
 
 A global visual change should have one source of truth.
+
+## Workspace navigation
+Use an icon rail for Production and bottom-aligned Settings. The adjacent sidebar lists Projects with configurable icon/color identities. Within-project Home, Schedule, Shoots and other surfaces use horizontal navigation immediately below the header. Project settings and logout live inside Settings. Mobile keeps the rail and opens Projects in a dismissible drawer. Icons are shared original vectors with outline/filled selection states.
