@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+coverage/
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Runtime and local user data
+.data/
+data/
+uploads/
+storage/
+local-db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs and debug dumps
+*.log
+logs/
+debug/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Temporary files
+.tmp/
+tmp/
+.cache/
