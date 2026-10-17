@@ -102,7 +102,7 @@ No private runtime or secret auth data belongs in Git.
 
 ## AI integration boundary
 
-AI is optional and disconnected by default. The app exposes a provider-neutral integration boundary. A user connects a supported provider from Settings at runtime.
+AI is optional and disconnected by default. The app exposes a provider-neutral integration boundary. The current integration is an external ChatGPT MCP app authorized through Studio OAuth. The in-app API-key assistant and provider configuration are not provided.
 
 AI actions call the same domain operations as direct UI actions. This gives both paths the same validation, conflict checks, authorization, history, and undo behavior.
 
@@ -130,3 +130,7 @@ The UI and AI layer should present an impact summary and support undo/history fo
 Optional `layoutObjects` supports person/table/chair/stage/equipment/other, percentage x/y and rotation. Equipment placements require a valid project-local `gearId`; people may link a project-local `memberId`. Other objects are spatial context, not inventory. Camera, lens, lighting, tripod, SD card, audio and other are inventory categories; uncategorized legacy items remain supported. Server validation checks these references and coordinates for active and inactive projects. Project snapshots retain layout objects. Removing a placement keeps the source inventory/member record. Layouts remain project-level in this version.
 
 `src/features/layout/layout.js` composes the stage and shared forms; pointer, keyboard and numeric controls use the same domain mutation. Saved workspace revision checks apply to all placements.
+
+
+## External assistant boundary
+ChatGPT is an external MCP client, not an embedded in-app API assistant. OAuth grants bind the account and read/write scope; the same account-private workspace validation and revision service is used by UI and MCP. Shared domain commands create/update shoots, members, inventory and reference metadata, update/create projects, and call camera/layout operations. Proposals stage a candidate snapshot with the current revision; confirmation commits once or returns a conflict. ChatGPT cannot provide an account ID, direct database patch or attachment access token. Details and limitations are in AUTH_AND_SERVER.md.

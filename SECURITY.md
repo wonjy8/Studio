@@ -22,7 +22,7 @@ All repository demo and test data must be fictional. Do not anonymize a real pro
 
 ## AI integrations
 
-AI integrations are disconnected by default. Each user connects an AI provider from their own Studio settings.
+External ChatGPT connections are disconnected by default and require Studio login plus explicit read or read/write OAuth consent. Grants are account-scoped, expire, and can be revoked in Settings. The in-app API-key AI feature is not provided. See docs/AUTH_AND_SERVER.md for the MCP authorization boundary.
 
 Credentials must never be stored in Git, committed configuration, frontend source code, demo data, URLs, or application logs. Do not treat a frontend build-time environment variable as a safe place for a secret: values bundled into browser code can be exposed to users.
 

@@ -1,0 +1,78 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {createApp} from '../server/index.js';
+import {token,digest} from '../server/auth.js';
+import {emptyWorkspace} from '../src/domain/workspace.js';
+async function fixture(t){
+ const dir=await mkdtemp('/tmp/studio-mcp-'),origin='http://localhost';const {server,db}=await createApp({dir,origin,secure:false});
+ const cookies={};for(const uid of ['alpha','beta']){db.prepare('INSERT INTO users VALUES(?,?,?)').run(uid,uid,'fictional-hash');const raw=token();db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),uid,Date.now()+3600000);cookies[uid]='studio_session='+raw;const state=emptyWorkspace();state.project.id=uid+'-project';state.project.name='Fictional '+uid;db.prepare('INSERT INTO workspaces VALUES(?,?,?)').run(uid,1,JSON.stringify(state));}
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(async()=>{await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});});
+ const base=`http://127.0.0.1:${server.address().port}`;
+ const call=(path,method='GET',data,headers={})=>fetch(base+path,{method,redirect:'manual',headers:{...(data===undefined?{}:{'Content-Type':'application/json'}),...headers},body:data===undefined?undefined:JSON.stringify(data)});
+ const callback='https://chatgpt.com/connector_platform_oauth_redirect',resource=origin+'/mcp';
+ const register=async()=>{const r=await call('/oauth/register','POST',{redirect_uris:[callback],token_endpoint_auth_method:'none'});assert.equal(r.status,201);return r.json();};
+ const form=async(data)=>fetch(base+'/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({resource,...data})});
+ const pending=async(client,scope='studio:read studio:write')=>{
+  const verifier=token(),challenge=createHash('sha256').update(verifier).digest('base64url');const params={client_id:client.client_id,redirect_uri:callback,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource,scope,state:'fictional-state'};
+  const r=await call('/oauth/authorize?'+new URLSearchParams(params));assert.equal(r.status,302);return {id:new URL(r.headers.get('location')).searchParams.get('connect'),verifier,params};
+ };
+ const consent=async(p,uid='alpha',allowWrite=true,approve=true)=>{
+  const r=await call('/api/connections/authorize','POST',{requestId:p.id,approve,allowWrite},{Origin:origin,Cookie:cookies[uid]});assert.equal(r.status,200);return new URL((await r.json()).redirect);
+ };
+ const connect=async(uid='alpha',write=true)=>{
+  const client=await register(),p=await pending(client);const redirect=await consent(p,uid,write);assert.equal(redirect.searchParams.get('state'),'fictional-state');
+  const r=await form({client_id:client.client_id,redirect_uri:callback,grant_type:'authorization_code',code:redirect.searchParams.get('code'),code_verifier:p.verifier});assert.equal(r.status,200);return {...await r.json(),client};
+ };
+ const rpc=async(auth,name,args={},extra={})=>{
+  const r=await call('/mcp','POST',{jsonrpc:'2.0',id:1,method:name==='tools/list'||name==='initialize'?name:'tools/call',params:name==='initialize'?{protocolVersion:'2025-11-25'}:name==='tools/list'?{}:{name,arguments:args}},{Authorization:'Bearer '+auth.access_token,Accept:'application/json, text/event-stream',...extra});return {response:r,data:await r.json()};
+ };
+ return {db,origin,cookies,call,form,register,pending,consent,connect,rpc,resource,callback};
+}
+test('OAuth discovery, exact redirects, PKCE, consent denial/downgrade, code replay and rotation',async t=>{
+ const f=await fixture(t),{call,origin,resource,callback}=f;
+ const metadata=await (await call('/.well-known/oauth-protected-resource/mcp')).json();assert.equal(metadata.resource,resource);
+ const challenge=await call('/mcp','POST',{});assert.equal(challenge.status,401);assert.match(challenge.headers.get('www-authenticate'),/resource_metadata/);
+ for(const url of ['https://evil.invalid/cb','http://chatgpt.com/cb','https://chatgpt.com.evil.invalid/cb','https://user:secret@chatgpt.com/cb','https://chatgpt.com/cb#fragment'])assert.equal((await call('/oauth/register','POST',{redirect_uris:[url]})).status,400);
+ const client=await f.register(),p=await f.pending(client);
+ assert.equal((await call('/api/connections/requests/'+p.id)).status,401);
+ assert.equal((await call('/api/connections/authorize','POST',{requestId:p.id,approve:true},{Origin:'https://evil.invalid',Cookie:f.cookies.alpha})).status,403);
+ const redirect=await f.consent(p,'alpha',false);const code=redirect.searchParams.get('code');
+ const base={client_id:client.client_id,redirect_uri:callback,grant_type:'authorization_code',code};
+ assert.equal((await f.form({...base,code_verifier:token()})).status,400);
+ assert.equal((await f.form({...base,code_verifier:p.verifier,resource:origin+'/other'})).status,400);
+ const r=await f.form({...base,code_verifier:p.verifier});assert.equal(r.status,200);const auth=await r.json();assert.equal(auth.scope,'studio:read');
+ assert.equal((await f.form({...base,code_verifier:p.verifier})).status,400);
+ assert.equal((await call('/oauth/authorize?'+new URLSearchParams({...p.params,redirect_uri:'https://evil.invalid'}))).status,400);
+ const denied=await f.consent(await f.pending(client),'alpha',true,false);assert.equal(denied.searchParams.get('error'),'access_denied');assert.equal(denied.searchParams.has('code'),false);
+ const rr=await f.form({client_id:client.client_id,grant_type:'refresh_token',refresh_token:auth.refresh_token});assert.equal(rr.status,200);const next=await rr.json();assert.notEqual(next.access_token,auth.access_token);
+ assert.equal((await f.form({client_id:client.client_id,grant_type:'refresh_token',refresh_token:auth.refresh_token})).status,400);
+ assert.equal((await f.rpc(auth,'tools/list')).response.status,401);assert.equal((await f.rpc(next,'tools/list')).response.status,200);
+ const serialized=JSON.stringify(f.db.prepare('SELECT * FROM oauth_grants').all());assert.equal(serialized.includes(next.access_token),false);assert.equal(serialized.includes(next.refresh_token),false);
+});
+test('MCP account isolation, read-only scopes, confirmed writes, revisions, replay and revocation',async t=>{
+ const f=await fixture(t),writer=await f.connect('alpha'),reader=await f.connect('beta',false);
+ assert.equal((await f.rpc(writer,'initialize')).data.result.protocolVersion,'2025-11-25');
+ assert.equal((await f.call('/api/workspace','GET',undefined,{Authorization:'Bearer '+writer.access_token})).status,401);
+ assert.equal((await f.call('/api/files/11111111-1111-1111-1111-111111111111','GET',undefined,{Authorization:'Bearer '+writer.access_token})).status,401);
+ const readTools=(await f.rpc(reader,'tools/list')).data.result.tools;assert.equal(readTools.length,2);assert.ok(readTools.every(t=>t.annotations.readOnlyHint));
+ assert.equal((await f.rpc(reader,'studio_propose_changes',{projectId:'beta-project',revision:1,commands:[]})).data.error.code,-32602);
+ assert.equal((await f.rpc(writer,'tools/list',{}, {Origin:'https://evil.invalid'})).response.status,403);
+ const list=(await f.rpc(writer,'studio_list_projects')).data.result.structuredContent;assert.equal(list.projects.length,1);assert.equal(list.projects[0].id,'alpha-project');
+ assert.equal((await f.rpc(writer,'studio_get_project',{projectId:'beta-project'})).data.result.isError,true);
+ const propose=()=>f.rpc(writer,'studio_propose_changes',{projectId:'alpha-project',revision:1,commands:[{operation:'add_shoot',values:{name:'Fictional interview',time:'10:00',location:'Set A'}}]});
+ const proposal=(await propose()).data.result.structuredContent;assert.ok(proposal.proposalId);assert.equal(JSON.parse(f.db.prepare("SELECT body FROM workspaces WHERE user_id='alpha'").get().body).contents.length,0);
+ assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:proposal.proposalId,confirmed:false})).data.result.isError,true);
+ assert.equal((await f.rpc(reader,'studio_apply_changes',{proposalId:proposal.proposalId,confirmed:true})).data.error.code,-32602);
+ const applied=(await f.rpc(writer,'studio_apply_changes',{proposalId:proposal.proposalId,confirmed:true})).data.result.structuredContent;assert.equal(applied.revision,2);
+ assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:proposal.proposalId,confirmed:true})).data.result.isError,true);
+ const state=JSON.parse(f.db.prepare("SELECT body FROM workspaces WHERE user_id='alpha'").get().body);assert.equal(state.contents[0].name,'Fictional interview');assert.equal(state.schedule[0][2],state.contents[0].id);
+ assert.equal(JSON.parse(f.db.prepare("SELECT body FROM workspaces WHERE user_id='beta'").get().body).contents.length,0);
+ const conflict=(await f.rpc(writer,'studio_propose_changes',{projectId:'alpha-project',revision:2,commands:[{operation:'update_shoot',entityId:state.contents[0].id,values:{time:'11:00'}}]})).data.result.structuredContent;
+ f.db.prepare("UPDATE workspaces SET revision=3 WHERE user_id='alpha'").run();assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:conflict.proposalId,confirmed:true})).data.result.structuredContent.error,'REVISION_CONFLICT');
+ const invalid=(await f.rpc(writer,'studio_propose_changes',{projectId:'alpha-project',revision:3,commands:[{operation:'update_project',values:{__secret:'bad'}}]})).data.result;assert.equal(invalid.isError,true);
+ const connections=await (await f.call('/api/connections','GET',undefined,{Cookie:f.cookies.alpha})).json();assert.equal(connections.connections.length,1);
+ await f.call('/api/connections/'+connections.connections[0].id,'DELETE',undefined,{Origin:f.origin,Cookie:f.cookies.beta});assert.equal((await f.rpc(writer,'tools/list')).response.status,200);
+ await f.call('/api/connections/'+connections.connections[0].id,'DELETE',undefined,{Origin:f.origin,Cookie:f.cookies.alpha});assert.equal((await f.rpc(writer,'tools/list')).response.status,401);
+});

@@ -13,6 +13,15 @@ export function openStore(dir) {
     CREATE TABLE IF NOT EXISTS workspaces(user_id TEXT PRIMARY KEY REFERENCES users(id), revision INTEGER NOT NULL, body TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS files(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), name TEXT NOT NULL, type TEXT NOT NULL, bytes BLOB NOT NULL);
   `);
+  const inviteColumns=db.prepare('PRAGMA table_info(invitations)').all().map(c=>c.name);
+  if(!inviteColumns.includes('max_uses')||!inviteColumns.includes('use_count')){
+    db.exec('BEGIN IMMEDIATE');
+    try{
+      if(!inviteColumns.includes('max_uses'))db.exec('ALTER TABLE invitations ADD COLUMN max_uses INTEGER DEFAULT 1');
+      if(!inviteColumns.includes('use_count')){db.exec('ALTER TABLE invitations ADD COLUMN use_count INTEGER NOT NULL DEFAULT 0');db.exec('UPDATE invitations SET use_count=1 WHERE used_at IS NOT NULL');}
+      db.exec('COMMIT');
+    }catch(e){db.exec('ROLLBACK');throw e;}
+  }
   // Preserve the owner on upgrade, using the earliest retained login; fall back to the first provisioned account.
   const owner=db.prepare('SELECT user_id AS id FROM sessions ORDER BY rowid LIMIT 1').get() || db.prepare('SELECT id FROM users ORDER BY rowid LIMIT 1').get();
   if(owner) db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(owner.id);

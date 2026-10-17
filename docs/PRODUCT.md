@@ -54,7 +54,7 @@ Studio's public repository contains no user data or credentials. User data and i
 - Camera layout
 - Visual reference boards linked to cameras
 - Mobile Shoot Mode
-- Settings surface for optional user-configured AI integration
+- Settings for private external ChatGPT app connections; no embedded API-key assistant
 
 ## Not V0.1
 

@@ -44,7 +44,7 @@ Every feature follows `PRODUCT.md`, `UI_LANGUAGE.md`, `ARCHITECTURE.md`, and `SE
 ## AI & Integrations
 **Why:** natural language can help with cross-feature operations and production checks.
 **Privacy:** disconnected by default; credentials never live in public source or frontend fixtures.
-**Current demo:** secure settings boundary is implemented; actual provider authentication is deferred until a backend/provider-supported authorization path is selected and reviewed.
+**Current scope:** the in-app GPT/AI integration and its settings entry are removed at the user’s request. External ChatGPT access is a separate account-authorized integration, not a server-side OpenAI API chat feature.
 
 ## NAS persistence
 The authenticated server stores account-isolated project state and attachments in the private NAS SQLite volume. Writes use revision checks. The browser demo is no longer the deployed persistence layer. See AUTH_AND_SERVER.md and NAS_DEPLOYMENT.md.
@@ -66,7 +66,7 @@ The authenticated server stores account-isolated project state and attachments i
 
 ## Invitation-only signup
 **Why:** let the owner onboard members without opening public registration.
-**Flow:** administrator Settings → create/copy a 48-hour single-use link → recipient chooses a username/password → login. Administrators can list invitation status and cancel unused links.
+**Flow:** administrator Settings → choose a 12/24/48-hour window and positive integer/unlimited capacity, then create/copy a link → recipient chooses a username/password → login. Administrators can list invitation status and cancel available links.
 **Reuse:** existing login fields/button styles, separate signup page/controller and invitation feature module.
 **Privacy:** only the first owner's account is administrator; invitees retain private account workspaces. Tokens are hashed server-side, not stored in browser storage, and never committed.
 
@@ -77,3 +77,10 @@ The authenticated server stores account-isolated project state and attachments i
 **Reuse:** shared typography tokens, layout domain operations and layout feature composition; existing form/button primitives.
 **UX:** fixed type roles, visible object type labels, keyboard arrows and numeric position controls as alternatives to dragging. Layout coordinates are percentages; changes persist per project.
 **Privacy:** layout data stays inside the existing authenticated workspace and revision/ownership boundaries. Fixtures are fictional. This release keeps the existing project-level layout; per-Shoot plans are future work.
+
+## Configurable invitations and connected assistants
+**Why:** invite groups with a suitable signup window and work on production data through natural language without bypassing ownership or validation.
+**Flow:** owner chooses 12/24/48 hours and one-or-more/unlimited signups; each successful atomic signup consumes capacity. Existing links remain single-use. ChatGPT connects through a private MCP endpoint with account consent and scoped, revocable OAuth credentials.
+**Data:** account-private workspaces, revision checks and shared domain commands; AI never supplies authoritative account IDs or raw database operations. External content is data, not instructions. Changes target a selected project, report impact, and preserve unrelated projects/files.
+**Reuse:** common command service for external tools, existing account/session and settings controls. No third-party frontend scripts or provider keys in browser storage.
+**Privacy:** users explicitly authorize an external ChatGPT connection before selected workspace data is accessible; tokens are hashed and revocable. ChatGPT connection registration is an external prerequisite, not implied by a successful local test.

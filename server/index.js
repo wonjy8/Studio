@@ -1,3 +1,6 @@
+import {oauthService} from './oauth.js';
+import {mcpService} from './mcp.js';
+import {writeWorkspace} from './workspace-service.js';
 import http from 'node:http';
 import {invitationRoutes,isAdmin} from './invitations.js';
 import { readFile } from 'node:fs/promises';
@@ -5,13 +8,13 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { openStore } from './store.js';
 import { digest, token, hashPassword, verifyPassword } from './auth.js';
-import { validateWorkspace, workspaceFileIds } from '../src/domain/workspace.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
 export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false'}={}) {
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir);
   const dummy = await hashPassword(token());
   const handleInvitations=invitationRoutes(db,origin);
+  const oauth=oauthService(db,origin),handleMcp=mcpService(db,origin,oauth);
   const attempts = new Map();
   let loginInFlight = 0;
   const server = http.createServer(async (req,res)=>{
@@ -22,9 +25,9 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     if (secure) res.setHeader('Strict-Transport-Security','max-age=31536000');
     const json=(code,body)=>{res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
     try {
-      const path = new URL(req.url,'http://localhost').pathname;
+      const url = new URL(req.url,'http://localhost'),path=url.pathname;
       if (req.method==='GET' && path==='/health') {db.prepare('SELECT 1').get(); return json(200,{ok:true});}
-      if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
+
       const body = async (limit=1024*1024)=>{
         const chunks=[];let size=0;
         for await (const chunk of req) {size+=chunk.length;if(size>limit) {const e=Error();e.status=413;throw e;} chunks.push(chunk);}
@@ -37,6 +40,9 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
       const session = cookie && db.prepare('SELECT user_id FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
+      if(path==='/mcp'){await handleMcp({req,res,json,readJson});return;}
+      if(await oauth.routes({path,url,req,res,json,body,readJson,session}))return;
+      if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if (path==='/api/login' && req.method==='POST') {
         const data = await readJson();
@@ -68,13 +74,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         }
         if(path==='/api/workspace'&&req.method==='PUT') {
           const data=await readJson();
-          if(!Number.isSafeInteger(data.revision)||!validateWorkspace(data.state)) return json(400,{error:'Invalid workspace'});
-          const files=workspaceFileIds(data.state);
-          if(files.some(id=>!db.prepare('SELECT id FROM files WHERE id=? AND user_id=?').get(id,uid))) return json(400,{error:'Invalid file reference'});
-          const row=db.prepare('SELECT revision FROM workspaces WHERE user_id=?').get(uid);
-          if((row?.revision||0)!==data.revision) return json(409,{error:'Workspace changed. Reload before editing.'});
-          db.prepare('INSERT INTO workspaces VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET revision=excluded.revision,body=excluded.body').run(uid,data.revision+1,JSON.stringify(data.state));
-          return json(200,{revision:data.revision+1});
+          try{return json(200,writeWorkspace(db,uid,data.state,data.revision));}catch(e){return json(e.status||500,{error:e.message});}
         }
         if(path==='/api/files'&&req.method==='POST') {
           const type=req.headers['content-type'];
@@ -106,7 +106,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       const bytes=await readFile(root+file);
       res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');
       res.end(req.method==='HEAD'?undefined:bytes);
-    } catch(e) {if(!res.headersSent) json(e.status|| (e.code==='ENOENT'?404:500),{error:e.status===413?'Request too large':'Request failed'});else res.end();}
+    } catch(e) {if(!res.headersSent) json(e.status|| (e.code==='ENOENT'?404:500),{error:e.status===413?'Request too large':(e.status&&pathForError(req.url)?e.message:'Request failed')});else res.end();}
   });
   server.requestTimeout=30000;server.headersTimeout=10000;
   server.on('close',()=>db.close());
@@ -116,3 +116,5 @@ if(process.argv[1]===fileURLToPath(import.meta.url)) {
   const {server}=await createApp();
   server.listen(Number(process.env.PORT||8080),'0.0.0.0',()=>console.log('Studio listening'));
 }
+
+function pathForError(url){return url.startsWith('/oauth/')||url.startsWith('/api/connections');}
