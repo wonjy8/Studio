@@ -36,8 +36,10 @@ export function reconcileEquipment(db,uid,state,{write=false,previous}={}){
   if(write&&!seen.has(item.id)){item={...item,...edits.get(item.id)};assertEquipmentCategory(db,uid,item.id,item.category,state);db.prepare('UPDATE equipment_items SET name=?,category=? WHERE id=? AND owner_id=?').run(item.name,item.category,item.id,uid);}
   item=seen.get(item.id)||item;seen.set(item.id,item);const oldName=g.name;g.equipmentId=item.id;g.name=item.name;g.category=item.category;g.equipmentBaseName=item.name;g.equipmentBaseCategory=item.category;for(const camera of p.cameras)if(camera.gearId===g.id)camera.body=g.name;for(const object of p.layoutObjects||[])if(object.gearId===g.id&&object.name===oldName)object.name=g.name;
   if(write){const duplicate=db.prepare('SELECT gear_id FROM equipment_links WHERE owner_id=? AND project_id=? AND equipment_id=?').get(uid,pid,item.id);if(duplicate&&duplicate.gear_id!==g.id)fail();db.prepare('INSERT INTO equipment_links VALUES(?,?,?,?,?,?) ON CONFLICT(owner_id,project_id,gear_id) DO UPDATE SET equipment_id=excluded.equipment_id,owner_member_id=excluded.owner_member_id,assignee_member_id=excluded.assignee_member_id').run(uid,pid,g.id,item.id,owner??null,assignee??null);}
-  if(owner){g.ownerMemberId=owner;g.owner=p.members.find(m=>m.id===owner).name;}else if(ownerExplicit){g.ownerMemberId=null;g.owner='';}
-  if(assignee){g.assigneeMemberId=assignee;g.assignee=p.members.find(m=>m.id===assignee).name;}else if(assigneeExplicit){g.assigneeMemberId=null;g.assignee='';}
+  const priorGear=previous&&projects(previous).find(old=>(old.project.id||'project-main')===pid)?.gear.find(old=>old.id===g.id);
+  const wasLinkedLabel=(field,memberId)=>Boolean(memberId)&&(g[field]===p.members.find(member=>member.id===memberId)?.name||(priorGear&&g[field]===priorGear[field]));
+  if(owner){g.ownerMemberId=owner;g.owner=p.members.find(m=>m.id===owner).name;}else if(ownerExplicit){g.ownerMemberId=null;if(wasLinkedLabel('owner',link?.owner_member_id))g.owner='';}
+  if(assignee){g.assigneeMemberId=assignee;g.assignee=p.members.find(m=>m.id===assignee).name;}else if(assigneeExplicit){g.assigneeMemberId=null;if(wasLinkedLabel('assignee',link?.assignee_member_id))g.assignee='';}
  }
  return state;
 }
