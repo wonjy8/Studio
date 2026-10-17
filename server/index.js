@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {invitationRoutes,isAdmin} from './invitations.js';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
@@ -10,6 +11,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir);
   const dummy = await hashPassword(token());
+  const handleInvitations=invitationRoutes(db,origin);
   const attempts = new Map();
   let loginInFlight = 0;
   const server = http.createServer(async (req,res)=>{
@@ -28,13 +30,14 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         for await (const chunk of req) {size+=chunk.length;if(size>limit) {const e=Error();e.status=413;throw e;} chunks.push(chunk);}
         return Buffer.concat(chunks);
       };
-      const readJson = async ()=>{
+      const readJson = async (limit)=>{
         if (!req.headers['content-type']?.startsWith('application/json')) {const e=Error();e.status=415;throw e;}
-        try {return JSON.parse(await body());} catch(e) {e.status ||=400;throw e;}
+        try {return JSON.parse(await body(limit));} catch(e) {e.status ||=400;throw e;}
       };
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
       const session = cookie && db.prepare('SELECT user_id FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
+      if(await handleInvitations({path,req,session,json,readJson}))return;
       if (path==='/api/login' && req.method==='POST') {
         const data = await readJson();
         if (typeof data.username!=='string'||data.username.length>64||typeof data.password!=='string'||data.password.length>256) return json(400,{error:'Invalid input'});
@@ -48,6 +51,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         loginInFlight++;
         let valid;try {valid=await verifyPassword(data.password,user?.password||dummy);} finally {loginInFlight--;}
         if(!valid||!user) return json(401,{error:'Login failed'});
+        db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(user.id);
         attempts.delete(keys[1]);
         db.prepare('DELETE FROM sessions WHERE expires<=?').run(now);
         const raw=token();db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),user.id,now+43200000);
@@ -56,7 +60,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(path.startsWith('/api/')) {
         if(!session) return json(401,{error:'Login required'});
         const uid=session.user_id;
-        if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true});
+        if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true,isAdmin:isAdmin(db,uid)});
         if(path==='/api/logout'&&req.method==='POST') {db.prepare('DELETE FROM sessions WHERE token=?').run(digest(cookie));setCookie('',0);return json(200,{ok:true});}
         if(path==='/api/workspace'&&req.method==='GET') {
           const row=db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(uid);
