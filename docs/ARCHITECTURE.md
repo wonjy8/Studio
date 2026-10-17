@@ -123,3 +123,10 @@ Provider credentials are never checked into source code and must not be embedded
 Important cross-feature mutations should calculate impact before commit. Moving a schedule item may affect cast call times, crew availability, camera/equipment conflicts, and adjacent schedule items.
 
 The UI and AI layer should present an impact summary and support undo/history for meaningful changes.
+
+## Scene layout and equipment inventory
+`src/domain/layout.js` owns layout mutations and shared equipment categories. Camera setups reference `gearId` in the project's inventory (category `camera`); new setups may reuse an existing camera or register one. Legacy setups are linked during project preparation, idempotently. The existing camera body field is retained for compatibility.
+
+Optional `layoutObjects` supports person/table/chair/stage/equipment/other, percentage x/y and rotation. Equipment placements require a valid project-local `gearId`; people may link a project-local `memberId`. Other objects are spatial context, not inventory. Camera, lens, lighting, tripod, SD card, audio and other are inventory categories; uncategorized legacy items remain supported. Server validation checks these references and coordinates for active and inactive projects. Project snapshots retain layout objects. Removing a placement keeps the source inventory/member record. Layouts remain project-level in this version.
+
+`src/features/layout/layout.js` composes the stage and shared forms; pointer, keyboard and numeric controls use the same domain mutation. Saved workspace revision checks apply to all placements.

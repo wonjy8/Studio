@@ -69,3 +69,11 @@ The authenticated server stores account-isolated project state and attachments i
 **Flow:** administrator Settings → create/copy a 48-hour single-use link → recipient chooses a username/password → login. Administrators can list invitation status and cancel unused links.
 **Reuse:** existing login fields/button styles, separate signup page/controller and invitation feature module.
 **Privacy:** only the first owner's account is administrator; invitees retain private account workspaces. Tokens are hashed server-side, not stored in browser storage, and never committed.
+
+## Typography and scene layout
+**Why:** consistent type roles make production information easier to scan; a camera plan needs people, furniture, stage and equipment context.
+**Flow:** Camera → add camera or placement → drag or edit coordinates → save; Equipment → select category → reuse that item in the layout.
+**Data:** camera setups link to equipment by ID; other placements link optionally to a member or equipment, with independent position/rotation. Existing camera setups gain a linked camera equipment record on load without dropping old fields. People/furniture/stage are layout objects, not equipment inventory. Camera, lighting, tripod and SD card are equipment categories.
+**Reuse:** shared typography tokens, layout domain operations and layout feature composition; existing form/button primitives.
+**UX:** fixed type roles, visible object type labels, keyboard arrows and numeric position controls as alternatives to dragging. Layout coordinates are percentages; changes persist per project.
+**Privacy:** layout data stays inside the existing authenticated workspace and revision/ownership boundaries. Fixtures are fictional. This release keeps the existing project-level layout; per-Shoot plans are future work.

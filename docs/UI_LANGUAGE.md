@@ -83,4 +83,19 @@ A global visual change should have one source of truth.
 ## Workspace navigation
 Use an icon rail for Production and bottom-aligned Settings. The adjacent sidebar lists Projects with configurable icon/color identities. Within-project Home, Schedule, Shoots and other surfaces use horizontal navigation immediately below the header. Project settings and logout live inside Settings. Mobile keeps the rail and opens Projects in a dismissible drawer. Icons are shared original vectors with outline/filled selection states.
 
-The workspace icon rail uses a compact 44px desktop / 42px mobile width. Prefer restrained 11–14px navigation and supporting typography; retain readable headings and 16px mobile form inputs.
+The workspace icon rail uses a compact 44px desktop / 42px mobile width. Use the typography roles below for navigation and supporting text; retain 16px mobile form inputs.
+## Typography contract
+
+글자 크기는 아래 역할만 사용한다. CSS의 `--text-*` 토큰이 단일 기준이며 페이지별 임의 크기나 화면 폭에 따른 탭 축소를 추가하지 않는다. 아래 px는 기본 브라우저 글자 크기 16px 기준이며 rem을 사용해 사용자 확대 설정을 존중한다.
+
+| 역할 | 토큰 | 크기 | 사용 위치 |
+| --- | --- | --- | --- |
+| 페이지 제목 | `--text-page` | 24px / 1.5rem | Home·각 탭·설정·로그인·촬영 모드 제목 |
+| 핵심 수치 | `--text-metric` | 24px / 1.5rem | 준비도·촬영 수·인원·장비 통계 |
+| 섹션 제목 | `--text-section` | 18px / 1.125rem | 오늘 일정·확인 필요 등 화면 내 구역 |
+| 카드·헤더 제목 | `--text-title` | 16px / 1rem | 카드 제목·프로젝트 헤더·사이드바 제목 |
+| 기본 조작·본문 | `--text-body` | 14px / .875rem | 탭·버튼·목록 이름·본문·폼 라벨·입력 |
+| 보조 설명 | `--text-support` | 13px / .8125rem | 설명·시간·소유자·담당자·오류·도움말 |
+| 메타 정보 | `--text-meta` | 12px / .75rem | 상태 배지·통계 라벨·저장 상태·상단 영문 라벨 |
+
+제목 행간 1.3, 카드 제목 1.4, 본문·조작 1.5, 보조 설명 1.6을 사용한다. 제목은 700 전후, 조작·라벨은 600 전후, 본문은 400을 기준으로 한다. 상태는 색만으로 구별하지 않는다. 모바일에서도 제목·탭 크기는 유지하고 공간이 부족하면 탭을 가로 스크롤한다. 모바일 폼 입력은 자동 확대 방지를 위해 16px로 올린다. 아이콘과 로고는 텍스트 계층을 새로 만드는 근거가 아니다.

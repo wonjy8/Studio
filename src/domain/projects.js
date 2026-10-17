@@ -1,5 +1,6 @@
+import {prepareLayout} from './layout.js';
 import {emptyWorkspace,projectIcons,projectColors} from './workspace.js';
-const keys=['project','contents','schedule','members','gear','cameras','refs','settings'];
+const keys=['project','contents','schedule','members','gear','cameras','layoutObjects','refs','settings'];
 export function projectSnapshot(state){return structuredClone(Object.fromEntries(keys.map(k=>[k,state[k]])));}
 export function prepareProjects(state){
  state.project.id ||= 'project-main';
@@ -7,6 +8,7 @@ export function prepareProjects(state){
  state.project.color=projectColors.includes(state.project.color)?state.project.color:'violet';
  state.project.order=Number.isSafeInteger(state.project.order)&&state.project.order>=0?state.project.order:0;
  state.projects ||= [];
+ for(const project of [state,...state.projects])prepareLayout(project);
  return state;
 }
 export function allProjects(state){return [projectSnapshot(state),...(state.projects||[])];}
