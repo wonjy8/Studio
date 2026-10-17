@@ -30,7 +30,7 @@ Information can be rich; interaction should remain simple. Avoid dashboard decor
 
 ## Color
 
-Use a neutral base. Semantic color is reserved for state and action.
+Use a pure white (#ffffff) base for the app, sidebar, header, and login page. Secondary surfaces use neutral gray rather than warm cream. Semantic color is reserved for state and action.
 
 Status must never rely on color alone. Pair color with a label and, when useful, an icon/marker.
 
