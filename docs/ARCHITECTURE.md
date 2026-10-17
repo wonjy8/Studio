@@ -4,10 +4,10 @@
 
 ```text
 Workspace
-└── Production
+└── Project
     ├── Home / Overview
     ├── Schedule
-    ├── Content
+    ├── Shoots
     ├── Camera Layout
     ├── References
     ├── Members
@@ -15,12 +15,14 @@ Workspace
     └── Budget (later)
 ```
 
+A **Project** is the overall production project. A **Shoot** is the practical shooting unit inside that project. `Shoot` replaces the former `Content` concept in product language.
+
 ## Domain relationships
 
 ```text
-Production
-├── ScheduleItem ──> Content
-├── Content
+Project
+├── ScheduleItem ──> Shoot
+├── Shoot
 │   ├── ScriptFile[]
 │   ├── CastAssignment ──> Person
 │   ├── CrewAssignment ──> Person
@@ -49,13 +51,13 @@ A script is primarily a source file, not an in-app rich-text document.
 
 ## Reference model
 
-A `ReferenceGroup` is a reusable visual target such as bust shot, two-shot, wide, or side. It contains ordered images and optional notes. Cameras and content can link to one or more groups.
+A `ReferenceGroup` is a reusable visual target such as bust shot, two-shot, wide, or side. It contains ordered images and optional notes. Cameras and Shoots can link to one or more groups.
 
 A reference group is not a required shot list.
 
 ## Camera model
 
-A camera position links body, lens, operator, equipment, and visual references for a content item. Camera layout is content-aware because the same room can use different setups for different content.
+A camera position links body, lens, operator, equipment, and visual references for a Shoot. Camera layout is Shoot-aware because the same room can use different setups for different Shoots.
 
 ## Source architecture
 
@@ -90,7 +92,7 @@ PUBLIC DEMO
   synthetic fixtures only
 
 PRIVATE RUNTIME DATA
-  productions + scripts + images + people + equipment + files
+  projects + shoots + scripts + images + people + equipment + files
 
 SECRET AUTH DATA
   provider credentials + sessions/tokens
