@@ -159,3 +159,34 @@ test('search/fetch provide account-scoped project retrieval and valid citation l
  assert.equal((await f.rpc(auth,'fetch',{id:'project:beta-project'})).data.result.isError,true);assert.equal((await f.rpc(auth,'fetch',{id:'https://evil.invalid/'})).data.result.isError,true);assert.equal((await f.rpc(auth,'search',{query:{secret:'invalid'}})).data.result.isError,true);
  const anonymous=await (await f.call('/mcp','POST',{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'search',arguments:{query:''}}})).json();assert.equal(anonymous.result.isError,true);assert.ok(anonymous.result._meta['mcp/www_authenticate']);assert.equal(JSON.stringify(anonymous).includes('Fictional alpha'),false);
 });
+
+test('manual callback repair requires owner approval, exact pending URI, expiry and valid ChatGPT host',async t=>{
+ const f=await fixture(t),path='/api/connections/clients';
+ f.db.prepare("INSERT INTO site_settings(key,value) VALUES('admin_user_id',?)").run('alpha');
+ const headers={Origin:f.origin,Cookie:f.cookies.alpha};
+ const manual=await (await f.call(path,'POST',{redirectUris:[f.callback]},headers)).json();
+ const p=await f.pending({client_id:manual.clientId});
+ const requested='https://chatgpt.com/aip/callback/fictional';
+ const authorize=async(overrides)=>{const r=await f.call('/oauth/authorize?'+new URLSearchParams({...p.params,...overrides}));return {status:r.status,data:r.status===400?await r.json():null};};
+ assert.equal((await authorize({client_id:token()})).data.error,'unknown_client');
+ assert.equal((await authorize({redirect_uri:requested})).data.error,'redirect_uri_mismatch');
+ assert.deepEqual(JSON.parse(f.db.prepare('SELECT redirects FROM oauth_clients WHERE id=?').get(manual.clientId).redirects),[f.callback]);
+ const listed=await (await f.call(path,'GET',undefined,{Cookie:f.cookies.alpha})).json();assert.equal(listed.clients[0].pendingCallback,requested);
+ const endpoint=path+'/'+manual.clientId+'/callback',body={redirectUri:requested};
+ assert.equal((await f.call(endpoint,'POST',body,{Cookie:f.cookies.alpha})).status,403);
+ assert.equal((await f.call(endpoint,'POST',body,{Origin:f.origin,Cookie:f.cookies.beta})).status,403);
+ assert.equal((await f.call(endpoint,'POST',{redirectUri:requested+'/changed'},headers)).status,409);
+ assert.equal((await f.call(endpoint,'POST',body,headers)).status,200);
+ assert.equal((await authorize({redirect_uri:requested})).status,302);
+ assert.equal((await f.call(endpoint,'POST',body,headers)).status,409);
+ await authorize({redirect_uri:requested+'/expired'});
+ f.db.prepare('UPDATE oauth_callback_mismatches SET expires=0').run();
+ assert.equal((await f.call(endpoint,'POST',{redirectUri:requested+'/expired'},headers)).status,409);
+ for(const redirect_uri of ['https://evil.example/callback','https://chatgpt.com.evil.example/callback','https://user@chatgpt.com/callback','http://chatgpt.com/callback'])assert.equal((await authorize({redirect_uri})).data.error,'invalid_redirect_uri');
+ const diagnostic=await (await f.call('/api/connections/diagnostics','GET',undefined,{Cookie:f.cookies.alpha})).json();
+ assert.ok(diagnostic.events.some(e=>e.reason==='redirect_uri_mismatch'));assert.ok(diagnostic.events.some(e=>e.reason==='unknown_client'));
+ assert.equal(JSON.stringify(diagnostic).includes(requested),false);assert.equal(JSON.stringify(diagnostic).includes(manual.clientId),false);
+ await f.call(path+'/'+manual.clientId,'DELETE',undefined,headers);
+ assert.equal((await authorize({})).data.error,'client_revoked');
+ assert.equal(f.db.prepare('SELECT count(*) AS n FROM oauth_callback_mismatches').get().n,0);
+});

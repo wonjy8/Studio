@@ -1,6 +1,6 @@
 // Store only allowlisted protocol outcomes. Never retain bodies, URLs, headers or credentials.
 const methods=new Set(['none','client_secret_post','client_secret_basic']);
-const errors=new Set(['invalid_client_metadata','invalid_redirect_uri','invalid_client','invalid_client_or_redirect','invalid_request','invalid_scope','invalid_target','invalid_grant','unsupported_grant_type','unsupported_media_type','rate_limit','registration_limit','request_limit','connection_limit','invalid_token','Origin rejected','tool_auth_required','tool_rejected']);
+const errors=new Set(['invalid_client_metadata','invalid_redirect_uri','invalid_client','invalid_client_or_redirect','unknown_client','client_revoked','redirect_uri_mismatch','invalid_request','invalid_scope','invalid_target','invalid_grant','unsupported_grant_type','unsupported_media_type','rate_limit','registration_limit','request_limit','connection_limit','invalid_token','Origin rejected','tool_auth_required','tool_rejected']);
 export function connectionDiagnostics(db){
  db.exec('CREATE TABLE IF NOT EXISTS connection_diagnostics(id INTEGER PRIMARY KEY,created_at INTEGER NOT NULL,stage TEXT NOT NULL,status INTEGER NOT NULL,reason TEXT NOT NULL,details TEXT NOT NULL)');
  function metadata(data){
