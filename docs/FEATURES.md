@@ -63,3 +63,9 @@ The authenticated server stores account-isolated project state and attachments i
 **Reuse:** original vector icon primitive, navigation pattern, project identity form, shell and settings page. Projects select from six icons and six semantic identity colors.
 **UX:** two-column desktop sidebar, persistent workspace rail, mobile project drawer, scrolling project tabs, visible focus and selected state.
 **Privacy:** every attachment across active and inactive projects is validated for account ownership. No screenshots or user project names are fixtures.
+
+## Invitation-only signup
+**Why:** let the owner onboard members without opening public registration.
+**Flow:** administrator Settings → create/copy a 48-hour single-use link → recipient chooses a username/password → login. Administrators can list invitation status and cancel unused links.
+**Reuse:** existing login fields/button styles, separate signup page/controller and invitation feature module.
+**Privacy:** only the first owner's account is administrator; invitees retain private account workspaces. Tokens are hashed server-side, not stored in browser storage, and never committed.

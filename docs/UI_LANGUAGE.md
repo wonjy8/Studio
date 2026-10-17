@@ -82,3 +82,5 @@ A global visual change should have one source of truth.
 
 ## Workspace navigation
 Use an icon rail for Production and bottom-aligned Settings. The adjacent sidebar lists Projects with configurable icon/color identities. Within-project Home, Schedule, Shoots and other surfaces use horizontal navigation immediately below the header. Project settings and logout live inside Settings. Mobile keeps the rail and opens Projects in a dismissible drawer. Icons are shared original vectors with outline/filled selection states.
+
+The workspace icon rail uses a compact 44px desktop / 42px mobile width. Prefer restrained 11–14px navigation and supporting typography; retain readable headings and 16px mobile form inputs.

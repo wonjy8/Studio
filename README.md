@@ -2,7 +2,7 @@
 
 Studio is a production planning and shoot-day command center: Workspace → Project → Shoot.
 
-The NAS-hosted app provides local-account login, private persistent project data, PDF script preview/download, and reference image storage. Accounts are provisioned on the NAS; public signup and AI integration are disabled. Each account has an isolated workspace with multiple projects and configurable project icons.
+The NAS-hosted app provides local-account login, private persistent project data, PDF script preview/download, and reference image storage. Provision the first account on the NAS. The administrator can then invite members through single-use signup links in Settings; public signup and AI integration remain disabled. Each account has an isolated workspace with multiple projects and configurable project icons.
 
 Read [NAS deployment](docs/NAS_DEPLOYMENT.md) for the exact DSM update, account setup, backup, and acceptance checks. Existing Cloudflare Tunnel routes to `http://studio:8080`; no router forwarding is needed. Runtime data lives in the private `studio-data` Docker volume and never in Git or the image.
 
