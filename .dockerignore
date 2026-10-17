@@ -15,3 +15,10 @@ storage
 local-db
 *.db
 *.sqlite
+
+.data
+*.sqlite3
+*.sqlite-*
+*.db-*
+*.pem
+*.key

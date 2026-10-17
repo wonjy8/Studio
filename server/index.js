@@ -1,0 +1,114 @@
+import http from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
+import { openStore } from './store.js';
+import { digest, token, hashPassword, verifyPassword } from './auth.js';
+import { validateWorkspace } from '../src/domain/workspace.js';
+const root = fileURLToPath(new URL('../', import.meta.url));
+export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false'}={}) {
+  if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
+  const db = openStore(dir);
+  const dummy = await hashPassword(token());
+  const attempts = new Map();
+  let loginInFlight = 0;
+  const server = http.createServer(async (req,res)=>{
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('X-Content-Type-Options','nosniff');
+    res.setHeader('Referrer-Policy','no-referrer');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'");
+    if (secure) res.setHeader('Strict-Transport-Security','max-age=31536000');
+    const json=(code,body)=>{res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
+    try {
+      const path = new URL(req.url,'http://localhost').pathname;
+      if (req.method==='GET' && path==='/health') {db.prepare('SELECT 1').get(); return json(200,{ok:true});}
+      if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
+      const body = async (limit=1024*1024)=>{
+        const chunks=[];let size=0;
+        for await (const chunk of req) {size+=chunk.length;if(size>limit) {const e=Error();e.status=413;throw e;} chunks.push(chunk);}
+        return Buffer.concat(chunks);
+      };
+      const readJson = async ()=>{
+        if (!req.headers['content-type']?.startsWith('application/json')) {const e=Error();e.status=415;throw e;}
+        try {return JSON.parse(await body());} catch(e) {e.status ||=400;throw e;}
+      };
+      const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
+      const session = cookie && db.prepare('SELECT user_id FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
+      const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
+      if (path==='/api/login' && req.method==='POST') {
+        const data = await readJson();
+        if (typeof data.username!=='string'||data.username.length>64||typeof data.password!=='string'||data.password.length>256) return json(400,{error:'Invalid input'});
+        const now=Date.now();
+        for(const [key,v] of attempts) if(v.until<now) attempts.delete(key);
+        // Global plus account budgets: do not trust spoofable proxy/IP headers.
+        const keys=['*',data.username.toLowerCase()];
+        if(loginInFlight>=4 || keys.some(k=>(attempts.get(k)?.count||0)>=(k==='*'?100:10))) return json(429,{error:'Try again later'});
+        keys.forEach(k=>attempts.set(k,{count:(attempts.get(k)?.count||0)+1,until:attempts.get(k)?.until||now+900000}));
+        const user=db.prepare('SELECT * FROM users WHERE username=?').get(data.username);
+        loginInFlight++;
+        let valid;try {valid=await verifyPassword(data.password,user?.password||dummy);} finally {loginInFlight--;}
+        if(!valid||!user) return json(401,{error:'Login failed'});
+        attempts.delete(keys[1]);
+        db.prepare('DELETE FROM sessions WHERE expires<=?').run(now);
+        const raw=token();db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),user.id,now+43200000);
+        setCookie(raw,43200);return json(200,{ok:true});
+      }
+      if(path.startsWith('/api/')) {
+        if(!session) return json(401,{error:'Login required'});
+        const uid=session.user_id;
+        if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true});
+        if(path==='/api/logout'&&req.method==='POST') {db.prepare('DELETE FROM sessions WHERE token=?').run(digest(cookie));setCookie('',0);return json(200,{ok:true});}
+        if(path==='/api/workspace'&&req.method==='GET') {
+          const row=db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(uid);
+          return json(200,row?{revision:row.revision,state:JSON.parse(row.body)}:{revision:0,state:null});
+        }
+        if(path==='/api/workspace'&&req.method==='PUT') {
+          const data=await readJson();
+          if(!Number.isSafeInteger(data.revision)||!validateWorkspace(data.state)) return json(400,{error:'Invalid workspace'});
+          const files=[...data.state.refs.flatMap(r=>r.images.map(s=>s.split('/').pop())),...data.state.contents.map(s=>s.scriptFile).filter(Boolean)];
+          if(files.some(id=>!db.prepare('SELECT id FROM files WHERE id=? AND user_id=?').get(id,uid))) return json(400,{error:'Invalid file reference'});
+          const row=db.prepare('SELECT revision FROM workspaces WHERE user_id=?').get(uid);
+          if((row?.revision||0)!==data.revision) return json(409,{error:'Workspace changed. Reload before editing.'});
+          db.prepare('INSERT INTO workspaces VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET revision=excluded.revision,body=excluded.body').run(uid,data.revision+1,JSON.stringify(data.state));
+          return json(200,{revision:data.revision+1});
+        }
+        if(path==='/api/files'&&req.method==='POST') {
+          const type=req.headers['content-type'];
+          if(!['application/pdf','image/png','image/jpeg','image/webp'].includes(type)) return json(415,{error:'PDF, PNG, JPEG or WebP required'});
+          const bytes=await body(10*1024*1024);
+          const signature=type==='application/pdf'?bytes.subarray(0,5).toString()==='%PDF-':type==='image/png'?bytes.subarray(0,8).toString('hex')==='89504e470d0a1a0a':type==='image/jpeg'?bytes.subarray(0,3).toString('hex')==='ffd8ff':bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WEBP';
+          if(!signature) return json(400,{error:'Invalid file'});
+          const usage=db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM files WHERE user_id=?').get(uid).size;
+          if(usage+bytes.length>250*1024*1024) return json(413,{error:'Storage quota reached'});
+          const id=randomUUID(), name=decodeURIComponent(req.headers['x-file-name']||'file').slice(0,200);
+          db.prepare('INSERT INTO files VALUES(?,?,?,?,?)').run(id,uid,name,type,bytes);
+          return json(201,{id,url:`/api/files/${id}`});
+        }
+        const match=path.match(/^\/api\/files\/([a-f0-9-]{36})$/);
+        if(match&&req.method==='GET') {
+          const file=db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(match[1],uid);
+          if(!file) return json(404,{error:'Not found'});
+          res.setHeader('Content-Type',file.type);
+          res.setHeader('Content-Disposition',`${new URL(req.url,'http://localhost').searchParams.has('download')?'attachment':'inline'}; filename*=UTF-8''${encodeURIComponent(file.name).replace(/'/g,'%27')}`);
+          res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");
+          return res.end(file.bytes);
+        }
+        return json(404,{error:'Not found'});
+      }
+      // Explicit static allowlist prevents serving runtime DBs, server code or repository files.
+      if(req.method!=='GET'&&req.method!=='HEAD') return json(405,{error:'Method not allowed'});
+      if(!(/^\/src\/[a-zA-Z0-9_/-]+\.(js|css)$/.test(path)||path==='/'||path==='/index.html')) return json(404,{error:'Not found'});
+      const file=path==='/'?'index.html':path.slice(1);
+      const bytes=await readFile(root+file);
+      res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');
+      res.end(req.method==='HEAD'?undefined:bytes);
+    } catch(e) {if(!res.headersSent) json(e.status|| (e.code==='ENOENT'?404:500),{error:e.status===413?'Request too large':'Request failed'});else res.end();}
+  });
+  server.requestTimeout=30000;server.headersTimeout=10000;
+  server.on('close',()=>db.close());
+  return {server,db};
+}
+if(process.argv[1]===fileURLToPath(import.meta.url)) {
+  const {server}=await createApp();
+  server.listen(Number(process.env.PORT||8080),'0.0.0.0',()=>console.log('Studio listening'));
+}
