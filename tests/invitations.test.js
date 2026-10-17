@@ -31,8 +31,9 @@ test('admin-only invitations, atomic signup, expiry, revocation and account isol
  assert.equal((await call('signup','POST',{token:raw,username:'new-member',password:'weak'})).status,400);
  assert.equal((await call('signup','POST',{token:raw,username:'OWNER',password:'Fictional!8'})).status,409);
  assert.equal(db.prepare('SELECT used_at FROM invitations WHERE id=?').get(invite.id).used_at,null);
- const results=await Promise.all(['new-member','other-member'].map(username=>call('signup','POST',{token:raw,username,password:'Fictional!8',isAdmin:true})));
+ const results=await Promise.all(['new-member','other-member'].map(username=>call('signup','POST',{token:raw,username,name:'Fictional Registered Name',password:'Fictional!8',isAdmin:true})));
  assert.deepEqual(results.map(r=>r.status).sort(),[201,400]);
+ assert.equal(db.prepare("SELECT name FROM account_profiles").get().name,'Fictional Registered Name');
  const name=db.prepare("SELECT username FROM users WHERE username IN ('new-member','other-member')").get().username;
  const joined=await login(name);
  assert.equal((await (await call('session','GET',undefined,joined)).json()).isAdmin,false);

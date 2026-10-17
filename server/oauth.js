@@ -1,3 +1,4 @@
+import {accountActive,passwordChangeRequired} from './accounts.js';
 import {isAdmin} from './invitations.js';
 import {createHash,randomUUID,timingSafeEqual} from 'node:crypto';
 import {token,digest} from './auth.js';
@@ -43,7 +44,7 @@ export function oauthService(db,origin){
  };
  const authenticate=req=>{
   const raw=req.headers.authorization?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
-  return raw?db.prepare('SELECT * FROM oauth_grants WHERE access_hash=? AND access_expires>? AND refresh_expires>? AND revoked=0 AND resource=? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=oauth_grants.client_id AND m.revoked=1)').get(digest(raw),Date.now(),Date.now(),resource):undefined;
+  const grant=raw?db.prepare('SELECT * FROM oauth_grants WHERE access_hash=? AND access_expires>? AND refresh_expires>? AND revoked=0 AND resource=? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=oauth_grants.client_id AND m.revoked=1)').get(digest(raw),Date.now(),Date.now(),resource):undefined;return grant&&accountActive(db,grant.user_id)&&!passwordChangeRequired(db,grant.user_id)?grant:undefined;
  };
  async function routes({path,url,req,res,json,body,readJson,session}){
   if(path.startsWith('/.well-known/')){
@@ -82,12 +83,12 @@ export function oauthService(db,origin){
    if(form.get('grant_type')==='authorization_code'){
     const raw=form.get('code'),verifier=form.get('code_verifier')||'';if(!raw||!/^[A-Za-z0-9._~-]{43,128}$/.test(verifier))throw fail('invalid_grant');
     const code=db.prepare('SELECT * FROM oauth_codes WHERE hash=? AND expires>?').get(digest(raw),Date.now());
-    if(!code||code.client_id!==client||code.redirect_uri!==form.get('redirect_uri')||createHash('sha256').update(verifier).digest('base64url')!==code.challenge)throw fail('invalid_grant');
+    if(!code||!accountActive(db,code.user_id)||passwordChangeRequired(db,code.user_id)||code.client_id!==client||code.redirect_uri!==form.get('redirect_uri')||createHash('sha256').update(verifier).digest('base64url')!==code.challenge)throw fail('invalid_grant');
     db.exec('BEGIN IMMEDIATE');try{db.prepare('DELETE FROM oauth_codes WHERE hash=?').run(code.hash);const result=issue(code.user_id,client,code.scope);db.exec('COMMIT');json(200,result);}catch(e){db.exec('ROLLBACK');throw e;}return true;
    }
    if(form.get('grant_type')==='refresh_token'){
     const raw=form.get('refresh_token');if(!raw)throw fail('invalid_grant');
-    const grant=db.prepare('SELECT * FROM oauth_grants WHERE refresh_hash=? AND client_id=? AND refresh_expires>? AND revoked=0 AND resource=? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=oauth_grants.client_id AND m.revoked=1)').get(digest(raw),client,Date.now(),resource);if(!grant)throw fail('invalid_grant');
+    const grant=db.prepare('SELECT * FROM oauth_grants WHERE refresh_hash=? AND client_id=? AND refresh_expires>? AND revoked=0 AND resource=? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=oauth_grants.client_id AND m.revoked=1)').get(digest(raw),client,Date.now(),resource);if(!grant||!accountActive(db,grant.user_id)||passwordChangeRequired(db,grant.user_id))throw fail('invalid_grant');
     const access=token(),refresh=token();db.prepare('UPDATE oauth_grants SET access_hash=?,refresh_hash=?,access_expires=? WHERE id=?').run(digest(access),digest(refresh),Date.now()+3600000,grant.id);
     json(200,{access_token:access,refresh_token:refresh,token_type:'Bearer',expires_in:3600,scope:grant.scope});return true;
    }
@@ -99,6 +100,7 @@ export function oauthService(db,origin){
   }
   if(path==='/api/connections'||path.startsWith('/api/connections/')){
    if(!session)throw fail('Login required',401);
+   if(passwordChangeRequired(db,session.user_id))throw fail('PASSWORD_CHANGE_REQUIRED',403);
    if(req.method!=='GET'&&req.headers.origin!==origin)throw fail('Origin rejected',403);
    if(path==='/api/connections/clients'&&req.method==='GET'){
     if(!isAdmin(db,session.user_id))throw fail('Administrator required',403);

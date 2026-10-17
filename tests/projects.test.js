@@ -37,3 +37,16 @@ test('reject nested workspaces, duplicate project IDs and unsafe icon metadata',
  delete other.projects;other.project.icon='javascript:alert(1)';
  assert.equal(validateWorkspace({...state,projects:[other]}),false);
 });
+test('project checklist and description retain data through preparation and switches',()=>{
+ let state=prepareProjects(emptyWorkspace());
+ state.project.description='Fictional planning notes';
+ state.tasks=[{id:'task-a',name:'Check batteries',completed:false}];
+ assert.equal(validateWorkspace(state),true);
+ state=addProject(state,{name:'Second',icon:'camera',color:'blue'},'project-second');
+ assert.deepEqual(state.tasks,[]);
+ state=switchProject(state,'project-main');
+ assert.equal(state.project.description,'Fictional planning notes');
+ assert.deepEqual(state.tasks,[{id:'task-a',name:'Check batteries',completed:false}]);
+ assert.equal(validateWorkspace(state),true);
+ for(const tasks of [[{id:'bad',name:'',completed:false}],[{id:'a',name:'One',completed:false},{id:'a',name:'Two',completed:true}],[{id:'a',name:'One',completed:'yes'}]])assert.equal(validateWorkspace({...state,tasks}),false);
+});

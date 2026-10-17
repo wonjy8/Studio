@@ -36,3 +36,38 @@ test('server rejects invalid placement positions, categories and cross-project r
  assert.throws(()=>moveLayoutItem(state,item.id,NaN,50));
  const camera=addCamera(state,{name:'CAM'});camera.gearId='foreign';assert.equal(validateWorkspace(state),false);
 });
+test('tables support bounded independent rectangles and circles without changing linked records',async()=>{
+ const {resizeLayoutTable}=await import('../src/domain/layout.js');
+ const state=emptyWorkspace();const rectangle=addLayoutObject(state,{kind:'table',shape:'rectangle'});
+ resizeLayoutTable(state,rectangle.id,180.25,64.75);assert.equal(rectangle.width,180.25);assert.equal(rectangle.height,64.75);
+ const circle=addLayoutObject(state,{kind:'table',shape:'circle'});resizeLayoutTable(state,circle.id,160,80);assert.equal(circle.width,160);assert.equal(circle.height,160);
+ resizeLayoutTable(state,circle.id,999,0);assert.equal(circle.width,360);assert.equal(circle.height,360);assert.equal(validateWorkspace(state),true);
+ assert.throws(()=>resizeLayoutTable(state,rectangle.id,NaN,80));assert.throws(()=>addLayoutObject(state,{kind:'table',shape:'triangle'}));
+ for(const patch of [{width:0},{height:361},{shape:'ellipse'},{shape:'circle',width:70,height:80}]){const invalid=structuredClone(state);Object.assign(invalid.layoutObjects[0],patch);assert.equal(validateWorkspace(invalid),false);}
+ const legacy=structuredClone(state);for(const key of ['width','height','shape'])delete legacy.layoutObjects[0][key];assert.equal(validateWorkspace(legacy),true);
+ const person=addLayoutObject(state,{kind:'person',name:'Fictional person'});person.width=120;assert.equal(validateWorkspace(state),false);
+});
+test('layout forms show icon choices, whole coordinate values with precise source, table handles and person names',async()=>{
+ const {placementForm,positionForm,layoutStage}=await import('../src/features/layout/layout.js');
+ const state=emptyWorkspace();const table=addLayoutObject(state,{kind:'table',shape:'circle'});table.x=31.2345;
+ const person=addLayoutObject(state,{kind:'person',name:'Fictional cast'});
+ const form=placementForm(state,'table');assert.equal((form.match(/type="radio"/g)||[]).length,6);assert.match(form,/name="shape"/);assert.doesNotMatch(form,/<select name="kind"/);
+ assert.match(positionForm(table),/data-precise="31.2345" value="31"/);assert.match(positionForm(table),/name="height"[^>]*readonly/);
+ const html=layoutStage(state);assert.equal((html.match(/data-resize=/g)||[]).length,8);assert.match(html,/<svg/);assert.match(html,/Fictional cast/);assert.doesNotMatch(html,/<small>사람<\/small>/);
+ assert.equal(person.name,'Fictional cast');assert.throws(()=>addLayoutObject(state,{kind:'person'}));
+});
+test('display geometry keeps large tables and resize handles inside desktop/mobile without mutating source coordinates',async()=>{
+ const {layoutItemGeometry}=await import('../src/features/layout/layout.js');
+ for(const [stageWidth,stageHeight] of [[900,380],[260,380],[120,100]])for(const shape of ['rectangle','circle'])for(const x of [0,31.2345,100])for(const y of [0,57.5678,100]){
+  const item={kind:'table',shape,width:360,height:shape==='circle'?360:220,x,y};const before=structuredClone(item);
+  const geometry=layoutItemGeometry(item,stageWidth,stageHeight);
+  assert.ok(geometry.left-geometry.width/2>=9.999);assert.ok(geometry.left+geometry.width/2<=stageWidth-9.999);
+  assert.ok(geometry.top-geometry.height/2>=9.999);assert.ok(geometry.top+geometry.height/2<=stageHeight-9.999);
+  if(shape==='circle')assert.equal(geometry.width,geometry.height);
+  assert.deepEqual(item,before);
+ }
+ const small=layoutItemGeometry({kind:'table',width:120,height:80,x:0,y:100},500,380);
+ const large=layoutItemGeometry({kind:'table',width:360,height:240,x:0,y:100},500,380);
+ assert.equal(small.left-small.width/2,10);assert.equal(large.left-large.width/2,10);
+ assert.equal(small.top+small.height/2,370);assert.equal(large.top+large.height/2,370);
+});

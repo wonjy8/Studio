@@ -1,3 +1,7 @@
+import {prepareAccountSchema} from './account-migration.js';
+import {reconcileEquipment} from './equipment.js';
+import {validateWorkspace} from '../src/domain/workspace.js';
+import {accountRoutes,accountActive,passwordChangeRequired,linkedWorkspace} from './accounts.js';
 import {connectionDiagnostics} from './connection-diagnostics.js';
 import {oauthService} from './oauth.js';
 import {mcpService,toolSchemaVersion} from './mcp.js';
@@ -13,6 +17,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false'}={}) {
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir);
+  try{await prepareAccountSchema(db,dir);}catch(error){db.close();throw error;}
+  const handleAccounts=accountRoutes(db);
   const dummy = await hashPassword(token());
   const diagnostics=connectionDiagnostics(db);
   const handleInvitations=invitationRoutes(db,origin);
@@ -30,7 +36,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     const json=(code,body)=>{if(typeof body?.error==='string')diagnosticReason=body.error;if(body?.result?.isError===true)diagnosticReason=body.result._meta?.['mcp/www_authenticate']?'tool_auth_required':'tool_rejected';res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
     try {
       const url = new URL(req.url,'http://localhost'),path=url.pathname;diagnosticPath=path;
-      if (req.method==='GET' && path==='/health') {db.prepare('SELECT 1').get(); return json(200,{ok:true});}
+      if (req.method==='GET' && path==='/health') {db.prepare('SELECT 1').get(); return json(200,{ok:true,revision:process.env.STUDIO_REVISION||'development'});}
 
       const body = async (limit=1024*1024)=>{
         const chunks=[];let size=0;
@@ -42,13 +48,16 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         try {const data=JSON.parse(await body(limit));if(path==='/oauth/register')diagnosticDetails=diagnostics.metadata(data);if(path==='/mcp'){diagnosticData={method:typeof data?.method==='string'?data.method:''};diagnosticDetails=diagnostics.toolMetadata(data);}return data;} catch(e) {e.status ||=400;throw e;}
       };
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
-      const session = cookie && db.prepare('SELECT user_id FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
+      let session = cookie && db.prepare('SELECT user_id,token FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
+      if(session&&!accountActive(db,session.user_id))session=undefined;
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
+      if(session&&passwordChangeRequired(db,session.user_id)&&!['/api/session','/api/logout','/api/account/password'].includes(path)&&path.startsWith('/api/'))return json(403,{error:'PASSWORD_CHANGE_REQUIRED'});
       if(path==='/api/connections/diagnostics'&&req.method==='GET'){if(!session)return json(401,{error:'Login required'});if(!isAdmin(db,session.user_id))return json(403,{error:'Administrator required'});return json(200,{version:'connection-diagnostics-1',toolSchemaVersion,events:diagnostics.list()});}
       if(path==='/mcp'){await handleMcp({req,res,json,readJson});return;}
       if(await oauth.routes({path,url,req,res,json,body,readJson,session}))return;
       if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
       if(await handleInvitations({path,req,session,json,readJson}))return;
+      if(await handleAccounts({path,url,req,session,json,readJson}))return;
       if (path==='/api/login' && req.method==='POST') {
         const data = await readJson();
         if (typeof data.username!=='string'||data.username.length>64||typeof data.password!=='string'||data.password.length>256) return json(400,{error:'Invalid input'});
@@ -61,25 +70,26 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         const user=db.prepare('SELECT * FROM users WHERE username=?').get(data.username);
         loginInFlight++;
         let valid;try {valid=await verifyPassword(data.password,user?.password||dummy);} finally {loginInFlight--;}
-        if(!valid||!user) return json(401,{error:'Login failed'});
+        if(!valid||!user||!accountActive(db,user.id)||db.prepare('SELECT password FROM users WHERE id=?').get(user.id)?.password!==user.password) return json(401,{error:'Login failed'});
         db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(user.id);
         attempts.delete(keys[1]);
         db.prepare('DELETE FROM sessions WHERE expires<=?').run(now);
         const raw=token();db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),user.id,now+43200000);
-        setCookie(raw,43200);return json(200,{ok:true});
+        setCookie(raw,43200);return json(200,{ok:true,passwordChangeRequired:passwordChangeRequired(db,user.id)});
       }
       if(path.startsWith('/api/')) {
         if(!session) return json(401,{error:'Login required'});
         const uid=session.user_id;
-        if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true,isAdmin:isAdmin(db,uid)});
+        if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true,isAdmin:isAdmin(db,uid),passwordChangeRequired:passwordChangeRequired(db,uid),account:db.prepare("SELECT u.id,u.username,COALESCE(p.name,'') name FROM users u LEFT JOIN account_profiles p ON p.user_id=u.id WHERE u.id=?").get(uid)});
         if(path==='/api/logout'&&req.method==='POST') {db.prepare('DELETE FROM sessions WHERE token=?').run(digest(cookie));setCookie('',0);return json(200,{ok:true});}
         if(path==='/api/workspace'&&req.method==='GET') {
           const row=db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(uid);
-          return json(200,row?{revision:row.revision,state:JSON.parse(row.body)}:{revision:0,state:null});
+          return json(200,row?{revision:row.revision,state:reconcileEquipment(db,uid,linkedWorkspace(db,uid,JSON.parse(row.body)))}:{revision:0,state:null});
         }
         if(path==='/api/workspace'&&req.method==='PUT') {
           const data=await readJson();
-          try{return json(200,writeWorkspace(db,uid,data.state,data.revision));}catch(e){return json(e.status||500,{error:e.message});}
+          if(!validateWorkspace(data.state))return json(400,{error:'Invalid workspace'});
+          try{return json(200,writeWorkspace(db,uid,linkedWorkspace(db,uid,data.state),data.revision));}catch(e){return json(e.status||500,{error:e.message});}
         }
         if(path==='/api/files'&&req.method==='POST') {
           const type=req.headers['content-type'];

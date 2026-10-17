@@ -2,7 +2,7 @@ import {emptyWorkspace} from './workspace.js';
 import {prepareProjects,allProjects,switchProject,addProject} from './projects.js';
 import {addCamera,addLayoutObject,moveLayoutItem} from './layout.js';
 export const commandOperations=['add_shoot','update_shoot','add_member','update_member','add_equipment','update_equipment','add_reference','update_reference','update_project','add_project','add_camera','add_layout_object','move_layout'];
-const allowed={shoot:['name','time','location','status','completed'],member:['name','role','call'],equipment:['name','category','owner','assignee','status'],reference:['name','notes'],project:['name','date','time','location','icon','color']};
+const allowed={shoot:['name','time','location','status','completed'],member:['name','role','call'],equipment:['name','category','owner','assignee','status'],reference:['name','notes'],project:['name','description','date','time','location','icon','color']};
 export function applyCommands(input,projectId,commands){
  if(!Array.isArray(commands)||commands.length<1||commands.length>20)throw Error('변경은 한 번에 1~20개까지 가능합니다.');
  let state=prepareProjects(structuredClone(input||emptyWorkspace()));
@@ -37,6 +37,14 @@ export function applyCommands(input,projectId,commands){
     for(const camera of state.cameras)if(camera.gearId===item.id)camera.body=item.name;
     for(const object of state.layoutObjects)if(object.gearId===item.id&&object.name===previousName)object.name=item.name;
     impact.push('연결된 카메라 장비·배치 이름도 반영');
+   }
+  }
+  if(type==='equipment'&&item.equipmentId){
+   for(const project of [state,...(state.projects||[])])for(const gear of project.gear){
+    if(gear===item||gear.equipmentId!==item.equipmentId)continue;
+    const oldName=gear.name;
+    for(const key of ['name','category'])if(Object.hasOwn(values,key))gear[key]=item[key];
+    if(gear.name!==oldName){for(const camera of project.cameras)if(camera.gearId===gear.id)camera.body=gear.name;for(const object of project.layoutObjects)if(object.gearId===gear.id&&object.name===oldName)object.name=gear.name;}
    }
   }
   if(type==='shoot'){
