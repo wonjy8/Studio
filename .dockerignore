@@ -1,0 +1,17 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+node_modules
+coverage
+dist
+build
+*.log
+.DS_Store
+data
+uploads
+storage
+local-db
+*.db
+*.sqlite
