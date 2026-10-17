@@ -34,3 +34,13 @@ Parent should verify `/health` revision against published candidate SHA, then re
 ## Later rounds
 
 Hourly follow-up tasks scheduled for16:45–22:45 UTC, final closeout23:00 UTC (08:00 KST next day), this night only. Each run must inspect this log and current working tree, avoid overlapping in-progress work, use cloud only, test before publishing, and distinguish CI/image publication from actual NAS deployment. Do not claim future tasks executed until observed. No new work after23:00 UTC.
+
+## 16:02 UTC additional verification and handoff
+
+Environment continuity verified after disconnect notification: same checkout, commits and local changes remained accessible. Branch `studio/qa-overnight-20261017` and draft PR https://github.com/wonjy8/Studio/pull/14 contain candidate8699dca; its CI run39047306981 succeeded. Main remainsdb328457fdfcb9e3d2e60e24513376d9a051b618. No GHCR publication or NAS rollout has occurred for this branch.
+
+Additional local fixes: large table display geometry reserves handle margins and scales visually on narrow canvases without altering saved sizes/precision; admin equipment groups canonical identities and includes unlinked catalog items; administration refreshes status/audit after actions. Full tests46/46 and syntax checks passed. Real Chromium also passed circle resizing/cancel, exact coordinate preservation, max-size tables at both canvas limits/mobile scaling, isolated timed suspension+restore and mandatory reset-password replacement, project cancellation/new-description retention and signup auto-login. These admin actions involved only disposable invented local accounts.
+
+User clarification is pending: original instruction explicitly forbids applying production migrations. Subsequent GitHub/deployment approval did not explicitly mention new DB tables. A question asks whether non-destructive additive tables are included. Until answered, preserve the full implementation on the tested branch/draft PR and do not publish main (which auto deploys/adds tables). User additionally confirmed NAS checks every minute. Parent has working authenticated operational Chrome and should validate once a deployment is authorized; no credentials should be requested.
+
+Chosen unresolved policies: invitations immediately grant read-only access with no acceptance workflow; private attachments excluded. Admin deletion is reversible tombstoning, not permanent physical removal. Catalog custody stays with registering account; project-member ownership/assignee links are explicit and project-local, no name-based cross-account transfer. Circle remains a circle. Future role escalation, irreversible retention/deletion and cross-account inventory transfer require product decisions.

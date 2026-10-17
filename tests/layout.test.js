@@ -56,3 +56,18 @@ test('layout forms show icon choices, whole coordinate values with precise sourc
  const html=layoutStage(state);assert.equal((html.match(/data-resize=/g)||[]).length,8);assert.match(html,/<svg/);assert.match(html,/Fictional cast/);assert.doesNotMatch(html,/<small>사람<\/small>/);
  assert.equal(person.name,'Fictional cast');assert.throws(()=>addLayoutObject(state,{kind:'person'}));
 });
+test('display geometry keeps large tables and resize handles inside desktop/mobile without mutating source coordinates',async()=>{
+ const {layoutItemGeometry}=await import('../src/features/layout/layout.js');
+ for(const [stageWidth,stageHeight] of [[900,380],[260,380],[120,100]])for(const shape of ['rectangle','circle'])for(const x of [0,31.2345,100])for(const y of [0,57.5678,100]){
+  const item={kind:'table',shape,width:360,height:shape==='circle'?360:220,x,y};const before=structuredClone(item);
+  const geometry=layoutItemGeometry(item,stageWidth,stageHeight);
+  assert.ok(geometry.left-geometry.width/2>=9.999);assert.ok(geometry.left+geometry.width/2<=stageWidth-9.999);
+  assert.ok(geometry.top-geometry.height/2>=9.999);assert.ok(geometry.top+geometry.height/2<=stageHeight-9.999);
+  if(shape==='circle')assert.equal(geometry.width,geometry.height);
+  assert.deepEqual(item,before);
+ }
+ const small=layoutItemGeometry({kind:'table',width:120,height:80,x:0,y:100},500,380);
+ const large=layoutItemGeometry({kind:'table',width:360,height:240,x:0,y:100},500,380);
+ assert.equal(small.left-small.width/2,10);assert.equal(large.left-large.width/2,10);
+ assert.equal(small.top+small.height/2,370);assert.equal(large.top+large.height/2,370);
+});

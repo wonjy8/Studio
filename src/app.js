@@ -2,7 +2,7 @@ import {accountMembersPanel,adminPanel,bindAccountMembers,bindAdmin,sharedProjec
 import {applyCommands} from './domain/commands.js';
 import {connectionsPanel,bindConnections,connectionConsent} from './features/connections.js';
 import {gearCategories,layoutKinds,addCamera,addLayoutObject,moveLayoutItem,resizeLayoutTable,removeLayoutItem} from './domain/layout.js';
-import {layoutStage,placementForm,positionForm} from './features/layout/layout.js';
+import {layoutStage,placementForm,positionForm,layoutItemGeometry} from './features/layout/layout.js';
 import {emptyWorkspace} from './domain/workspace.js';
 import {loadWorkspace,saveWorkspace,upload,request} from './integrations/api.js';
 import {requireLogin,logout,sessionInfo} from './app/session.js';
@@ -70,7 +70,14 @@ function bind(){bindProjectIconPicker();document.querySelector('[data-account-pr
 function action(a){if(a==='schedule-list'||a==='schedule-calendar'){scheduleView=a==='schedule-list'?'list':'calendar';render();return;}if(a==='toggle-sidebar'){sidebarOpen=!sidebarOpen;render();}else if(a==='production'){view=lastProjectView;modal=null;render();}else if(a==='add-project'){modal={type:'new-project'};sidebarOpen=false;render();}else if(a==='close'){modal=null;render()}else if(a==='go-shoot'){view='shoot';render()}else if(a==='go-schedule'){view='schedule';render()}else if(a==='go-refs'||a==='modal-refs'){view='references';modal=null;render()}else if(a==='modal-camera'){view='camera';modal=null;render()}else if(a==='add-content'){modal={type:'form',kind:'촬영 추가'};render()}else if(a==='add-placement'){modal={type:'form',kind:'사람·사물 추가',placementKind:'person'};render()}else if(a==='add-camera'){modal={type:'form',kind:'카메라 추가'};render()}else if(a==='add-member'){modal={type:'form',kind:'멤버 추가'};render()}else if(a==='add-gear'){modal={type:'form',kind:'장비 추가'};render()}else if(a==='add-ref'){modal={type:'form',kind:'레퍼런스 그룹 추가'};render()}else if(a.startsWith('camera-')){modal={type:'camera',id:a.slice(7)};render()}else if(a==='toggle-script'){let c=state.contents.find(x=>x.id===modal.id);c.script=!c.script;save()}else if(a==='complete-current'){let c=state.contents.find(x=>!x.completed);if(c){c.completed=true;save()}}else if(a==='logout'){logout().catch(e=>alert(e.message));}else if(a==='project-settings'){modal={type:'project'};render();}else if(a==='script'){const c=state.contents.find(x=>!x.completed);if(c){modal={type:'content',id:c.id};render();}}}
 
 function submit(f){let d=Object.fromEntries(new FormData(f));delete d['project-icon-choice'];if(f.dataset.form==='task'){if(!d.name.trim()){alert('할 일을 입력해 주세요.');return;}if((state.tasks||[]).length>=2000){alert('할 일은 최대 2000개입니다.');return;}state.tasks||=[];state.tasks.push({id:'task-'+crypto.randomUUID(),name:d.name.trim(),completed:false});}else if(f.dataset.form==='content-edit'){const c=state.contents.find(x=>x.id===f.dataset.id);Object.assign(c,d);state.schedule=state.schedule.map(row=>row[2]===c.id?[c.time,c.name,c.id]:row);}else if(f.dataset.form==='placement'){try{addLayoutObject(state,d);}catch(e){alert(e.message);return;}}else if(f.dataset.form==='position'){const precise=key=>{const input=f.elements[key];return input&&Number(input.value)===Math.round(Number(input.dataset.precise))?Number(input.dataset.precise):Number(d[key]);};moveLayoutItem(state,f.dataset.id,precise('x'),precise('y'),d.rotation===undefined?undefined:precise('rotation'));if(d.width!==undefined)resizeLayoutTable(state,f.dataset.id,Number(d.width),Number(d.height),d.shape);}else if(f.dataset.form==='camera'){try{addCamera(state,d);}catch(e){alert(e.message);return;}}else if(f.dataset.form==='project'){state.project={...state.project,...d};}else if(f.dataset.form==='new-project'){try{state=addProject(state,d,'project-'+crypto.randomUUID());state.project={...state.project,date:d.date,time:d.time,location:d.location,description:d.description};view='home';lastProjectView='home';}catch(e){alert(e.message);return;}}else{const type={content:'add_shoot',member:'add_member',gear:'add_equipment',ref:'add_reference'}[f.dataset.form];if(!type)return;try{state=applyCommands(state,state.project.id,[{operation:type,values:d}]).state;}catch(e){alert(e.message);return;}}modal=null;save()}
+let layoutResizeObserver;
 function bindLayout(){
+ layoutResizeObserver?.disconnect();
+ const stageElement=document.querySelector('[data-layout-stage]');
+ const paint=(button,item)=>{const geometry=layoutItemGeometry(item,stageElement.clientWidth,stageElement.clientHeight);button.style.left=`${geometry.left}px`;button.style.top=`${geometry.top}px`;if(item.kind==='table'){button.style.width=`${geometry.width}px`;button.style.height=`${geometry.height}px`;}return geometry;};
+ const paintAll=()=>document.querySelectorAll('[data-layout-id]').forEach(button=>{const item=[...state.cameras,...state.layoutObjects].find(x=>x.id===button.dataset.layoutId);paint(button,item);});
+ if(stageElement){paintAll();layoutResizeObserver=new ResizeObserver(paintAll);layoutResizeObserver.observe(stageElement);}
+
  document.querySelectorAll('[data-layout-id]').forEach(button=>{
   button.onkeydown=e=>{
    const delta={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!delta||saving||failed)return;
@@ -79,14 +86,14 @@ function bindLayout(){
   };
   button.onpointerdown=e=>{
    if(e.button!==0||saving||failed)return;
-   const stage=button.closest('[data-layout-stage]').getBoundingClientRect(),startX=e.clientX,startY=e.clientY;
-   const item=[...state.cameras,...state.layoutObjects].find(x=>x.id===button.dataset.layoutId),oldX=item.x,oldY=item.y,oldWidth=item.width??120,oldHeight=item.height??(item.shape==='circle'?120:80),edge=e.target.closest('[data-resize]')?.dataset.resize;let moved=false;
+   const startX=e.clientX,startY=e.clientY;
+   const item=[...state.cameras,...state.layoutObjects].find(x=>x.id===button.dataset.layoutId),oldX=item.x,oldY=item.y,oldWidth=item.width??120,oldHeight=item.height??(item.shape==='circle'?120:80),edge=e.target.closest('[data-resize]')?.dataset.resize,geometry=layoutItemGeometry(item,stageElement.clientWidth,stageElement.clientHeight);let moved=false;
    button.setPointerCapture(e.pointerId);
    button.onpointermove=event=>{
     if(Math.hypot(event.clientX-startX,event.clientY-startY)<4&&!moved)return;moved=true;
-    if(edge){const dx=event.clientX-startX,dy=event.clientY-startY;const width=oldWidth+(edge.includes('e')?dx*2:edge.includes('w')?-dx*2:0),height=oldHeight+(edge.includes('s')?dy*2:edge.includes('n')?-dy*2:0);resizeLayoutTable(state,item.id,item.shape==='circle'&&!/[ew]/.test(edge)?height:width,height);button.style.width=`${item.width}px`;button.style.height=`${item.height}px`;return;}
-    moveLayoutItem(state,item.id,oldX+(event.clientX-startX)/Math.max(1,stage.width-96)*100,oldY+(event.clientY-startY)/Math.max(1,stage.height-80)*100);
-    button.style.left=`calc(48px + (100% - 96px) * ${item.x/100})`;button.style.top=`calc(40px + (100% - 80px) * ${item.y/100})`;
+    if(edge){const dx=event.clientX-startX,dy=event.clientY-startY;const width=oldWidth+(edge.includes('e')?dx*2:edge.includes('w')?-dx*2:0),height=oldHeight+(edge.includes('s')?dy*2:edge.includes('n')?-dy*2:0);resizeLayoutTable(state,item.id,item.shape==='circle'&&!/[ew]/.test(edge)?height:width,height);paint(button,item);return;}
+    moveLayoutItem(state,item.id,geometry.travelX>0?oldX+(event.clientX-startX)/geometry.travelX*100:oldX,geometry.travelY>0?oldY+(event.clientY-startY)/geometry.travelY*100:oldY);
+    paint(button,item);
    };
    const finish=event=>{button.onpointermove=null;button.onpointerup=null;button.onpointercancel=null;
     if(event.type==='pointercancel'){moveLayoutItem(state,item.id,oldX,oldY);if(edge)resizeLayoutTable(state,item.id,oldWidth,oldHeight);render();return;}
