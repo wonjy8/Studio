@@ -5,6 +5,6 @@ services:
     restart: unless-stopped
     pull_policy: always
     ports:
-      - "8787:8080"
+      - "18787:8080"
     security_opt:
       - no-new-privileges:true
