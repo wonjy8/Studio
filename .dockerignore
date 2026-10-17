@@ -22,3 +22,6 @@ local-db
 *.db-*
 *.pem
 *.key
+
+.studio-update.override.yaml
+.studio-update.lock
