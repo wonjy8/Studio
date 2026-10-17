@@ -39,3 +39,15 @@ test('workspace validation accepts catalog identities and rejects arbitrary icon
  state.project.icon='tabler-brand-youtube';assert.ok(validateWorkspace(state));
  state.project.icon='<script>alert(1)</script>';assert.equal(validateWorkspace(state),false);
 });
+test('settings and creation forms can coexist with unique labelled control ids',()=>{
+ const project={name:'Fictional project',icon:'camera',color:'blue'};
+ const settings=projectForm(project),creation=projectForm(project,true),combined=settings+creation;
+ const ids=[...combined.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]);
+ assert.equal(new Set(ids).size,ids.length);
+ for(const suffix of ['name','description','icon-search','icon-category','date','time','location']){
+  for(const [html,prefix] of [[settings,'project'],[creation,'new-project']]){
+   assert.ok(html.includes(`id="${prefix}-${suffix}"`));
+   assert.ok(html.includes(`for="${prefix}-${suffix}"`));
+  }
+ }
+});

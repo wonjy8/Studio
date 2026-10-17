@@ -1,0 +1,21 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createApp} from '../server/index.js';
+import {digest} from '../server/auth.js';
+import {emptyWorkspace} from '../src/domain/workspace.js';
+test('explicit member unlink survives save/read/resave while omitted fields preserve links and legacy names',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'studio-equipment-links-')),origin='http://localhost';const {server,db}=await createApp({dir,origin,secure:false});
+ db.prepare('INSERT INTO users VALUES(?,?,?)').run('fictional-user','fictional-user','unused-hash');db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest('fictional-session'),'fictional-user',Date.now()+60000);
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(async()=>{await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});});const base=`http://127.0.0.1:${server.address().port}`;
+ const call=(method='GET',data)=>fetch(base+'/api/workspace',{method,headers:{Origin:origin,Cookie:'studio_session=fictional-session',...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined});
+ const state=emptyWorkspace();state.project.id='fictional-project';state.members=[{id:'m1',name:'Fictional Owner',role:'',call:''},{id:'m2',name:'Fictional Assignee',role:'',call:''}];state.gear=[{id:'g1',name:'Fictional Light',category:'lighting',status:'check',owner:'',assignee:'',ownerMemberId:'m1',assigneeMemberId:'m2'},{id:'legacy',name:'Fictional Legacy',category:'other',status:'check',owner:'Fictional free text owner',assignee:'Fictional free text assignee'}];assert.equal((await call('PUT',{revision:0,state})).status,200);
+ const load=async()=>await (await call()).json();const sql=()=>db.prepare('SELECT owner_member_id,assignee_member_id FROM equipment_links WHERE gear_id=?').get('g1');
+ let current=await load();delete current.state.gear[0].ownerMemberId;delete current.state.gear[0].assigneeMemberId;current.state.members[0].name='Fictional Renamed Owner';assert.equal((await call('PUT',current)).status,200);current=await load();assert.equal(current.state.gear[0].ownerMemberId,'m1');assert.equal(current.state.gear[0].assigneeMemberId,'m2');assert.equal(current.state.gear[0].owner,'Fictional Renamed Owner');assert.equal(current.state.gear[1].owner,'Fictional free text owner');assert.equal(current.state.gear[1].assignee,'Fictional free text assignee');
+ current.state.gear[0].ownerMemberId=null;assert.equal((await call('PUT',current)).status,200);current=await load();assert.equal(current.state.gear[0].ownerMemberId,null);assert.equal(current.state.gear[0].owner,'');assert.equal(current.state.gear[0].assigneeMemberId,'m2');assert.equal(sql().owner_member_id,null);assert.equal((await call('PUT',current)).status,200);assert.equal(sql().owner_member_id,null);
+ current=await load();current.state.gear[0].ownerMemberId='m1';current.state.gear[0].assigneeMemberId=null;assert.equal((await call('PUT',current)).status,200);current=await load();assert.equal(current.state.gear[0].ownerMemberId,'m1');assert.equal(current.state.gear[0].assigneeMemberId,null);assert.equal(current.state.gear[0].assignee,'');assert.equal((await call('PUT',current)).status,200);assert.equal(sql().assignee_member_id,null);
+ current=await load();current.state.gear[0].ownerMemberId=null;current.state.gear[0].assigneeMemberId=null;assert.equal((await call('PUT',current)).status,200);current=await load();assert.equal(current.state.gear[0].owner,'');assert.equal(current.state.gear[0].assignee,'');assert.equal((await call('PUT',current)).status,200);assert.deepEqual({...sql()},{owner_member_id:null,assignee_member_id:null});
+ current=await load();const revision=current.revision;current.state.gear[0].ownerMemberId='cross-project-member';assert.equal((await call('PUT',current)).status,400);assert.equal((await load()).revision,revision);assert.equal(sql().owner_member_id,null);
+});
