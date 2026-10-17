@@ -1,6 +1,7 @@
+import {prepareAccountSchema} from './account-migration.js';
 import {reconcileEquipment} from './equipment.js';
 import {validateWorkspace} from '../src/domain/workspace.js';
-import {setupAccounts,accountRoutes,accountActive,passwordChangeRequired,linkedWorkspace} from './accounts.js';
+import {accountRoutes,accountActive,passwordChangeRequired,linkedWorkspace} from './accounts.js';
 import {connectionDiagnostics} from './connection-diagnostics.js';
 import {oauthService} from './oauth.js';
 import {mcpService,toolSchemaVersion} from './mcp.js';
@@ -16,7 +17,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false'}={}) {
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir);
-  setupAccounts(db);
+  try{await prepareAccountSchema(db,dir);}catch(error){db.close();throw error;}
   const handleAccounts=accountRoutes(db);
   const dummy = await hashPassword(token());
   const diagnostics=connectionDiagnostics(db);
@@ -47,7 +48,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         try {const data=JSON.parse(await body(limit));if(path==='/oauth/register')diagnosticDetails=diagnostics.metadata(data);if(path==='/mcp'){diagnosticData={method:typeof data?.method==='string'?data.method:''};diagnosticDetails=diagnostics.toolMetadata(data);}return data;} catch(e) {e.status ||=400;throw e;}
       };
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
-      let session = cookie && db.prepare('SELECT user_id FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
+      let session = cookie && db.prepare('SELECT user_id,token FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
       if(session&&!accountActive(db,session.user_id))session=undefined;
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
       if(session&&passwordChangeRequired(db,session.user_id)&&!['/api/session','/api/logout','/api/account/password'].includes(path)&&path.startsWith('/api/'))return json(403,{error:'PASSWORD_CHANGE_REQUIRED'});

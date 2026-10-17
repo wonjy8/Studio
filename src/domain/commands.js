@@ -39,6 +39,14 @@ export function applyCommands(input,projectId,commands){
     impact.push('연결된 카메라 장비·배치 이름도 반영');
    }
   }
+  if(type==='equipment'&&item.equipmentId){
+   for(const project of [state,...(state.projects||[])])for(const gear of project.gear){
+    if(gear===item||gear.equipmentId!==item.equipmentId)continue;
+    const oldName=gear.name;
+    for(const key of ['name','category'])if(Object.hasOwn(values,key))gear[key]=item[key];
+    if(gear.name!==oldName){for(const camera of project.cameras)if(camera.gearId===gear.id)camera.body=gear.name;for(const object of project.layoutObjects)if(object.gearId===gear.id&&object.name===oldName)object.name=gear.name;}
+   }
+  }
   if(type==='shoot'){
    const row=state.schedule.find(x=>x[2]===item.id);
    if(row){row[0]=item.time;row[1]=item.name;}else state.schedule.push([item.time,item.name,item.id]);
