@@ -11,7 +11,7 @@ export function positionForm(item){
 export function layoutItemGeometry(item,stageWidth,stageHeight){
  const table=item.kind==='table',padding=table?10:0;
  let width=table?(item.width??120):96,height=table?(item.height??(item.shape==='circle'?120:80)):80;
- if(table){const scale=Math.min(1,Math.max(1,stageWidth-padding*2)/width,Math.max(1,stageHeight-padding*2)/height);width*=scale;height*=scale;}
+ if(table){const scale=Math.min(1,Math.max(1,stageWidth-padding*2)/width,Math.max(1,stageHeight-padding*2)/height);width=Math.max(48,width*scale);height=Math.max(48,height*scale);}
  const travelX=Math.max(0,stageWidth-width-padding*2),travelY=Math.max(0,stageHeight-height-padding*2);
  return {width,height,travelX,travelY,left:padding+width/2+travelX*item.x/100,top:padding+height/2+travelY*item.y/100};
 }
@@ -19,11 +19,11 @@ export function layoutItemGeometry(item,stageWidth,stageHeight){
 // than resizing around a percentage center. Fit is applied only at drag start.
 export function resizeLayoutGeometry(start,edge,dx,dy,stageWidth,stageHeight){
  if(!['n','ne','e','se','s','sw','w','nw'].includes(edge)||![dx,dy,stageWidth,stageHeight].every(Number.isFinite))throw Error('Invalid resize geometry');
- if(dx===0&&dy===0)return {width:start.width??120,height:start.height??(start.shape==='circle'?120:80),x:start.x,y:start.y};
+ if((dx===0&&dy===0)||stageWidth<68||stageHeight<68)return {width:start.width??120,height:start.height??(start.shape==='circle'?120:80),x:start.x,y:start.y};
  const g=layoutItemGeometry(start,stageWidth,stageHeight),margin=10;
  const west=edge.includes('w'),east=edge.includes('e'),north=edge.includes('n'),south=edge.includes('s');
  const left=g.left-g.width/2,right=g.left+g.width/2,top=g.top-g.height/2,bottom=g.top+g.height/2;
- const clamp=(value,max)=>Math.max(Math.min(48,max),Math.min(max,value));
+ const clamp=(value,max)=>Math.max(48,Math.min(Math.max(48,max),value));
  let width=g.width,height=g.height,cx=g.left,cy=g.top;
  if(start.shape==='circle'){
   const deltas=[...(west?[-dx]:east?[dx]:[]),...(north?[-dy]:south?[dy]:[])];
