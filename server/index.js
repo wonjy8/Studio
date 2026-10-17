@@ -27,7 +27,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     if (secure) res.setHeader('Strict-Transport-Security','max-age=31536000');
     let diagnosticPath='',diagnosticData,diagnosticDetails={},diagnosticReason='';
     res.once('finish',()=>diagnostics.record(diagnostics.stage(diagnosticPath,diagnosticData),res.statusCode,diagnosticReason,diagnosticDetails));
-    const json=(code,body)=>{if(typeof body?.error==='string')diagnosticReason=body.error;res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
+    const json=(code,body)=>{if(typeof body?.error==='string')diagnosticReason=body.error;if(body?.result?.isError===true)diagnosticReason=body.result._meta?.['mcp/www_authenticate']?'tool_auth_required':'tool_rejected';res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
     try {
       const url = new URL(req.url,'http://localhost'),path=url.pathname;diagnosticPath=path;
       if (req.method==='GET' && path==='/health') {db.prepare('SELECT 1').get(); return json(200,{ok:true});}
@@ -39,7 +39,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       };
       const readJson = async (limit)=>{
         if (!req.headers['content-type']?.startsWith('application/json')) {const e=Error();e.status=415;throw e;}
-        try {const data=JSON.parse(await body(limit));if(path==='/oauth/register')diagnosticDetails=diagnostics.metadata(data);if(path==='/mcp')diagnosticData={method:typeof data?.method==='string'?data.method:''};return data;} catch(e) {e.status ||=400;throw e;}
+        try {const data=JSON.parse(await body(limit));if(path==='/oauth/register')diagnosticDetails=diagnostics.metadata(data);if(path==='/mcp'){diagnosticData={method:typeof data?.method==='string'?data.method:''};diagnosticDetails=diagnostics.toolMetadata(data);}return data;} catch(e) {e.status ||=400;throw e;}
       };
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
       const session = cookie && db.prepare('SELECT user_id FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());

@@ -17,9 +17,14 @@ if(await connectionConsent())await new Promise(()=>{});
 let state,view='home',modal=null,saving=false,failed=false,sidebarOpen=false,lastProjectView='home';
 try {state=await loadWorkspace()||emptyWorkspace();} catch {document.querySelector('#app').textContent='프로젝트를 불러오지 못했습니다. 새로고침해 주세요.';throw Error('Workspace unavailable');}
 state=prepareProjects(state);
+const requestedProject=new URL(location.href).searchParams.get('project');
+if(requestedProject){
+ try{state=switchProject(state,requestedProject);}catch{document.querySelector('#app').innerHTML='<main class="login-page"><h1>프로젝트를 찾을 수 없습니다.</h1><p>현재 로그인한 계정에서 접근할 수 있는 프로젝트인지 확인해 주세요.</p><a href="/" class="btn">Studio로 돌아가기</a></main>';throw Error('Project unavailable');}
+}
 let pending=Promise.resolve();
 function save(){
   if(failed)return;
+  const projectUrl=new URL(location.href);if(projectUrl.searchParams.has('project')){projectUrl.searchParams.set('project',state.project.id);history.replaceState(null,'',projectUrl);}
   saving=true;render();
   const snapshot=structuredClone(state);
   pending=pending.then(()=>saveWorkspace(snapshot)).then(()=>{saving=false;render();}).catch(()=>{failed=true;saving=false;render();alert('저장하지 못했습니다. 이 화면의 데이터를 복사해 보관한 뒤 새로고침해 주세요.');});

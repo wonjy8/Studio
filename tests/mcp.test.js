@@ -56,7 +56,7 @@ test('MCP account isolation, read-only scopes, confirmed writes, revisions, repl
  assert.equal((await f.rpc(writer,'initialize')).data.result.protocolVersion,'2025-11-25');
  assert.equal((await f.call('/api/workspace','GET',undefined,{Authorization:'Bearer '+writer.access_token})).status,401);
  assert.equal((await f.call('/api/files/11111111-1111-1111-1111-111111111111','GET',undefined,{Authorization:'Bearer '+writer.access_token})).status,401);
- const readTools=(await f.rpc(reader,'tools/list')).data.result.tools;assert.equal(readTools.length,2);assert.ok(readTools.every(t=>t.annotations.readOnlyHint));
+ const readTools=(await f.rpc(reader,'tools/list')).data.result.tools;assert.equal(readTools.length,4);assert.ok(readTools.every(t=>t.annotations.readOnlyHint));
  assert.equal((await f.rpc(reader,'studio_propose_changes',{projectId:'beta-project',revision:1,commands:[]})).data.error.code,-32602);
  assert.equal((await f.rpc(writer,'tools/list',{}, {Origin:'https://evil.invalid'})).response.status,403);
  const list=(await f.rpc(writer,'studio_list_projects')).data.result.structuredContent;assert.equal(list.projects.length,1);assert.equal(list.projects[0].id,'alpha-project');
@@ -80,7 +80,7 @@ test('app registration can discover static tools without access to any productio
  const f=await fixture(t);
  const rpc=async(method,params={})=>f.call('/mcp','POST',{jsonrpc:'2.0',id:1,method,params});
  const initialized=await rpc('initialize',{protocolVersion:'2025-11-25'});assert.equal(initialized.status,200);
- const listed=await (await rpc('tools/list')).json();assert.equal(listed.result.tools.length,4);assert.ok(listed.result.tools.every(t=>t.securitySchemes[0].type==='oauth2'));
+ const listed=await (await rpc('tools/list')).json();assert.equal(listed.result.tools.length,6);assert.ok(listed.result.tools.every(t=>t.securitySchemes[0].type==='oauth2'));
  assert.equal(JSON.stringify(listed).includes('Fictional alpha'),false);assert.equal(JSON.stringify(listed).includes('alpha-project'),false);
  for(const name of ['studio_list_projects','studio_get_project','studio_apply_changes']){
   const r=await rpc('tools/call',{name,arguments:{projectId:'alpha-project',confirmed:true}});const data=await r.json();assert.equal(data.result.isError,true);assert.match(data.result._meta['mcp/www_authenticate'][0],/resource_metadata/);
@@ -148,4 +148,14 @@ test('manual clients require administrator consent and secret auth, never disclo
  const p=await f.pending(await f.register());assert.ok(p.id);
  const bad=new URLSearchParams({...p.params,client_id:manual.clientId});assert.equal((await f.call('/oauth/authorize?'+bad)).status,400);
  assert.equal((await f.form({client_id:manual.clientId,client_secret:manual.clientSecret,grant_type:'refresh_token',refresh_token:auths[0].refresh_token})).status,401);
+});
+test('search/fetch provide account-scoped project retrieval and valid citation links',async t=>{
+ const f=await fixture(t),auth=await f.connect('alpha',false);
+ const tools=(await f.rpc(auth,'tools/list')).data.result.tools;assert.ok(tools.some(t=>t.name==='search'&&t.annotations.readOnlyHint));assert.ok(tools.some(t=>t.name==='fetch'&&t.annotations.readOnlyHint));
+ const search=(await f.rpc(auth,'search',{query:''})).data.result.structuredContent;assert.equal(search.results.length,1);assert.equal(search.results[0].title,'Fictional alpha');assert.equal(new URL(search.results[0].url).searchParams.get('project'),'alpha-project');
+ assert.deepEqual(JSON.parse((await f.rpc(auth,'search',{query:'프로젝트 목록'})).data.result.content[0].text),search);
+ assert.equal((await f.rpc(auth,'search',{query:'beta'})).data.result.structuredContent.results.length,0);
+ const fetched=(await f.rpc(auth,'fetch',{id:search.results[0].id})).data.result.structuredContent;assert.equal(fetched.id,search.results[0].id);assert.equal(fetched.metadata.revision,1);const document=JSON.parse(fetched.text);assert.equal(document.project.id,'alpha-project');assert.equal('settings' in document,false);
+ assert.equal((await f.rpc(auth,'fetch',{id:'project:beta-project'})).data.result.isError,true);assert.equal((await f.rpc(auth,'fetch',{id:'https://evil.invalid/'})).data.result.isError,true);assert.equal((await f.rpc(auth,'search',{query:{secret:'invalid'}})).data.result.isError,true);
+ const anonymous=await (await f.call('/mcp','POST',{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'search',arguments:{query:''}}})).json();assert.equal(anonymous.result.isError,true);assert.ok(anonymous.result._meta['mcp/www_authenticate']);assert.equal(JSON.stringify(anonymous).includes('Fictional alpha'),false);
 });

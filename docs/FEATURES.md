@@ -89,3 +89,8 @@ The authenticated server stores account-isolated project state and attachments i
 **Why:** provide a supported alternative when app creation stops before dynamic client registration.
 **Flow:** administrator creates a confidential client in Studio, copies the one-time ID/secret into the external app's manual OAuth configuration, then signs in and consents normally. Callback URLs are exact registered HTTPS ChatGPT URLs. Client registration does not grant account/data access.
 **Privacy:** client secrets are shown once, stored only as hashes, and never placed in diagnostics, URLs, browser storage or chat. Administrators can revoke a manual client and its existing grants. This alternative does not establish the cause of platform-side app rejection or guarantee that it will resolve it.
+
+## Search-compatible external retrieval
+**Why:** search-oriented ChatGPT clients discover `search` and `fetch`, while Studio previously exposed only its named project/mutation tools.
+**Flow:** search/query a signed-in account's projects → fetch one search result → cite its project URL. Empty query or the project-list phrase returns projects; specific queries match production metadata.
+**Reuse/privacy:** the same read grant, private workspace and project snapshots; no external index, OpenAI API key or private attachment byte access. Search/fetch are additions, not evidence that a particular ChatGPT account has activated the tools. Reference: OpenAI's Deep Research MCP cookbook search/fetch example.
