@@ -1,11 +1,10 @@
 services:
   studio:
     container_name: studio
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/wonjy8/studio:latest
     restart: unless-stopped
+    pull_policy: always
     ports:
-      - "127.0.0.1:8787:8080"
+      - "8787:8080"
     security_opt:
       - no-new-privileges:true
