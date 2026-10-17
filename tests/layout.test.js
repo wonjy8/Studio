@@ -71,3 +71,10 @@ test('display geometry keeps large tables and resize handles inside desktop/mobi
  assert.equal(small.left-small.width/2,10);assert.equal(large.left-large.width/2,10);
  assert.equal(small.top+small.height/2,370);assert.equal(large.top+large.height/2,370);
 });
+test('mobile table fitting respects 48px axes while preserving circle shape and stored geometry',async()=>{
+ const {layoutItemGeometry}=await import('../src/features/layout/layout.js');
+ for(const [width,height,expectedWidth,expectedHeight] of [[360,48,240,48],[48,360,48,240],[360,360,240,240]]){
+  const item={kind:'table',shape:width===height?'circle':'rectangle',width,height,x:31.23456,y:55.6789},before=structuredClone(item);
+  const geometry=layoutItemGeometry(item,260,260);assert.equal(geometry.width,expectedWidth);assert.equal(geometry.height,expectedHeight);assert.deepEqual(item,before);
+ }
+});
