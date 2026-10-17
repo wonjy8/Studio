@@ -29,12 +29,12 @@ history.replaceState({studioView:view},'');
 window.addEventListener('popstate',e=>{view=e.state?.studioView||'home';if(view==='shared'&&!sharedSnapshot)view='settings';modal=null;sidebarOpen=false;render();});
 window.addEventListener('keydown',e=>{if(e.key!=='Tab'||!modal)return;const nodes=[...document.querySelectorAll('[data-modal-panel] button,[data-modal-panel] input,[data-modal-panel] select,[data-modal-panel] textarea,[data-modal-panel] a[href]')].filter(n=>!n.disabled&&!n.hidden);if(!nodes.length)return;const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}});
 
-function save(){
+function save({focusLayoutId}={}){
   if(failed)return;
   const projectUrl=new URL(location.href);if(projectUrl.searchParams.has('project')){projectUrl.searchParams.set('project',state.project.id);history.replaceState({studioView:view},'',projectUrl);}
   saving=true;render();
   const snapshot=structuredClone(state),generation=++saveGeneration;
-  pending=pending.then(()=>saveWorkspace(snapshot)).then(saved=>{if(generation!==saveGeneration)return;if(saved)state=prepareProjects(saved);saving=false;render();}).catch(()=>{failed=true;saving=false;render();alert('저장하지 못했습니다. 이 화면의 데이터를 복사해 보관한 뒤 새로고침해 주세요.');});
+  pending=pending.then(()=>saveWorkspace(snapshot)).then(saved=>{if(generation!==saveGeneration)return;if(saved)state=prepareProjects(saved);saving=false;render();if(focusLayoutId)document.querySelector(`[data-layout-id="${focusLayoutId}"]`)?.focus();}).catch(()=>{failed=true;saving=false;render();alert('저장하지 못했습니다. 이 화면의 데이터를 복사해 보관한 뒤 새로고침해 주세요.');});
 }
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&(modal||sidebarOpen)){modal=null;sidebarOpen=false;render();}});
 window.addEventListener('beforeunload',e=>{if(saving||failed){e.preventDefault();e.returnValue='';}});
@@ -82,7 +82,7 @@ function bindLayout(){
   button.onkeydown=e=>{
    const delta={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!delta||saving||failed)return;
    e.preventDefault();const item=[...state.cameras,...state.layoutObjects].find(x=>x.id===button.dataset.layoutId);const step=e.shiftKey?5:1;
-   moveLayoutItem(state,item.id,item.x+delta[0]*step,item.y+delta[1]*step);save();document.querySelector(`[data-layout-id="${item.id}"]`)?.focus();
+   moveLayoutItem(state,item.id,item.x+delta[0]*step,item.y+delta[1]*step);save({focusLayoutId:item.id});
   };
   button.onpointerdown=e=>{
    if(e.button!==0||saving||failed)return;
