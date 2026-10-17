@@ -7,4 +7,5 @@ export async function request(path,options={}) {
 }
 export async function loadWorkspace(){const data=await request('workspace');revision=data.revision;return data.state;}
 export async function saveWorkspace(state){const data=await request('workspace',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({state,revision})});revision=data.revision;return data.state;}
+export async function saveEquipmentAssignments(projectId,gearId,values){const data=await request(`projects/${encodeURIComponent(projectId)}/equipment/${encodeURIComponent(gearId)}/assignments`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,values})});revision=data.revision;return data.state;}
 export async function upload(file){return request('files',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});}

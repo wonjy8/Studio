@@ -2,7 +2,7 @@ import {emptyWorkspace} from './workspace.js';
 import {prepareProjects,allProjects,switchProject,addProject} from './projects.js';
 import {addCamera,addLayoutObject,moveLayoutItem} from './layout.js';
 export const commandOperations=['add_shoot','update_shoot','add_member','update_member','add_equipment','update_equipment','add_reference','update_reference','update_project','add_project','add_camera','add_layout_object','move_layout'];
-const allowed={shoot:['name','time','location','status','completed'],member:['name','role','call'],equipment:['name','category','owner','assignee','status'],reference:['name','notes'],project:['name','description','date','time','location','icon','color']};
+const allowed={shoot:['name','time','location','status','completed'],member:['name','role','call'],equipment:['name','category','owner','assignee','status','ownerMemberId','assigneeMemberId'],reference:['name','notes'],project:['name','description','date','time','location','icon','color']};
 export function applyCommands(input,projectId,commands){
  if(!Array.isArray(commands)||commands.length<1||commands.length>20)throw Error('변경은 한 번에 1~20개까지 가능합니다.');
  let state=prepareProjects(structuredClone(input||emptyWorkspace()));
@@ -19,16 +19,26 @@ export function applyCommands(input,projectId,commands){
   const fields=allowed[type];if(!fields||Object.keys(values).some(k=>!fields.includes(k)))throw Error('허용하지 않는 필드입니다.');
   if(type==='project'){if(values.name!==undefined&&(typeof values.name!=='string'||!values.name.trim()))throw Error('프로젝트 이름이 필요합니다.');Object.assign(state.project,values);impact.push('프로젝트 정보 변경');continue;}
   const key={shoot:'contents',member:'members',equipment:'gear',reference:'refs'}[type];
-  let item,previousName;
+  let item,previousName,previousItem;
   if(operation.startsWith('add_')){
    if(state[key].length>=2000)throw Error('항목 개수 제한에 도달했습니다.');
    const defaults={shoot:{name:'',time:'',location:'',status:'check',script:false},member:{name:'',role:'',call:''},equipment:{name:'',owner:'',assignee:'',category:'other',status:'check'},reference:{name:'',notes:'',images:[]}}[type];
    item={...defaults,...values,id:type+'-'+crypto.randomUUID()};state[key].push(item);
-  }else{item=state[key].find(x=>x.id===entityId);if(!item)throw Error('현재 프로젝트에서 항목을 찾을 수 없습니다.');previousName=item.name;Object.assign(item,values);}
+  }else{item=state[key].find(x=>x.id===entityId);if(!item)throw Error('현재 프로젝트에서 항목을 찾을 수 없습니다.');previousName=item.name;previousItem={...item};Object.assign(item,values);}
   if(typeof item.name!=='string'||!item.name.trim())throw Error('이름이 필요합니다.');
+  if(type==='equipment')for(const field of ['owner','assignee']){
+   const linkKey=field+'MemberId',memberId=item[linkKey];
+   if(memberId!==undefined&&memberId!==null){
+    if(typeof memberId!=='string')throw Error('현재 프로젝트의 멤버를 선택하세요.');
+    const member=state.members.find(member=>member.id===memberId);if(!member)throw Error('현재 프로젝트의 멤버를 선택하세요.');item[field]=member.name;
+   }else if(Object.hasOwn(values,linkKey)){
+    if(values[linkKey]!==null)throw Error('멤버 연결 해제는 null을 사용하세요.');
+    if(previousItem?.[linkKey]&&!Object.hasOwn(values,field))item[field]='';
+   }
+  }
   if(previousName&&previousName!==item.name){
    if(type==='member'){
-    for(const gear of state.gear)for(const key of ['owner','assignee'])if(gear[key]===previousName)gear[key]=item.name;
+    for(const gear of state.gear)for(const key of ['owner','assignee']){const linkKey=key+'MemberId';if(gear[linkKey]===item.id||(!Object.hasOwn(gear,linkKey)&&gear[key]===previousName))gear[key]=item.name;}
     for(const camera of state.cameras)if(camera.operator===previousName)camera.operator=item.name;
     for(const object of state.layoutObjects)if(object.memberId===item.id&&object.name===previousName)object.name=item.name;
     impact.push('연결된 장비 소유자·담당자와 카메라 담당자 이름도 반영');
