@@ -4,6 +4,14 @@
 
 Studio is a production planning and shoot-day command center. It connects the information a crew needs before and during a shoot without turning the workflow into an ERP-style management system.
 
+## Product hierarchy
+
+`Workspace → Project → Shoot`
+
+- **Project** is the overall production project.
+- **Shoot** is the practical shooting unit inside a project. This replaces the previous user-facing term **Content**.
+- Schedule, script, people, equipment, camera setup, references, and location connect around a Shoot.
+
 ## Primary promise
 
 A user should be able to answer three questions immediately:
@@ -15,16 +23,16 @@ A user should be able to answer three questions immediately:
 ## Core product rules
 
 ### Schedule is the primary surface
-The schedule is the fastest representation of the production day. Studio should open with useful production context rather than forcing users to choose a management module first.
+The schedule is the fastest representation of the production day. Studio should open with useful project context rather than forcing users to choose a management module first.
 
-### Content is the context hub
-A content item is the practical shooting unit. Its script, cast, crew, camera setup, references, equipment, location, and schedule should be reachable without losing context.
+### Shoot is the context hub
+A Shoot is the practical shooting unit. Its script, cast, crew, camera setup, references, equipment, location, and schedule should be reachable without losing context.
 
 ### Connect information; do not duplicate it
 People, equipment, references, files, and locations are reusable entities. Features link to them rather than creating disconnected copies.
 
 ### Planning and shooting are different modes
-Planning Mode supports preparation and management. Shoot Mode is mobile-first and reduces the interface to current/next content, assignments, script, references, readiness, and completion.
+Planning Mode supports preparation and management. Shoot Mode is mobile-first and reduces the interface to current/next Shoot, assignments, script, references, readiness, and completion.
 
 ### Progressive disclosure
 Show the information required to understand the current state first. Reveal advanced details only when requested.
@@ -37,9 +45,9 @@ Studio's public repository contains no user data or credentials. User data and i
 
 ## V0.1 scope
 
-- Production overview and readiness
+- Project overview and readiness
 - Schedule
-- Content detail
+- Shoot detail
 - Embedded script preview + original download
 - Members
 - Equipment with owner and shoot-day assignee
@@ -60,9 +68,9 @@ Studio's public repository contains no user data or credentials. User data and i
 
 Before adding a feature, ask:
 
-- Does it make the production state easier to understand?
+- Does it make the project state easier to understand?
 - Does it reduce duplicate input or navigation?
 - Is it useful at the moment the user sees it?
 - Can it reuse an existing entity or UI module?
-- Does it preserve the user's current production/content context?
+- Does it preserve the user's current Project/Shoot context?
 - Is it safe for a public-source application architecture?
