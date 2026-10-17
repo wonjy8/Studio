@@ -141,3 +141,4 @@ small,.stat small{font-size:var(--text-meta)}
 .invite-options{display:flex;gap:12px;flex-wrap:wrap}.invite-options .field{min-width:100px}.invite-options input{max-width:120px}.field[hidden]{display:none}
 .connection-guide{margin:16px 0}.connection-guide summary{cursor:pointer;font-weight:600}.connection-guide li{margin:8px 0}.connections-panel .field input{width:100%;min-width:0}.consent-write{display:flex;align-items:flex-start;gap:8px}.consent-write input{margin-top:5px;flex-shrink:0}
 .invitation-panel>.settings-section>.settings-row{flex-wrap:wrap}
+.diagnostic-output{display:block;width:100%;min-width:0;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:var(--r-control);background:var(--surface-2);color:var(--ink);font-size:var(--text-support);resize:vertical}

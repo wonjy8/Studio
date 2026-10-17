@@ -1,3 +1,4 @@
+import {connectionDiagnostics} from './connection-diagnostics.js';
 import {oauthService} from './oauth.js';
 import {mcpService} from './mcp.js';
 import {writeWorkspace} from './workspace-service.js';
@@ -13,6 +14,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir);
   const dummy = await hashPassword(token());
+  const diagnostics=connectionDiagnostics(db);
   const handleInvitations=invitationRoutes(db,origin);
   const oauth=oauthService(db,origin),handleMcp=mcpService(db,origin,oauth);
   const attempts = new Map();
@@ -23,9 +25,11 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     res.setHeader('Referrer-Policy','no-referrer');
     res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'");
     if (secure) res.setHeader('Strict-Transport-Security','max-age=31536000');
-    const json=(code,body)=>{res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
+    let diagnosticPath='',diagnosticData,diagnosticDetails={},diagnosticReason='';
+    res.once('finish',()=>diagnostics.record(diagnostics.stage(diagnosticPath,diagnosticData),res.statusCode,diagnosticReason,diagnosticDetails));
+    const json=(code,body)=>{if(typeof body?.error==='string')diagnosticReason=body.error;res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
     try {
-      const url = new URL(req.url,'http://localhost'),path=url.pathname;
+      const url = new URL(req.url,'http://localhost'),path=url.pathname;diagnosticPath=path;
       if (req.method==='GET' && path==='/health') {db.prepare('SELECT 1').get(); return json(200,{ok:true});}
 
       const body = async (limit=1024*1024)=>{
@@ -35,11 +39,12 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       };
       const readJson = async (limit)=>{
         if (!req.headers['content-type']?.startsWith('application/json')) {const e=Error();e.status=415;throw e;}
-        try {return JSON.parse(await body(limit));} catch(e) {e.status ||=400;throw e;}
+        try {const data=JSON.parse(await body(limit));if(path==='/oauth/register')diagnosticDetails=diagnostics.metadata(data);if(path==='/mcp')diagnosticData={method:typeof data?.method==='string'?data.method:''};return data;} catch(e) {e.status ||=400;throw e;}
       };
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
       const session = cookie && db.prepare('SELECT user_id FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
+      if(path==='/api/connections/diagnostics'&&req.method==='GET'){if(!session)return json(401,{error:'Login required'});if(!isAdmin(db,session.user_id))return json(403,{error:'Administrator required'});return json(200,{version:'connection-diagnostics-1',events:diagnostics.list()});}
       if(path==='/mcp'){await handleMcp({req,res,json,readJson});return;}
       if(await oauth.routes({path,url,req,res,json,body,readJson,session}))return;
       if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
