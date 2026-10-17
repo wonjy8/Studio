@@ -15,6 +15,7 @@ export function invitationRoutes(db,origin){
    const invite=db.prepare('SELECT id FROM invitations WHERE token_hash=? AND expires>? AND (max_uses IS NULL OR use_count<max_uses) AND revoked_at IS NULL').get(digest(data.token),now);
    if(!invite){json(400,{error:'INVITE_UNAVAILABLE'});return true;}
    if(typeof data.username!=='string'||!/^[a-zA-Z0-9_.-]{3,64}$/.test(data.username)){json(400,{error:'USERNAME_FORMAT'});return true;}
+   if(data.name!==undefined&&(typeof data.name!=='string'||data.name.length>80||/[\u0000-\u001f\u007f]/.test(data.name))){json(400,{error:'NAME_FORMAT'});return true;}
    if(!validPassword(data.password)){json(400,{error:'PASSWORD_POLICY'});return true;}
    active++;
    let password;try{password=await hashPassword(data.password);}finally{active--;}
@@ -25,7 +26,8 @@ export function invitationRoutes(db,origin){
     }
     const changed=db.prepare('UPDATE invitations SET use_count=use_count+1, used_at=CASE WHEN max_uses IS NOT NULL AND use_count+1>=max_uses THEN ? ELSE NULL END WHERE id=? AND expires>? AND (max_uses IS NULL OR use_count<max_uses) AND revoked_at IS NULL').run(Date.now(),invite.id,Date.now());
     if(!changed.changes){db.exec('ROLLBACK');json(400,{error:'INVITE_UNAVAILABLE'});return true;}
-    db.prepare('INSERT INTO users VALUES(?,?,?)').run(randomUUID(),data.username,password);
+    const userId=randomUUID();db.prepare('INSERT INTO users VALUES(?,?,?)').run(userId,data.username,password);
+    if(data.name)db.prepare('INSERT INTO account_profiles VALUES(?,?)').run(userId,data.name.trim());
     db.exec('COMMIT');
    }catch(e){db.exec('ROLLBACK');throw e;}
    json(201,{ok:true});return true;

@@ -1,4 +1,6 @@
 FROM node:24-alpine
+ARG STUDIO_REVISION=development
+ENV STUDIO_REVISION=$STUDIO_REVISION
 WORKDIR /app
 ENV NODE_ENV=production DATA_DIR=/data PORT=8080
 COPY --chown=node:node package.json index.html ./

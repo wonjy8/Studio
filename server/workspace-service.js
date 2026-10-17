@@ -8,6 +8,7 @@ export function writeWorkspace(db,uid,state,revision){
  if((row?.revision||0)!==revision)throw Object.assign(Error('Workspace changed. Reload before editing.'),{status:409});
  db.exec('SAVEPOINT equipment_workspace');
  try{reconcileEquipment(db,uid,state,{write:true});
+ if(!validateWorkspace(state))throw Object.assign(Error('Invalid reconciled workspace'),{status:400});
  db.prepare('INSERT INTO workspaces VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET revision=excluded.revision,body=excluded.body').run(uid,revision+1,JSON.stringify(state));
  db.exec('RELEASE equipment_workspace');
  }catch(e){db.exec('ROLLBACK TO equipment_workspace');db.exec('RELEASE equipment_workspace');throw e;}

@@ -11,7 +11,7 @@ export async function acceptInvitation(){
   e.preventDefault();const form=e.target,data=Object.fromEntries(new FormData(form)),button=form.querySelector('[type=submit]'),error=root.querySelector('#signup-error');
   if(data.password!==data.confirm){error.textContent='비밀번호가 일치하지 않습니다.';return;}
   button.disabled=true;button.textContent='계정 만드는 중…';error.textContent='';
-  try{await request('signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:raw,username:data.username,password:data.password})});await request('login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:data.username,password:data.password})});form.reset();location.replace('/');}
+  try{await request('signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:raw,username:data.username,password:data.password,name:data.name})});await request('login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:data.username,password:data.password})});form.reset();location.replace('/');}
   catch(e){error.textContent=errors[e.message]||'계정을 만들지 못했습니다. 잠시 후 다시 시도하세요.';button.disabled=false;button.textContent='계정 만들기';}
  };
  return true;

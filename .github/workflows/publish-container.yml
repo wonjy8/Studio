@@ -60,6 +60,8 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64
+          build-args: |
+            STUDIO_REVISION=${{ github.sha }}
           tags: |
             ghcr.io/wonjy8/studio:latest
             ghcr.io/wonjy8/studio:${{ github.sha }}
