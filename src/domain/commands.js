@@ -2,7 +2,7 @@ import {emptyWorkspace} from './workspace.js';
 import {prepareProjects,allProjects,switchProject,addProject} from './projects.js';
 import {addCamera,addLayoutObject,moveLayoutItem} from './layout.js';
 export const commandOperations=['add_shoot','update_shoot','add_member','update_member','add_equipment','update_equipment','add_reference','update_reference','update_project','add_project','add_camera','add_layout_object','move_layout'];
-const allowed={shoot:['name','time','location','status','completed'],member:['name','role','call'],equipment:['name','category','owner','assignee','status'],reference:['name','notes'],project:['name','date','time','location','icon','color']};
+const allowed={shoot:['name','time','location','status','completed'],member:['name','role','call'],equipment:['name','category','owner','assignee','status'],reference:['name','notes'],project:['name','description','date','time','location','icon','color']};
 export function applyCommands(input,projectId,commands){
  if(!Array.isArray(commands)||commands.length<1||commands.length>20)throw Error('변경은 한 번에 1~20개까지 가능합니다.');
  let state=prepareProjects(structuredClone(input||emptyWorkspace()));

@@ -36,3 +36,23 @@ test('server rejects invalid placement positions, categories and cross-project r
  assert.throws(()=>moveLayoutItem(state,item.id,NaN,50));
  const camera=addCamera(state,{name:'CAM'});camera.gearId='foreign';assert.equal(validateWorkspace(state),false);
 });
+test('tables support bounded independent rectangles and circles without changing linked records',async()=>{
+ const {resizeLayoutTable}=await import('../src/domain/layout.js');
+ const state=emptyWorkspace();const rectangle=addLayoutObject(state,{kind:'table',shape:'rectangle'});
+ resizeLayoutTable(state,rectangle.id,180.25,64.75);assert.equal(rectangle.width,180.25);assert.equal(rectangle.height,64.75);
+ const circle=addLayoutObject(state,{kind:'table',shape:'circle'});resizeLayoutTable(state,circle.id,160,80);assert.equal(circle.width,160);assert.equal(circle.height,160);
+ resizeLayoutTable(state,circle.id,999,0);assert.equal(circle.width,360);assert.equal(circle.height,360);assert.equal(validateWorkspace(state),true);
+ assert.throws(()=>resizeLayoutTable(state,rectangle.id,NaN,80));assert.throws(()=>addLayoutObject(state,{kind:'table',shape:'triangle'}));
+ for(const patch of [{width:0},{height:361},{shape:'ellipse'},{shape:'circle',width:70,height:80}]){const invalid=structuredClone(state);Object.assign(invalid.layoutObjects[0],patch);assert.equal(validateWorkspace(invalid),false);}
+ const legacy=structuredClone(state);for(const key of ['width','height','shape'])delete legacy.layoutObjects[0][key];assert.equal(validateWorkspace(legacy),true);
+ const person=addLayoutObject(state,{kind:'person',name:'Fictional person'});person.width=120;assert.equal(validateWorkspace(state),false);
+});
+test('layout forms show icon choices, whole coordinate values with precise source, table handles and person names',async()=>{
+ const {placementForm,positionForm,layoutStage}=await import('../src/features/layout/layout.js');
+ const state=emptyWorkspace();const table=addLayoutObject(state,{kind:'table',shape:'circle'});table.x=31.2345;
+ const person=addLayoutObject(state,{kind:'person',name:'Fictional cast'});
+ const form=placementForm(state,'table');assert.equal((form.match(/type="radio"/g)||[]).length,6);assert.match(form,/name="shape"/);assert.doesNotMatch(form,/<select name="kind"/);
+ assert.match(positionForm(table),/data-precise="31.2345" value="31"/);assert.match(positionForm(table),/name="height"[^>]*readonly/);
+ const html=layoutStage(state);assert.equal((html.match(/data-resize=/g)||[]).length,8);assert.match(html,/<svg/);assert.match(html,/Fictional cast/);assert.doesNotMatch(html,/<small>사람<\/small>/);
+ assert.equal(person.name,'Fictional cast');assert.throws(()=>addLayoutObject(state,{kind:'person'}));
+});

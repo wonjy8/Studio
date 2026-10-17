@@ -25,16 +25,17 @@ export function addCamera(project,fields){
  const camera={id:'cam-'+crypto.randomUUID(),name:fields.name.trim(),role:fields.role||'',operator:fields.operator||'',body:gear.name,lens:fields.lens||'',gearId:gear.id,...nextPosition(project),refs:fields.ref?[fields.ref]:[]};
  project.cameras.push(camera);return camera;
 }
-export function addLayoutObject(project,{kind,name,gearId,memberId}){
+export function addLayoutObject(project,{kind,name,gearId,memberId,shape}){
  if(!Object.hasOwn(layoutKinds,kind))throw Error('배치할 종류를 선택해 주세요.');
  if(project.layoutObjects.length>=2000)throw Error('배치 개수 제한에 도달했습니다.');
  const gear=kind==='equipment'&&project.gear.find(g=>g.id===gearId);
  const member=kind==='person'&&memberId&&project.members.find(m=>m.id===memberId);
  if(kind==='equipment'&&!gear)throw Error('먼저 장비 탭에서 장비를 등록해 주세요.');
  if(kind==='person'&&memberId&&!member)throw Error('멤버를 선택해 주세요.');
- const label=(name||gear?.name||member?.name||layoutKinds[kind]).trim();
+ const label=(name?.trim()||gear?.name||member?.name||(kind==='person'?'':layoutKinds[kind])).trim();
  if(!label||label.length>2000)throw Error('이름을 확인해 주세요.');
- const item={id:'obj-'+crypto.randomUUID(),kind,name:label,...nextPosition(project),rotation:0,...(gear?{gearId:gear.id}:{}),...(member?{memberId:member.id}:{})};
+ if(kind==='table'&&shape!==undefined&&!['rectangle','circle'].includes(shape))throw Error('테이블 모양을 선택해 주세요.');
+ const item={id:'obj-'+crypto.randomUUID(),kind,name:label,...nextPosition(project),rotation:0,...(kind==='table'?{shape:shape||'rectangle',width:120,height:shape==='circle'?120:80}:{}),...(gear?{gearId:gear.id}:{}),...(member?{memberId:member.id}:{})};
  project.layoutObjects.push(item);return item;
 }
 export function moveLayoutItem(project,id,x,y,rotation){
@@ -48,4 +49,18 @@ export function removeLayoutItem(project,id){
  project.layoutObjects=project.layoutObjects.filter(x=>x.id!==id);
  project.cameras=project.cameras.filter(x=>x.id!==id);
  // Removing a placement never removes its reusable inventory or member record.
+}
+
+export function validTableGeometry(item){
+ if(item.kind!=='table')return item.shape===undefined&&item.width===undefined&&item.height===undefined;
+ if(item.shape!==undefined&&!['rectangle','circle'].includes(item.shape))return false;
+ if(!['width','height'].every(key=>item[key]===undefined||(Number.isFinite(item[key])&&item[key]>=48&&item[key]<=360)))return false;
+ return item.shape!=='circle'||(item.width??120)===(item.height??120);
+}
+export function resizeLayoutTable(project,id,width,height,shape){
+ const item=project.layoutObjects.find(x=>x.id===id&&x.kind==='table');
+ if(!item||![width,height].every(Number.isFinite)||(shape!==undefined&&!['rectangle','circle'].includes(shape)))throw Error('테이블 크기를 확인해 주세요.');
+ if(shape!==undefined)item.shape=shape;
+ item.width=Math.max(48,Math.min(360,width));item.height=item.shape==='circle'?item.width:Math.max(48,Math.min(360,height));
+ return item;
 }

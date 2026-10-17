@@ -141,3 +141,21 @@ small,.stat small{font-size:var(--text-meta)}
 .invite-options{display:flex;gap:12px;flex-wrap:wrap}.invite-options .field{min-width:100px}.invite-options input{max-width:120px}.field[hidden]{display:none}
 .connection-guide{margin:16px 0}.connection-guide summary{cursor:pointer;font-weight:600}.connection-guide li{margin:8px 0}.connections-panel .field input{width:100%;min-width:0}.consent-write{display:flex;align-items:flex-start;gap:8px}.consent-write input{margin-top:5px;flex-shrink:0}
 .invitation-panel>.settings-section>.settings-row{flex-wrap:wrap}
+
+/* Layout kind selection and furniture geometry. */
+.placement-kind-picker{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.placement-kind-picker legend{margin-bottom:6px;font-weight:600}
+.placement-kind-choice{position:relative;display:grid;justify-items:center;align-content:center;gap:4px;min-height:74px;border:1px solid var(--line);border-radius:var(--r-control);cursor:pointer}
+.placement-kind-choice input{position:absolute;opacity:0;width:1px;height:1px}
+.placement-kind-choice:has(input:checked){border-color:var(--ink);background:var(--surface-2)}
+.placement-kind-choice:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:2px}
+.layout-person{background:transparent;border:0;box-shadow:none}
+.layout-person .layout-symbol{color:var(--ink)}
+.layout-table{min-height:48px;align-content:center;overflow:visible}
+.layout-resize{position:absolute;width:14px;height:14px;background:var(--surface);border:1px solid var(--muted);border-radius:var(--r-control);z-index:1}
+.layout-resize-n{top:-7px;left:calc(50% - 7px);cursor:ns-resize}.layout-resize-s{bottom:-7px;left:calc(50% - 7px);cursor:ns-resize}
+.layout-resize-e{right:-7px;top:calc(50% - 7px);cursor:ew-resize}.layout-resize-w{left:-7px;top:calc(50% - 7px);cursor:ew-resize}
+.layout-resize-ne{right:-7px;top:-7px;cursor:nesw-resize}.layout-resize-sw{left:-7px;bottom:-7px;cursor:nesw-resize}
+.layout-resize-nw{left:-7px;top:-7px;cursor:nwse-resize}.layout-resize-se{right:-7px;bottom:-7px;cursor:nwse-resize}
+/* QA navigation and calendar reuse existing surfaces and tokens. */
+.project-list,.project-item,.project-heading{min-width:0}.project-list{overflow-x:hidden}.project-item{max-width:100%;text-align:left}.project-item-name{min-width:0}.row[role=button]:focus-visible,.btn:focus-visible,.project-item:focus-visible{outline:2px solid var(--blue);outline-offset:3px}.schedule-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:18px}.calendar-weekday{text-align:center;color:var(--muted);font-size:var(--text-support)}.calendar-day{min-height:105px;padding:8px;border:1px solid var(--line);border-radius:var(--r-control);overflow-wrap:anywhere}.calendar-day.is-empty{border-color:transparent}.calendar-shoot{display:block;width:100%;text-align:left;padding:5px;font-size:var(--text-meta);margin-top:5px}.task-add{grid-template-columns:1fr auto;align-items:end;margin-bottom:22px}.task-row{grid-template-columns:1fr auto}.task-row label:has(input:checked) span{text-decoration:line-through;color:var(--muted)}.account-results{display:grid;gap:8px}.account-result{text-align:left}.member-chip{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-control);padding:2px 6px;font-size:var(--text-meta);color:var(--muted)}@media(max-width:600px){.calendar-day{min-height:65px;padding:3px}.calendar-shoot{font-size:var(--text-meta);padding:2px}.schedule-calendar{gap:2px}}

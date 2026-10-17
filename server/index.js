@@ -1,3 +1,6 @@
+import {reconcileEquipment} from './equipment.js';
+import {validateWorkspace} from '../src/domain/workspace.js';
+import {setupAccounts,accountRoutes,accountActive,passwordChangeRequired,linkedWorkspace} from './accounts.js';
 import {oauthService} from './oauth.js';
 import {mcpService} from './mcp.js';
 import {writeWorkspace} from './workspace-service.js';
@@ -12,6 +15,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false'}={}) {
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir);
+  setupAccounts(db);
+  const handleAccounts=accountRoutes(db);
   const dummy = await hashPassword(token());
   const handleInvitations=invitationRoutes(db,origin);
   const oauth=oauthService(db,origin),handleMcp=mcpService(db,origin,oauth);
@@ -38,12 +43,15 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         try {return JSON.parse(await body(limit));} catch(e) {e.status ||=400;throw e;}
       };
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
-      const session = cookie && db.prepare('SELECT user_id FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
+      let session = cookie && db.prepare('SELECT user_id FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
+      if(session&&!accountActive(db,session.user_id))session=undefined;
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
+      if(session&&passwordChangeRequired(db,session.user_id)&&!['/api/session','/api/logout','/api/account/password'].includes(path)&&path.startsWith('/api/'))return json(403,{error:'PASSWORD_CHANGE_REQUIRED'});
       if(path==='/mcp'){await handleMcp({req,res,json,readJson});return;}
       if(await oauth.routes({path,url,req,res,json,body,readJson,session}))return;
       if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
       if(await handleInvitations({path,req,session,json,readJson}))return;
+      if(await handleAccounts({path,url,req,session,json,readJson}))return;
       if (path==='/api/login' && req.method==='POST') {
         const data = await readJson();
         if (typeof data.username!=='string'||data.username.length>64||typeof data.password!=='string'||data.password.length>256) return json(400,{error:'Invalid input'});
@@ -56,25 +64,26 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         const user=db.prepare('SELECT * FROM users WHERE username=?').get(data.username);
         loginInFlight++;
         let valid;try {valid=await verifyPassword(data.password,user?.password||dummy);} finally {loginInFlight--;}
-        if(!valid||!user) return json(401,{error:'Login failed'});
+        if(!valid||!user||!accountActive(db,user.id)||db.prepare('SELECT password FROM users WHERE id=?').get(user.id)?.password!==user.password) return json(401,{error:'Login failed'});
         db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(user.id);
         attempts.delete(keys[1]);
         db.prepare('DELETE FROM sessions WHERE expires<=?').run(now);
         const raw=token();db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),user.id,now+43200000);
-        setCookie(raw,43200);return json(200,{ok:true});
+        setCookie(raw,43200);return json(200,{ok:true,passwordChangeRequired:passwordChangeRequired(db,user.id)});
       }
       if(path.startsWith('/api/')) {
         if(!session) return json(401,{error:'Login required'});
         const uid=session.user_id;
-        if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true,isAdmin:isAdmin(db,uid)});
+        if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true,isAdmin:isAdmin(db,uid),passwordChangeRequired:passwordChangeRequired(db,uid),account:db.prepare('SELECT id,username FROM users WHERE id=?').get(uid)});
         if(path==='/api/logout'&&req.method==='POST') {db.prepare('DELETE FROM sessions WHERE token=?').run(digest(cookie));setCookie('',0);return json(200,{ok:true});}
         if(path==='/api/workspace'&&req.method==='GET') {
           const row=db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(uid);
-          return json(200,row?{revision:row.revision,state:JSON.parse(row.body)}:{revision:0,state:null});
+          return json(200,row?{revision:row.revision,state:reconcileEquipment(db,uid,linkedWorkspace(db,uid,JSON.parse(row.body)))}:{revision:0,state:null});
         }
         if(path==='/api/workspace'&&req.method==='PUT') {
           const data=await readJson();
-          try{return json(200,writeWorkspace(db,uid,data.state,data.revision));}catch(e){return json(e.status||500,{error:e.message});}
+          if(!validateWorkspace(data.state))return json(400,{error:'Invalid workspace'});
+          try{return json(200,writeWorkspace(db,uid,linkedWorkspace(db,uid,data.state),data.revision));}catch(e){return json(e.status||500,{error:e.message});}
         }
         if(path==='/api/files'&&req.method==='POST') {
           const type=req.headers['content-type'];
