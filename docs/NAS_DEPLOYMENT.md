@@ -44,13 +44,13 @@ In DSM Control Panel → Task Scheduler, create a scheduled user-defined script:
 
 - Name: `Studio automatic update`
 - User: `root` (required to manage Docker)
-- Schedule: every day, repeating every 10 minutes throughout the day
+- Schedule: every day, repeating every minute throughout the day
 - User-defined script: `sh /volume2/docker/studio/nas-auto-update.sh`
 - If the Studio project directory is different, set it explicitly: `STUDIO_PROJECT_DIR=/your/project/path sh /your/project/path/nas-auto-update.sh`
 
 Save and run it once manually. Inspect its result. A changed image should report `Studio updated and healthy.` If the image is unchanged the task exits successfully without recreating the container. No credentials should be entered in the task or script.
 
-The updater pulls the image before any restart, refuses an update without a writable persistent `/data` mount, serializes concurrent executions, preserves cloudflared, and checks container health. If an update fails it attempts to restore the previous image and returns a failure so DSM can report it. Configure DSM's task failure notification if desired; notification setup depends on your NAS mail configuration. The rollback still requires confirmation that the restored container is healthy. It cannot reverse data migrations; future database changes must preserve backward compatibility or use a separately planned migration and backup.
+The updater pulls the image before any restart, refuses an update without a writable persistent `/data` mount, serializes concurrent executions, preserves cloudflared, and checks container health. A failed image is recorded and will not be retried every minute; a newer published image can be attempted normally. If an update fails it attempts to restore the previous image and returns a failure so DSM can report it. Configure DSM's task failure notification if desired; notification setup depends on your NAS mail configuration. The rollback still requires confirmation that the restored container is healthy. It cannot reverse data migrations; future database changes must preserve backward compatibility or use a separately planned migration and backup.
 
 A successful update briefly restarts Studio. Unsaved work may need retrying. To stop automatic deployment, disable this scheduled task. Retain the data volume and rollback image. Never schedule `docker compose down -v`, volume removal, or automatic image pruning. After an abrupt updater termination, inspect and remove the empty `.studio-update.lock` directory only after confirming no update is running.
 

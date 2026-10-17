@@ -47,3 +47,5 @@ tmp/
 
 .studio-update.override.yaml
 .studio-update.lock/
+
+.studio-update.failed-image

@@ -4,7 +4,7 @@ import {mkdtempSync,writeFileSync,readFileSync,mkdirSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
-for(const scenario of ['unchanged','success','rollback','missing-volume','repeat']) test(`NAS updater: ${scenario}`,()=>{
+for(const scenario of ['unchanged','success','rollback','missing-volume','repeat','failed-release']) test(`NAS updater: ${scenario}`,()=>{
  const dir=mkdtempSync(join(tmpdir(),'studio-updater-'));
  try {
   const bin=join(dir,'bin');mkdirSync(bin);
@@ -26,8 +26,9 @@ if(a[0]==='inspect'){
 } else if(a[0]==='image'&&a[1]==='inspect') console.log(s==='unchanged'?'sha256:old':'sha256:new');
 else if(a[0]==='compose'&&a.includes('up')) fs.writeFileSync(p.join(d,'applied'),'yes');
 ` ,{mode:0o755});
+  if(scenario==='failed-release')writeFileSync(join(dir,'.studio-update.failed-image'),'sha256:new\n');
   const run=spawnSync('sh',[join(dir,'update.sh')],{encoding:'utf8',env:{...process.env,TEST_BIN:bin,STUDIO_PROJECT_DIR:dir,SCENARIO:scenario}});
-  assert.equal(run.status,['rollback','missing-volume'].includes(scenario)?1:0,run.stderr);
+  assert.equal(run.status,['rollback','missing-volume','failed-release'].includes(scenario)?1:0,run.stderr);
   const calls=readFileSync(join(dir,'calls'),'utf8').trim().split('\n').map(JSON.parse);
   const updates=calls.filter(a=>a[0]==='compose'&&a.includes('up'));
   assert.equal(updates.length,scenario==='rollback'?2:['success','repeat'].includes(scenario)?1:0);

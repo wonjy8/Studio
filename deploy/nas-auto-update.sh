@@ -41,6 +41,11 @@ old=$(docker inspect --format '{{.Image}}' studio)
 docker pull "$image"
 new=$(docker image inspect --format '{{.Id}}' "$image")
 if [ "$old" = "$new" ]; then exit 0; fi
+failed_image="$project_dir/.studio-update.failed-image"
+if [ -f "$failed_image" ] && [ "$(cat "$failed_image")" = "$new" ]; then
+  echo 'This image previously failed health checks; waiting for a newer release.' >&2
+  exit 1
+fi
 # Pin the pulled immutable image ID locally so a moving latest tag cannot race the update.
 docker image tag "$old" studio-rollback:local
 docker image tag "$new" studio-update:local
@@ -55,6 +60,7 @@ if compose "$@" -f "$override" config --quiet && compose "$@" -f "$override" up 
   while [ "$attempt" -lt 30 ]; do
     state=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' studio 2>/dev/null || true)
     if [ "$state" = healthy ]; then
+      rm -f "$failed_image"
       echo 'Studio updated and healthy.'
       exit 0
     fi
@@ -63,6 +69,7 @@ if compose "$@" -f "$override" config --quiet && compose "$@" -f "$override" up 
     sleep 2
   done
 fi
+printf '%s\n' "$new" > "$failed_image"
 echo 'Studio update failed; restoring previous image.' >&2
 write_override studio-rollback:local
 compose "$@" -f "$override" up -d --no-deps studio
