@@ -15,6 +15,33 @@ export function layoutItemGeometry(item,stageWidth,stageHeight){
  const travelX=Math.max(0,stageWidth-width-padding*2),travelY=Math.max(0,stageHeight-height-padding*2);
  return {width,height,travelX,travelY,left:padding+width/2+travelX*item.x/100,top:padding+height/2+travelY*item.y/100};
 }
+// Pointer deltas are canvas CSS pixels. Anchor the opposite edge/corner rather
+// than resizing around a percentage center. Fit is applied only at drag start.
+export function resizeLayoutGeometry(start,edge,dx,dy,stageWidth,stageHeight){
+ if(!['n','ne','e','se','s','sw','w','nw'].includes(edge)||![dx,dy,stageWidth,stageHeight].every(Number.isFinite))throw Error('Invalid resize geometry');
+ if(dx===0&&dy===0)return {width:start.width??120,height:start.height??(start.shape==='circle'?120:80),x:start.x,y:start.y};
+ const g=layoutItemGeometry(start,stageWidth,stageHeight),margin=10;
+ const west=edge.includes('w'),east=edge.includes('e'),north=edge.includes('n'),south=edge.includes('s');
+ const left=g.left-g.width/2,right=g.left+g.width/2,top=g.top-g.height/2,bottom=g.top+g.height/2;
+ const clamp=(value,max)=>Math.max(Math.min(48,max),Math.min(max,value));
+ let width=g.width,height=g.height,cx=g.left,cy=g.top;
+ if(start.shape==='circle'){
+  const deltas=[...(west?[-dx]:east?[dx]:[]),...(north?[-dy]:south?[dy]:[])];
+  let maximum=360;
+  maximum=Math.min(maximum,west?right-margin:east?stageWidth-margin-left:2*Math.min(cx-margin,stageWidth-margin-cx));
+  maximum=Math.min(maximum,north?bottom-margin:south?stageHeight-margin-top:2*Math.min(cy-margin,stageHeight-margin-cy));
+  width=height=clamp(g.width+deltas.reduce((a,b)=>a+b,0)/deltas.length,maximum);
+  if(west)cx=right-width/2;else if(east)cx=left+width/2;
+  if(north)cy=bottom-height/2;else if(south)cy=top+height/2;
+ }else{
+  if(west){width=clamp(g.width-dx,Math.min(360,right-margin));cx=right-width/2;}
+  if(east){width=clamp(g.width+dx,Math.min(360,stageWidth-margin-left));cx=left+width/2;}
+  if(north){height=clamp(g.height-dy,Math.min(360,bottom-margin));cy=bottom-height/2;}
+  if(south){height=clamp(g.height+dy,Math.min(360,stageHeight-margin-top));cy=top+height/2;}
+ }
+ const position=(center,size,extent,original)=>{const travel=extent-size-margin*2;return travel>0?Math.max(0,Math.min(100,(center-margin-size/2)/travel*100)):original;};
+ return {width,height,x:position(cx,width,stageWidth,start.x),y:position(cy,height,stageHeight,start.y)};
+}
 export function layoutStage(state){
  const items=[...state.cameras.map(c=>({...c,kind:'camera'})),...state.layoutObjects];
  return `<p class="sub layout-help">항목을 드래그해 이동하세요. 방향키로 1%, Shift + 방향키로 5% 이동하며, 클릭하면 위치를 숫자로 조정할 수 있습니다. 테이블 가장자리·모서리를 드래그해 크기를 바꾸세요.</p><div class="camera-stage" data-layout-stage aria-label="촬영 배치도">${items.map(item=>`<button class="camera layout-item layout-${item.kind}" data-layout-id="${item.id}" ${item.kind==='camera'?`data-camera="${item.id}"`:`data-placement="${item.id}"`} style="${item.kind==='table'?`width:${item.width??120}px;height:${item.height??(item.shape==='circle'?120:80)}px;${item.shape==='circle'?'border-radius:50%;corner-shape:round;':''}`:''}left:calc(48px + (100% - 96px) * ${item.x/100});top:calc(40px + (100% - 80px) * ${item.y/100})" aria-label="${esc(item.name)} · ${item.kind==='camera'?'카메라':esc(layoutKinds[item.kind])}"><span class="layout-symbol" aria-hidden="true" style="transform:rotate(${item.rotation||0}deg)">${item.kind==='camera'?'▣':symbols[item.kind]}</span><b>${esc(item.name)}</b>${item.kind==='person'?'':'<small>'}${item.kind==='person'?'':item.kind==='camera'?'카메라':item.kind==='equipment'?esc(gearCategories[state.gear.find(g=>g.id===item.gearId)?.category]||'장비'):esc(layoutKinds[item.kind])}${item.kind==='person'?'':'</small>'}${item.kind==='table'?['n','ne','e','se','s','sw','w','nw'].map(edge=>`<span class="layout-resize layout-resize-${edge}" data-resize="${edge}" aria-hidden="true"></span>`).join(''):''}</button>`).join('')}${items.length?'':'<div class="empty">카메라나 사람·사물을 추가해 배치도를 만드세요.</div>'}</div><div class="layout-object-list" aria-label="배치 항목">${items.map(item=>`<button class="btn" ${item.kind==='camera'?`data-camera="${item.id}"`:`data-placement="${item.id}"`}>${esc(item.name)} · 위치 편집</button>`).join('')}</div>`;
