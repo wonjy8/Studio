@@ -1,0 +1,30 @@
+name: Validate Studio
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm run check
+      - run: npm test
+      - run: docker build -t studio-test .
+      - name: Smoke test container health
+        run: |
+          docker run -d --name studio-test -e APP_ORIGIN=https://studio.example.invalid studio-test
+          for attempt in $(seq 1 30); do
+            if docker exec studio-test node -e "fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+              docker stop studio-test
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs studio-test
+          exit 1

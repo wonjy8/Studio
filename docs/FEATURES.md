@@ -4,26 +4,26 @@ Every feature follows `PRODUCT.md`, `UI_LANGUAGE.md`, `ARCHITECTURE.md`, and `SE
 
 ## Overview / readiness
 **Why:** the production owner needs to see readiness before navigating management screens.
-**Flow:** Home → readiness stats → warnings → schedule/content.
-**Data:** content readiness + equipment readiness.
+**Flow:** Home → readiness stats → warnings → schedule/Shoot.
+**Data:** Shoot readiness + equipment readiness.
 **UX:** status uses text and color; warnings are actionable.
 
 ## Schedule
 **Why:** time is the primary operational axis on shoot day.
-**Flow:** Schedule → content row → content context.
-**Data:** schedule item links to content by ID.
+**Flow:** Schedule → Shoot row → Shoot context.
+**Data:** schedule item links to Shoot by ID.
 **UX:** script/location/readiness appear without leaving the row.
 
-## Content detail
+## Shoot detail
 **Why:** production information should converge around the shooting unit.
-**Flow:** content → contextual detail → camera/reference/script.
-**Data:** content links rather than duplicating people/equipment/reference data.
+**Flow:** Shoot → contextual detail → camera/reference/script.
+**Data:** Shoot links rather than duplicating people/equipment/reference data.
 
 ## Script
 **Why:** crews need the approved source document, not another editor.
-**Flow:** content → script status/preview → original file.
+**Flow:** Shoot → script status/preview → original file.
 **Privacy:** runtime files only; never repository assets.
-**Current demo:** script registration state is implemented. Private file storage/preview requires a runtime storage backend and is intentionally not faked in the public static demo.
+**Current demo:** script registration state is implemented. PDF originals and private preview are available through the authenticated NAS backend.
 
 ## Camera ↔ Reference
 **Why:** an operator should understand the intended frame immediately.
@@ -46,5 +46,5 @@ Every feature follows `PRODUCT.md`, `UI_LANGUAGE.md`, `ARCHITECTURE.md`, and `SE
 **Privacy:** disconnected by default; credentials never live in public source or frontend fixtures.
 **Current demo:** secure settings boundary is implemented; actual provider authentication is deferred until a backend/provider-supported authorization path is selected and reviewed.
 
-## Demo persistence
-The public demo stores synthetic/local user edits in browser `localStorage`. It does not upload them to GitHub. This is a prototype persistence layer, not the final multi-user data architecture.
+## NAS persistence
+The authenticated server stores account-isolated project state and attachments in the private NAS SQLite volume. Writes use revision checks. The browser demo is no longer the deployed persistence layer. See AUTH_AND_SERVER.md and NAS_DEPLOYMENT.md.
