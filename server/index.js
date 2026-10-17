@@ -1,8 +1,9 @@
 import {reconcileEquipment} from './equipment.js';
 import {validateWorkspace} from '../src/domain/workspace.js';
 import {setupAccounts,accountRoutes,accountActive,passwordChangeRequired,linkedWorkspace} from './accounts.js';
+import {connectionDiagnostics} from './connection-diagnostics.js';
 import {oauthService} from './oauth.js';
-import {mcpService} from './mcp.js';
+import {mcpService,toolSchemaVersion} from './mcp.js';
 import {writeWorkspace} from './workspace-service.js';
 import http from 'node:http';
 import {invitationRoutes,isAdmin} from './invitations.js';
@@ -18,6 +19,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   setupAccounts(db);
   const handleAccounts=accountRoutes(db);
   const dummy = await hashPassword(token());
+  const diagnostics=connectionDiagnostics(db);
   const handleInvitations=invitationRoutes(db,origin);
   const oauth=oauthService(db,origin),handleMcp=mcpService(db,origin,oauth);
   const attempts = new Map();
@@ -28,9 +30,11 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     res.setHeader('Referrer-Policy','no-referrer');
     res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'");
     if (secure) res.setHeader('Strict-Transport-Security','max-age=31536000');
-    const json=(code,body)=>{res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
+    let diagnosticPath='',diagnosticData,diagnosticDetails={},diagnosticReason='';
+    res.once('finish',()=>diagnostics.record(diagnostics.stage(diagnosticPath,diagnosticData),res.statusCode,diagnosticReason,diagnosticDetails));
+    const json=(code,body)=>{if(typeof body?.error==='string')diagnosticReason=body.error;if(body?.result?.isError===true)diagnosticReason=body.result._meta?.['mcp/www_authenticate']?'tool_auth_required':'tool_rejected';res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
     try {
-      const url = new URL(req.url,'http://localhost'),path=url.pathname;
+      const url = new URL(req.url,'http://localhost'),path=url.pathname;diagnosticPath=path;
       if (req.method==='GET' && path==='/health') {db.prepare('SELECT 1').get(); return json(200,{ok:true});}
 
       const body = async (limit=1024*1024)=>{
@@ -40,13 +44,14 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       };
       const readJson = async (limit)=>{
         if (!req.headers['content-type']?.startsWith('application/json')) {const e=Error();e.status=415;throw e;}
-        try {return JSON.parse(await body(limit));} catch(e) {e.status ||=400;throw e;}
+        try {const data=JSON.parse(await body(limit));if(path==='/oauth/register')diagnosticDetails=diagnostics.metadata(data);if(path==='/mcp'){diagnosticData={method:typeof data?.method==='string'?data.method:''};diagnosticDetails=diagnostics.toolMetadata(data);}return data;} catch(e) {e.status ||=400;throw e;}
       };
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
       let session = cookie && db.prepare('SELECT user_id FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
       if(session&&!accountActive(db,session.user_id))session=undefined;
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
       if(session&&passwordChangeRequired(db,session.user_id)&&!['/api/session','/api/logout','/api/account/password'].includes(path)&&path.startsWith('/api/'))return json(403,{error:'PASSWORD_CHANGE_REQUIRED'});
+      if(path==='/api/connections/diagnostics'&&req.method==='GET'){if(!session)return json(401,{error:'Login required'});if(!isAdmin(db,session.user_id))return json(403,{error:'Administrator required'});return json(200,{version:'connection-diagnostics-1',toolSchemaVersion,events:diagnostics.list()});}
       if(path==='/mcp'){await handleMcp({req,res,json,readJson});return;}
       if(await oauth.routes({path,url,req,res,json,body,readJson,session}))return;
       if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
