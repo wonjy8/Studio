@@ -12,8 +12,8 @@ async function fixture(t){
  const base=`http://127.0.0.1:${server.address().port}`;
  const call=(path,method='GET',data,headers={})=>fetch(base+path,{method,redirect:'manual',headers:{...(data===undefined?{}:{'Content-Type':'application/json'}),...headers},body:data===undefined?undefined:JSON.stringify(data)});
  const callback='https://chatgpt.com/connector_platform_oauth_redirect',resource=origin+'/mcp';
- const register=async()=>{const r=await call('/oauth/register','POST',{redirect_uris:[callback],token_endpoint_auth_method:'none'});assert.equal(r.status,201);return r.json();};
- const form=async(data)=>fetch(base+'/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({resource,...data})});
+ const register=async(method='none')=>{const r=await call('/oauth/register','POST',{redirect_uris:[callback],token_endpoint_auth_method:method});assert.equal(r.status,201);return r.json();};
+ const form=async(data,headers={})=>fetch(base+'/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded',...headers},body:new URLSearchParams({resource,...data})});
  const pending=async(client,scope='studio:read studio:write')=>{
   const verifier=token(),challenge=createHash('sha256').update(verifier).digest('base64url');const params={client_id:client.client_id,redirect_uri:callback,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource,scope,state:'fictional-state'};
   const r=await call('/oauth/authorize?'+new URLSearchParams(params));assert.equal(r.status,302);return {id:new URL(r.headers.get('location')).searchParams.get('connect'),verifier,params};
@@ -75,4 +75,35 @@ test('MCP account isolation, read-only scopes, confirmed writes, revisions, repl
  const connections=await (await f.call('/api/connections','GET',undefined,{Cookie:f.cookies.alpha})).json();assert.equal(connections.connections.length,1);
  await f.call('/api/connections/'+connections.connections[0].id,'DELETE',undefined,{Origin:f.origin,Cookie:f.cookies.beta});assert.equal((await f.rpc(writer,'tools/list')).response.status,200);
  await f.call('/api/connections/'+connections.connections[0].id,'DELETE',undefined,{Origin:f.origin,Cookie:f.cookies.alpha});assert.equal((await f.rpc(writer,'tools/list')).response.status,401);
+});
+test('app registration can discover static tools without access to any production data',async t=>{
+ const f=await fixture(t);
+ const rpc=async(method,params={})=>f.call('/mcp','POST',{jsonrpc:'2.0',id:1,method,params});
+ const initialized=await rpc('initialize',{protocolVersion:'2025-11-25'});assert.equal(initialized.status,200);
+ const listed=await (await rpc('tools/list')).json();assert.equal(listed.result.tools.length,4);assert.ok(listed.result.tools.every(t=>t.securitySchemes[0].type==='oauth2'));
+ assert.equal(JSON.stringify(listed).includes('Fictional alpha'),false);assert.equal(JSON.stringify(listed).includes('alpha-project'),false);
+ for(const name of ['studio_list_projects','studio_get_project','studio_apply_changes']){
+  const r=await rpc('tools/call',{name,arguments:{projectId:'alpha-project',confirmed:true}});const data=await r.json();assert.equal(data.result.isError,true);assert.match(data.result._meta['mcp/www_authenticate'][0],/resource_metadata/);
+  if(name==='studio_apply_changes')assert.match(data.result._meta['mcp/www_authenticate'][0],/studio:write/);
+  assert.equal(JSON.stringify(data).includes('Fictional alpha'),false);
+ }
+ assert.equal((await f.call('/mcp','POST',{jsonrpc:'2.0',id:1,method:'tools/list'},{Authorization:'Bearer '+token()})).status,401);
+});
+test('DCR accepts confidential post/basic clients while enforcing secret and PKCE authentication',async t=>{
+ const f=await fixture(t);
+ const metadata=await (await f.call('/.well-known/oauth-authorization-server')).json();assert.deepEqual(metadata.token_endpoint_auth_methods_supported,['none','client_secret_post','client_secret_basic']);
+ for(const method of ['client_secret_post','client_secret_basic']){
+  const client=await f.register(method);assert.ok(client.client_secret);assert.equal(client.token_endpoint_auth_method,method);
+  assert.equal(f.db.prepare('SELECT secret_hash FROM oauth_clients WHERE id=?').get(client.client_id).secret_hash,digest(client.client_secret));
+  const pending=await f.pending(client),redirect=await f.consent(pending);
+  const body={client_id:client.client_id,redirect_uri:f.callback,grant_type:'authorization_code',code:redirect.searchParams.get('code'),code_verifier:pending.verifier};
+  assert.equal((await f.form(body)).status,401);
+  const credentials=secret=>method==='client_secret_post'?{data:{...body,client_secret:secret},headers:{}}:{data:body,headers:{Authorization:'Basic '+Buffer.from(client.client_id+':'+secret).toString('base64')}};
+  let params=credentials('wrong');assert.equal((await f.form(params.data,params.headers)).status,401);
+  params=credentials(client.client_secret);assert.equal((await f.form({...params.data,code_verifier:token()},params.headers)).status,400);
+  const r=await f.form(params.data,params.headers);assert.equal(r.status,200);const issued=await r.json();assert.ok(issued.access_token);
+  const refresh={client_id:client.client_id,grant_type:'refresh_token',refresh_token:issued.refresh_token};
+  if(method==='client_secret_post')refresh.client_secret=client.client_secret;
+  assert.equal((await f.form(refresh,params.headers)).status,200);
+ }
 });
