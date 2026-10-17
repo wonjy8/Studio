@@ -48,3 +48,10 @@ Every feature follows `PRODUCT.md`, `UI_LANGUAGE.md`, `ARCHITECTURE.md`, and `SE
 
 ## NAS persistence
 The authenticated server stores account-isolated project state and attachments in the private NAS SQLite volume. Writes use revision checks. The browser demo is no longer the deployed persistence layer. See AUTH_AND_SERVER.md and NAS_DEPLOYMENT.md.
+
+## Login presentation
+**Why:** provide a calm, readable entry to a private production workspace.
+**Flow:** username and password → submit with loading/error feedback → existing Project.
+**Reuse:** shared color/shape tokens, field and button primitives; dedicated login page composition outside app.js.
+**UX:** white background, centered single-column form, mobile sizing, visible keyboard focus, optional password visibility, administrator help.
+**Privacy:** no external images/fonts, account discovery, or credential persistence in frontend storage.
