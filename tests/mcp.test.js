@@ -107,3 +107,15 @@ test('DCR accepts confidential post/basic clients while enforcing secret and PKC
   assert.equal((await f.form(refresh,params.headers)).status,200);
  }
 });
+test('all published tool object schemas declare concrete properties for function-tool conversion',async t=>{
+ const f=await fixture(t);const response=await f.call('/mcp','POST',{jsonrpc:'2.0',id:1,method:'tools/list'});const tools=(await response.json()).result.tools;
+ const visit=(node,path)=>{
+  if(!node||typeof node!=='object')return;
+  assert.equal(Object.hasOwn(node,'const'),false,path+' uses unsupported const instead of enum');
+  if(node.type==='object'){assert.ok(node.properties&&typeof node.properties==='object',path+' object lacks properties');assert.equal(node.additionalProperties,false,path);for(const [key,value] of Object.entries(node.properties))visit(value,path+'.'+key);}
+  if(node.items)visit(node.items,path+'[]');
+ };
+ for(const tool of tools)visit(tool.inputSchema,tool.name);
+ const values=tools.find(t=>t.name==='studio_propose_changes').inputSchema.properties.commands.items.properties.values;
+ assert.equal(values.properties.name.type,'string');assert.equal(values.properties.completed.type,'boolean');assert.equal(values.properties.x.type,'number');assert.ok(values.properties.category.enum.includes('sd'));
+});

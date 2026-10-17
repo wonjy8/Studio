@@ -14,7 +14,7 @@ test('administrator diagnostics identify registration failures without capturing
  assert.equal((await call('/oauth/register','POST',{redirect_uris:[`https://${marker}@unsupported.example/callback?private=${marker}`],token_endpoint_auth_method:'none',client_secret:marker})).status,400);
  const registered=await (await call('/oauth/register','POST',{redirect_uris:['https://chatgpt.com/connector_platform_oauth_redirect'],token_endpoint_auth_method:'client_secret_post'})).json();assert.ok(registered.client_secret);
  await call('/mcp','POST',{jsonrpc:'2.0',id:1,method:'initialize',params:{private:marker}});
- const report=await (await call(path,'GET',undefined,cookies.owner)).json();assert.equal(report.version,'connection-diagnostics-1');
+ const report=await (await call(path,'GET',undefined,cookies.owner)).json();assert.equal(report.version,'connection-diagnostics-1');assert.equal(report.toolSchemaVersion,2);
  const rejected=report.events.find(e=>e.reason==='invalid_redirect_uri');assert.equal(rejected.stage,'client_registration');assert.equal(rejected.status,400);assert.deepEqual(rejected.details.callbackHosts,['unsupported.example']);
  assert.ok(report.events.some(e=>e.stage==='client_registration'&&e.status===201));assert.ok(report.events.some(e=>e.stage==='mcp_initialize'));
  const serialized=JSON.stringify(report);for(const value of [marker,registered.client_secret,registered.client_id,cookies.owner])assert.equal(serialized.includes(value),false);
