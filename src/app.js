@@ -2,7 +2,7 @@ import {accountMembersPanel,adminPanel,bindAccountMembers,bindAdmin,sharedProjec
 import {applyCommands} from './domain/commands.js';
 import {connectionsPanel,bindConnections,connectionConsent} from './features/connections.js';
 import {gearCategories,layoutKinds,addCamera,addLayoutObject,moveLayoutItem,resizeLayoutTable,removeLayoutItem} from './domain/layout.js';
-import {layoutStage,placementForm,positionForm,layoutItemGeometry} from './features/layout/layout.js';
+import {layoutStage,placementForm,positionForm,layoutItemGeometry,resizeLayoutGeometry} from './features/layout/layout.js';
 import {emptyWorkspace} from './domain/workspace.js';
 import {loadWorkspace,saveWorkspace,upload,request} from './integrations/api.js';
 import {requireLogin,logout,sessionInfo} from './app/session.js';
@@ -86,13 +86,13 @@ function bindLayout(){
   };
   button.onpointerdown=e=>{
    if(e.button!==0||saving||failed)return;
-   const startX=e.clientX,startY=e.clientY;
-   const item=[...state.cameras,...state.layoutObjects].find(x=>x.id===button.dataset.layoutId),oldX=item.x,oldY=item.y,oldWidth=item.width??120,oldHeight=item.height??(item.shape==='circle'?120:80),edge=e.target.closest('[data-resize]')?.dataset.resize,geometry=layoutItemGeometry(item,stageElement.clientWidth,stageElement.clientHeight);let moved=false;
+   const startX=e.clientX,startY=e.clientY,stageRect=stageElement.getBoundingClientRect(),scaleX=stageElement.offsetWidth/stageRect.width,scaleY=stageElement.offsetHeight/stageRect.height;
+   const item=[...state.cameras,...state.layoutObjects].find(x=>x.id===button.dataset.layoutId),oldX=item.x,oldY=item.y,oldWidth=item.width??120,oldHeight=item.height??(item.shape==='circle'?120:80),edge=e.target.closest('[data-resize]')?.dataset.resize,geometry=layoutItemGeometry(item,stageElement.clientWidth,stageElement.clientHeight),resizeStart=structuredClone(item);let moved=false;
    button.setPointerCapture(e.pointerId);
    button.onpointermove=event=>{
     if(Math.hypot(event.clientX-startX,event.clientY-startY)<4&&!moved)return;moved=true;
-    if(edge){const dx=event.clientX-startX,dy=event.clientY-startY;const width=oldWidth+(edge.includes('e')?dx*2:edge.includes('w')?-dx*2:0),height=oldHeight+(edge.includes('s')?dy*2:edge.includes('n')?-dy*2:0);resizeLayoutTable(state,item.id,item.shape==='circle'&&!/[ew]/.test(edge)?height:width,height);paint(button,item);return;}
-    moveLayoutItem(state,item.id,geometry.travelX>0?oldX+(event.clientX-startX)/geometry.travelX*100:oldX,geometry.travelY>0?oldY+(event.clientY-startY)/geometry.travelY*100:oldY);
+    if(edge){const next=resizeLayoutGeometry(resizeStart,edge,(event.clientX-startX)*scaleX,(event.clientY-startY)*scaleY,stageElement.clientWidth,stageElement.clientHeight);resizeLayoutTable(state,item.id,next.width,next.height);moveLayoutItem(state,item.id,next.x,next.y);paint(button,item);return;}
+    moveLayoutItem(state,item.id,geometry.travelX>0?oldX+(event.clientX-startX)*scaleX/geometry.travelX*100:oldX,geometry.travelY>0?oldY+(event.clientY-startY)*scaleY/geometry.travelY*100:oldY);
     paint(button,item);
    };
    const finish=event=>{button.onpointermove=null;button.onpointerup=null;button.onpointercancel=null;

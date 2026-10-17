@@ -1,0 +1,33 @@
+// Isolated pointer acceptance: STUDIO_PLAYWRIGHT_MODULE=/path/playwright/index.mjs node tools/qa-resize-browser.mjs
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createServer} from 'node:net';
+import {createApp} from '../server/index.js';
+import {hashPassword} from '../server/auth.js';
+import {emptyWorkspace} from '../src/domain/workspace.js';
+import {prepareProjects} from '../src/domain/projects.js';
+const {chromium}=await import(process.env.STUDIO_PLAYWRIGHT_MODULE||'playwright');
+const reservation=createServer();await new Promise(r=>reservation.listen(0,'127.0.0.1',r));const port=reservation.address().port;await new Promise(r=>reservation.close(r));
+const base=`http://127.0.0.1:${port}`,dir=await mkdtemp(join(tmpdir(),'studio-resize-browser-'));const app=await createApp({dir,origin:base,secure:false});
+app.db.prepare('INSERT INTO users VALUES(?,?,?)').run('fictional-resize','fictional-resize',await hashPassword('Fictional!Resize2026'));
+await new Promise(r=>app.server.listen(port,'127.0.0.1',r));const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']});const page=await browser.newPage({viewport:{width:1180,height:757}});page.setDefaultTimeout(10000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+const near=(a,b,label)=>assert.ok(Math.abs(a-b)<1,`${label}: expected ${b}, got ${a}`);
+const rect=async()=>page.locator('[data-layout-id]').evaluate(e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,cx:(r.left+r.right)/2,cy:(r.top+r.bottom)/2};});
+const stateFor=shape=>{const s=prepareProjects(emptyWorkspace());s.project.id='resize-project';s.layoutObjects=[{id:'resize-table',kind:'table',name:'Fictional resize table',shape,width:shape==='circle'?220:240,height:shape==='circle'?220:180,x:37.321,y:29.123,rotation:0}];return s;};
+async function reset(shape,scale=1){const current=await (await page.request.get(base+'/api/workspace')).json();const saved=await page.request.put(base+'/api/workspace',{headers:{Origin:base},data:{revision:current.revision,state:stateFor(shape)}});assert.equal(saved.status(),200);await page.reload();await page.locator('.production-app').waitFor();await page.locator('[data-view=camera]').click();if(scale!==1)await page.addStyleTag({content:`[data-layout-stage]{transform:scale(${scale});transform-origin:top left}`});await page.locator('[data-resize=w]').waitFor();}
+async function drag(edge,dx,dy,cancel=false){const handle=await page.locator(`[data-resize=${edge}]`).boundingBox();const start={x:handle.x+handle.width/2,y:handle.y+handle.height/2};await page.mouse.move(start.x,start.y);await page.mouse.down();await page.mouse.move(start.x+dx,start.y+dy,{steps:5});if(cancel)await page.locator('[data-layout-id]').dispatchEvent('pointercancel',{pointerId:1});await page.mouse.up();await page.waitForFunction(()=>document.querySelector('.save-indicator')?.textContent==='저장됨');}
+try{
+ await page.goto(base);await page.locator('[name=username]').fill('fictional-resize');await page.locator('[name=password]').fill('Fictional!Resize2026');await page.locator('[type=submit]').click();await page.locator('.production-app').waitFor();
+ for(const shape of ['rectangle','circle'])for(const scale of [1,.75])for(const edge of ['n','ne','e','se','s','sw','w','nw']){
+  await reset(shape,scale);const before=await rect();const dx=edge.includes('e')?20:edge.includes('w')?-20:0,dy=edge.includes('s')?20:edge.includes('n')?-20:0;await drag(edge,dx,dy);const after=await rect();
+  near(after.width,before.width+(shape==='circle'||/[ew]/.test(edge)?20:0),`${shape}/${scale}/${edge} width`);near(after.height,before.height+(shape==='circle'||/[ns]/.test(edge)?20:0),`${shape}/${scale}/${edge} height`);
+  if(edge.includes('w'))near(after.right,before.right,'opposite right');if(edge.includes('e'))near(after.left,before.left,'opposite left');if(edge.includes('n'))near(after.bottom,before.bottom,'opposite bottom');if(edge.includes('s'))near(after.top,before.top,'opposite top');if(!/[ew]/.test(edge))near(after.cx,before.cx,'perpendicular horizontal center');if(!/[ns]/.test(edge))near(after.cy,before.cy,'perpendicular vertical center');
+ }
+ console.log('PASS 32 rectangle/circle × screen-scale × edge anchor/one-to-one cases');
+ await reset('rectangle');const before=await rect();await drag('w',20,0);const shrink=await rect();near(shrink.width,before.width-20,'production west shrink');near(shrink.left,before.left+20,'west follows pointer');near(shrink.right,before.right,'west opposite anchor');
+ const snapshot=await rect();await drag('se',20,20,true);const cancelled=await rect();for(const key of ['left','right','top','bottom','width','height'])near(cancelled[key],snapshot[key],'cancel '+key);console.log('PASS production west shrink and pointer cancellation');
+ await page.reload();await page.locator('.production-app').waitFor();await page.locator('[data-view=camera]').click();near((await rect()).width,shrink.width,'reload width');console.log('PASS saved geometry remains after reload'); await page.setViewportSize({width:390,height:844});await reset('rectangle');let mobileState=await (await page.request.get(base+'/api/workspace')).json();mobileState.state.layoutObjects[0].width=360;mobileState.state.layoutObjects[0].height=240;await page.request.put(base+'/api/workspace',{headers:{Origin:base},data:mobileState});await page.reload();await page.locator('.production-app').waitFor();await page.locator('[data-view=camera]').click();const mobileBefore=await rect();await drag('w',20,0);const mobileAfter=await rect();near(mobileAfter.left,mobileBefore.left+20,'fitted mobile west follows pointer');near(mobileAfter.right,mobileBefore.right,'fitted mobile opposite right');near(mobileAfter.height,mobileBefore.height,'fitted mobile height');console.log('PASS mobile fitted geometry follows drag and persists anchors');
+assert.deepEqual(errors,[]);console.log('PASS no browser exceptions');
+}finally{await browser.close();await new Promise(r=>app.server.close(r));await rm(dir,{recursive:true,force:true});}
