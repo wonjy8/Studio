@@ -31,7 +31,7 @@ function validateProject(value) {
   const fields = (o, names) => o && names.every(k => text(o[k]));
   if (!fields(value.project,['name','date','time','location'])) return false;
   if(value.project.description!==undefined&&!text(value.project.description))return false;
-  if(value.tasks!==undefined&&(!Array.isArray(value.tasks)||value.tasks.length>2000||!value.tasks.every(x=>x&&/^[a-zA-Z0-9_-]{1,80}$/.test(x.id)&&text(x.name)&&x.name.trim()&&typeof x.completed==='boolean'&&validSchedule(x))||new Set(value.tasks.map(x=>x.id)).size!==value.tasks.length))return false;
+  if(value.tasks!==undefined&&(!Array.isArray(value.tasks)||value.tasks.length>2000||!value.tasks.every(x=>x&&/^[a-zA-Z0-9_-]{1,80}$/.test(x.id)&&text(x.name)&&x.name.trim()&&typeof x.completed==='boolean'&&(x.flagged===undefined||typeof x.flagged==='boolean')&&validSchedule(x))||new Set(value.tasks.map(x=>x.id)).size!==value.tasks.length))return false;
   if(value.project.id!==undefined&&!/^[a-zA-Z0-9_-]{1,80}$/.test(value.project.id))return false;
   if(value.project.order!==undefined&&(!Number.isSafeInteger(value.project.order)||value.project.order<0))return false;
   if(value.project.icon!==undefined&&!projectIcons.includes(value.project.icon))return false;

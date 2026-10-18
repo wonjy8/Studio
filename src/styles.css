@@ -347,3 +347,14 @@ select:not([multiple]):not([size]){padding:8px var(--control-padding);border:1px
 
 /* Resize selection outlines follow the square handles. */
 .layout-item.is-selected:has(.layout-resize){border-radius:0;corner-shape:round}
+
+/* Plain reminder rows, with touch-sized completion and flag controls. */
+.task-list{display:grid;gap:8px}.task-row{display:grid;grid-template-columns:32px minmax(0,1fr) 44px;align-items:start;gap:12px;min-height:52px;padding:4px 0;border:0;border-radius:0;background:transparent}
+.task-check{appearance:none;position:relative;margin:7px 4px;width:24px;height:24px;min-height:24px;border:2px solid #bcbcc0;border-radius:50%;cursor:pointer;background:transparent;flex-shrink:0}
+.task-check::before{content:"";position:absolute;inset:-10px}.task-check:checked{background:var(--blue);border-color:var(--blue)}.task-check:checked::after{content:"";position:absolute;width:10px;height:6px;left:5px;top:5px;border:solid white;border-width:0 0 2px 2px;transform:rotate(-45deg)}
+.task-check:focus-visible,.task-content:focus-visible,.task-flag:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.task-content{display:block;min-width:0;min-height:44px;padding:5px 0;text-align:left;background:none;border:0;color:var(--ink);font-weight:400;overflow-wrap:anywhere}
+.task-name{display:block;font-size:var(--text-body)}.task-due{margin:0;color:var(--muted);font-size:var(--text-support);font-weight:400}.task-due.is-overdue{color:#ff3b30}.task-row.is-completed .task-name{text-decoration:line-through;color:var(--muted)}
+.task-flag{display:grid;place-items:center;width:44px;height:44px;padding:10px;border:0;background:none;color:var(--muted);opacity:0}.task-flag svg{width:22px;height:22px}.task-flag.is-flagged{color:var(--orange);opacity:1}.task-row:hover .task-flag,.task-row:focus-within .task-flag{opacity:1}
+.task-add.task-add-inline{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;margin:12px 0 0}.task-add-circle{width:24px;height:24px;border:2px dotted #bcbcc0;border-radius:50%;margin:0 4px}.task-add-inline>input{width:100%;min-width:0;height:44px;border:0;background:transparent;color:var(--ink);outline:none}.task-add-inline>input:focus{box-shadow:0 1px var(--line)}.task-add-inline>.btn{justify-self:end}.task-add-dates{grid-column:2/-1;color:var(--muted);font-size:var(--text-support)}.task-add-dates summary{cursor:pointer;padding:4px 0}.task-add-dates .task-date-fields{margin-top:8px}
+@media(pointer:coarse){.task-flag{opacity:1;color:#c7c7cc}.task-flag.is-flagged{color:var(--orange)}}
