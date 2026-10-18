@@ -3,6 +3,7 @@
 // transferred, or anonymized here. Existing backups follow their retention policy.
 import {createHash,randomUUID} from 'node:crypto';
 import {siteCapabilities,siteRole} from './site-roles.js';
+import {representativeMemberId} from './project-representative.js';
 import {verifyPassword} from './auth.js';
 const scope='account-and-private-data';
 const exists=(db,name)=>Boolean(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name));
@@ -38,10 +39,26 @@ function references(value,uid,filePaths,key=''){
  if(Array.isArray(value))return value.some(entry=>references(entry,uid,filePaths));
  return value&&typeof value==='object'?Object.entries(value).some(([field,entry])=>references(entry,uid,filePaths,field)):false;
 }
+function automaticRepresentativeLinks(db,uid){
+ const representative=setting(db,'super_admin_user_id');
+ return rows(db,'project_accounts','owner_id=?',uid).filter(row=>row.user_id===representative&&row.member_id===representativeMemberId(uid,row.project_id,representative));
+}
+function automaticRepresentativeEquipmentLinks(db,uid){
+ const links=automaticRepresentativeLinks(db,uid),projects=new Set(links.map(link=>link.project_id));
+ const representative=setting(db,'super_admin_user_id');
+ return rows(db,'equipment_links','owner_id=?',uid).filter(link=>{
+  const prefix='auto-'+link.equipment_id,automatic=link.gear_id===prefix||(link.gear_id.startsWith(prefix+'-')&&/^[1-9][0-9]*$/.test(link.gear_id.slice(prefix.length+1)));
+  if(!projects.has(link.project_id)||!automatic)return false;
+  const equipment=db.prepare('SELECT owner_id FROM equipment_items WHERE id=?').get(link.equipment_id),meta=exists(db,'inventory_metadata')?db.prepare('SELECT ownership FROM inventory_metadata WHERE equipment_id=?').get(link.equipment_id):null;
+  return equipment?.owner_id===representative&&(!meta||meta.ownership==='personal');
+ });
+}
 function preview(db,actorId,uid,{self=false}={}){
  const target=db.prepare('SELECT id,username FROM users WHERE id=?').get(uid);if(!target)throw fail(404,'Account not found');
  const status=exists(db,'account_status')&&db.prepare('SELECT deleted_at FROM account_status WHERE user_id=?').get(uid);target.deleted=Boolean(status&&status.deleted_at!=null);
  const retainedHistory={legacyDeletionAudit:0};
+ const automaticEquipmentLinks=new Set(automaticRepresentativeEquipmentLinks(db,uid).map(row=>JSON.stringify([row.owner_id,row.project_id,row.gear_id,row.equipment_id])));
+ const automaticLinks=new Set(automaticRepresentativeLinks(db,uid).map(row=>JSON.stringify([row.owner_id,row.project_id,row.user_id,row.member_id])));
  const blockers=[],hash=createHash('sha256');const evidence=[];const block=(kind,count)=>{if(count)blockers.push({kind,count});};
  block('self_account',!self&&actorId===uid?1:0);const protection=targetProtection(db,actorId,uid,self);if(protection)block(protection,1);
  for(const [table,predicate] of relations){const found=rows(db,table,predicate,uid);
@@ -49,7 +66,8 @@ function preview(db,actorId,uid,{self=false}={}){
   // purge. Actor references and every other history type still fail closed.
   const retained=table==='admin_audit'&&target.deleted?found.filter(row=>row.target_id===uid&&row.action==='delete'&&row.actor_id!==uid):[];
   if(table==='admin_audit')retainedHistory.legacyDeletionAudit=retained.length;
-  block(table,found.length-retained.length);if(['site_role_audit','admin_project_audit'].includes(table)&&found.length){blockers.at(-1).reason='Retained authority or project audit references require a separate reviewed retention policy';}evidence.push([table,found]);
+  const automaticCount=table==='project_accounts'?found.filter(row=>automaticLinks.has(JSON.stringify([row.owner_id,row.project_id,row.user_id,row.member_id]))).length:table==='equipment_links'?found.filter(row=>automaticEquipmentLinks.has(JSON.stringify([row.owner_id,row.project_id,row.gear_id,row.equipment_id]))).length:0;
+  block(table,found.length-retained.length-automaticCount);if(['site_role_audit','admin_project_audit'].includes(table)&&found.length){blockers.at(-1).reason='Retained authority or project audit references require a separate reviewed retention policy';}evidence.push([table,found]);
  }
  // Unknown additive user foreign keys fail closed until a deletion policy exists.
  const known=new Set([...relations,...privateTables].map(([table])=>table));
@@ -82,6 +100,8 @@ function confirmed(data,self){const fields=self?['currentPassword','expectedSnap
 // One destructive core for both entry points. Caller holds BEGIN IMMEDIATE and
 // has rechecked actor authority, target policy, credentials and exact preview.
 function purge(db,actorId,uid,reason){
+ for(const link of automaticRepresentativeEquipmentLinks(db,uid))db.prepare('DELETE FROM equipment_links WHERE owner_id=? AND project_id=? AND gear_id=? AND equipment_id=?').run(link.owner_id,link.project_id,link.gear_id,link.equipment_id);
+ for(const link of automaticRepresentativeLinks(db,uid))db.prepare('DELETE FROM project_accounts WHERE owner_id=? AND project_id=? AND user_id=? AND member_id=?').run(link.owner_id,link.project_id,link.user_id,link.member_id);
  const ownedClients=rows(db,'oauth_manual_clients','owner_id=?',uid).map(row=>row.client_id);
  if(exists(db,'integration_proposals'))db.prepare('DELETE FROM integration_proposals WHERE user_id=? OR grant_id IN (SELECT id FROM oauth_grants WHERE user_id=?)').run(uid,uid);
  if(exists(db,'deleted_projects'))db.prepare('DELETE FROM deleted_projects WHERE owner_id=?').run(uid);

@@ -100,3 +100,18 @@ test('retained role and project audit histories remain explicit blockers even fo
 test('administrator permanent deletion accepts an omitted or empty reason with all other confirmations intact',async t=>{
  const {db,call,preview,body}=await fixture(t);const p=await preview(),data=body(p);delete data.reason;const result=await call('/api/admin/users/fictional-target/actions','POST',data);assert.equal(result.status,200);assert.equal(db.prepare("SELECT reason FROM admin_audit WHERE action='delete-permanently'").get().reason,'');
 });
+
+test('automatic representative participation does not prevent an administrator deleting private projects; real shares still block',async t=>{
+ const {db,call,preview,erase}=await fixture(t);
+ const {writeWorkspace}=await import('../server/workspace-service.js');
+ const equipmentId=(await import('node:crypto')).randomUUID();db.prepare('INSERT INTO equipment_items VALUES(?,?,?,?)').run(equipmentId,'fictional-admin','Fictional representative camera','camera');
+ const state=emptyWorkspace();state.project.id='fictional-private-with-representative';writeWorkspace(db,'fictional-target',state,0);
+ assert.equal(db.prepare('SELECT count(*) n FROM equipment_links WHERE owner_id=?').get('fictional-target').n,1);
+ const automatic=db.prepare('SELECT * FROM project_accounts WHERE owner_id=?').all('fictional-target');assert.equal(automatic.length,1);assert.match(automatic[0].member_id,/^rep-/);
+ let p=await preview();assert.equal(p.allowed,true,JSON.stringify(p.blockers));
+ db.prepare('INSERT INTO project_accounts VALUES(?,?,?,?,?)').run('fictional-target',state.project.id,'fictional-other','explicit-member',1);
+ assert.equal((await erase(p)).status,409);p=await preview();assert.equal(p.allowed,false);assert.ok(p.blockers.some(b=>b.kind==='project_accounts'));
+ db.prepare('DELETE FROM project_accounts WHERE user_id=?').run('fictional-other');p=await preview();assert.equal(p.allowed,true);
+ assert.equal((await erase(p)).status,200);assert.equal(db.prepare('SELECT count(*) n FROM project_accounts WHERE owner_id=?').get('fictional-target').n,0);assert.equal(db.prepare('SELECT id FROM users WHERE id=?').get('fictional-target'),undefined);assert.ok(db.prepare('SELECT id FROM users WHERE id=?').get('fictional-admin'));assert.ok(db.prepare('SELECT id FROM equipment_items WHERE id=?').get(equipmentId));assert.equal(db.prepare('SELECT count(*) n FROM equipment_links WHERE owner_id=?').get('fictional-target').n,0);
+ assert.equal((await call('/api/session','GET',undefined,'fictional-target')).status,401);
+});
