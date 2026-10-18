@@ -14,7 +14,8 @@ test('canonical inventory survives project switches and stale usage snapshots; c
  t.after(async()=>{await new Promise(resolve=>server.close(resolve));await rm(dir,{recursive:true,force:true});});
  db.prepare('INSERT INTO users VALUES(?,?,?)').run('fictional-owner','fictional-owner','unused-test-hash');
  let state=prepareProjects(emptyWorkspace());state.project.id='a';const other=prepareProjects(emptyWorkspace());other.project.id='b';delete other.projects;state.projects=[other];
- state.gear=[{id:'ga',name:'Fictional Light',category:'lighting',owner:'',assignee:'',status:'check'}];
+ db.prepare('INSERT INTO equipment_items VALUES(?,?,?,?)').run('fictional-canonical-light','fictional-owner','Fictional Light','lighting');
+ state.gear=[{id:'ga',equipmentId:'fictional-canonical-light',name:'Fictional Light',category:'lighting',owner:'',assignee:'',status:'check'}];
  const input=structuredClone(state);writeWorkspace(db,'fictional-owner',state,0);assert.deepEqual(state,input);
  let current=readWorkspace(db,'fictional-owner');const equipmentId=current.state.gear[0].equipmentId;
  current.state.projects[0].gear=[{...current.state.gear[0],id:'gb'}];writeWorkspace(db,'fictional-owner',current.state,1);

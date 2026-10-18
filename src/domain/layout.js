@@ -7,7 +7,7 @@ export function prepareLayout(project){
  for(const camera of project.cameras){
   if(camera.gearId)continue;
   let gear=project.gear.find(g=>(g.category===undefined||g.category==='camera')&&(g.name===camera.body||g.name===camera.name));
-  if(!gear){gear={id:'g-'+crypto.randomUUID(),name:camera.body||camera.name,category:'camera',owner:'',assignee:camera.operator,status:'check'};project.gear.push(gear);}
+  if(!gear){gear={id:'g-'+crypto.randomUUID(),name:camera.body||camera.name,category:'camera',owner:'',assignee:camera.operator,status:'check',equipmentSource:'manual'};project.gear.push(gear);}
   gear.category='camera';camera.gearId=gear.id;
  }
  return project;
@@ -22,7 +22,7 @@ export function addCamera(project,fields){
  if(fields.gearId&&!existing)throw Error('카메라 장비를 선택해 주세요.');
  if(!fields.name?.trim())throw Error('카메라 이름을 입력해 주세요.');
  if(project.cameras.length>=2000||(!existing&&project.gear.length>=2000))throw Error('카메라 또는 장비 개수 제한에 도달했습니다.');
- const gear=existing||{id:'g-'+crypto.randomUUID(),name:fields.body||fields.name,category:'camera',owner:'',assignee:fields.operator||'',status:'check'};
+ const gear=existing||{id:'g-'+crypto.randomUUID(),name:fields.body||fields.name,category:'camera',owner:'',assignee:fields.operator||'',status:'check',equipmentSource:'manual'};
  if(!existing)project.gear.push(gear);
  const camera={id:'cam-'+crypto.randomUUID(),name:fields.name.trim(),role:fields.role||'',operator:fields.operator||'',body:gear.name,lens:fields.lens||'',gearId:gear.id,...nextPosition(project),refs:fields.ref?[fields.ref]:[]};
  project.cameras.push(camera);return camera;

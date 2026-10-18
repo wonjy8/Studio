@@ -4,7 +4,8 @@ import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {setupAccounts} from './accounts.js';
 import {inventoryTables,setupInventory} from './inventory.js';
-export const accountSchemaTables=Object.freeze(['password_changes','account_profiles','account_status','admin_audit','equipment_items','equipment_links','project_accounts','project_teams','project_team_members',...inventoryTables]);
+import {equipmentSharingTables,setupEquipmentSharing} from './equipment-sharing.js';
+export const accountSchemaTables=Object.freeze(['password_changes','account_profiles','account_status','admin_audit','equipment_items','equipment_links','project_accounts','project_teams','project_team_members',...inventoryTables,...equipmentSharingTables]);
 const monthlyNumberSchema=db=>['inventory_sequences','inventory_loan_numbers'].every(name=>{const columns=db.prepare(`PRAGMA table_info(${name})`).all().map(column=>column.name);return columns.includes('period')&&!columns.includes('year');});
 const existingTables=db=>new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row=>row.name));
 async function privateBackup(db,dir){
@@ -25,7 +26,7 @@ export async function prepareAccountSchema(db,dir){
  if(db.prepare('SELECT count(*) AS n FROM users').get().n)await privateBackup(db,dir);
  db.exec('BEGIN IMMEDIATE');
  try{
-  setupAccounts(db);setupInventory(db);
+  setupAccounts(db);setupInventory(db);setupEquipmentSharing(db);
   const tables=existingTables(db);if(!accountSchemaTables.every(name=>tables.has(name))||!monthlyNumberSchema(db))throw Error('Account/inventory schema migration incomplete');
   db.exec('COMMIT');
  }catch(error){db.exec('ROLLBACK');throw error;}
