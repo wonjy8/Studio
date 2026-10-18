@@ -278,3 +278,24 @@ input:not([type]),input:is([type=text],[type=search],[type=email],[type=password
 select:not([multiple]):not([size]){padding:8px var(--control-padding);border:1px solid var(--line);border-radius:var(--r-control);background-color:var(--surface);color:var(--ink);max-width:100%;min-width:0;font-family:inherit}
 .project-identity-fields>.project-appearance{grid-template-columns:84px minmax(0,1fr);gap:24px}
 .project-shoot-fields{align-self:stretch;align-content:start}
+
+/* Compact shared navigation and property/value settings. */
+.shared-projects-section{margin-top:24px}.shared-projects-section .project-list-heading{margin:0 0 12px;padding:0 12px}
+[data-shared-projects][hidden]{display:none}
+.property-row,.property-field,.property-fields>.field{display:grid;grid-template-columns:minmax(100px,160px) minmax(0,1fr);align-items:center;gap:24px;padding:20px 0;border-bottom:1px solid var(--line);min-width:0}
+.property-label{font-weight:600;font-size:var(--text-body)}.property-value{display:flex;align-items:center;justify-content:flex-end;gap:12px;min-width:0;overflow-wrap:anywhere;text-align:right;font-size:var(--text-body)}
+.property-value>input{min-width:0;flex:1;width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r-control);background:var(--surface);color:var(--ink)}
+.property-value .icon-button{flex-shrink:0}.property-value .icon-button .icon{width:18px;height:18px}.property-value>input[hidden],.property-value>[hidden]{display:none}
+.property-message{font-size:var(--text-support);margin:8px 0;color:var(--bad)}.property-message:empty{display:none}
+.account-logout{border-top:1px solid var(--line);margin-top:24px;padding-top:24px;display:flex;justify-content:flex-end}
+.logout-button.danger{background:color-mix(in srgb,var(--bad) 6%,var(--surface));border-color:color-mix(in srgb,var(--bad) 25%,var(--line));color:var(--bad)}
+.password-change-form{max-width:520px;margin:20px 0 0 auto;padding:20px;background:var(--surface-2);border-radius:var(--r-surface)}
+[data-password-form][hidden]{display:none}.password-change-form [role=alert]:empty{display:none}
+.property-settings .form{margin:0}.property-settings .property-fields{gap:0;margin-top:12px}.admin-settings .card{margin-bottom:12px;box-shadow:none}.admin-settings summary{font-weight:600;cursor:pointer;min-height:44px;align-content:center}.admin-settings h2{margin:0 0 24px}.admin-settings>div>h3{margin-top:28px}
+.property-fields>.btn{justify-self:end;margin-top:20px}.property-settings input,.property-settings select,.property-settings textarea{min-width:0;max-width:100%}
+@media(max-width:520px){.property-row,.property-field,.property-fields>.field{grid-template-columns:86px minmax(0,1fr);gap:12px;padding:16px 0}.property-value{gap:8px}.property-fields>.field{grid-template-columns:1fr}.password-change-form{padding:16px}.shared-projects-section{margin-top:20px}}
+.property-row:has([data-toggle-password]){border-bottom:0}
+.connection-permission{display:grid;gap:4px;min-width:0}.connection-permission small{color:var(--muted);font-size:var(--text-meta)}
+.invitation-properties>.invite-options{display:grid;gap:0}.invitation-properties>.invite-options>.field{display:grid;grid-template-columns:minmax(100px,160px) minmax(0,1fr);gap:24px;align-items:center;padding:20px 0;border-bottom:1px solid var(--line)}
+.invitation-properties>.invite-options>.field[hidden]{display:none}.invitation-properties>.invite-options input{max-width:none}.invitation-properties>#create-invite{margin-top:20px;float:right}.invitation-properties::after{content:"";display:block;clear:both}
+@media(max-width:520px){.invitation-properties>.invite-options>.field{grid-template-columns:86px minmax(0,1fr);gap:12px;padding:16px 0}.connections-panel .property-value{flex-wrap:wrap}}

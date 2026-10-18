@@ -2,6 +2,7 @@ import {solidProjectIconPaths} from '../icons/solid-paths.js';
 import {projectIconPaths} from '../icons/paths.js';
 // Original vector artwork, shared across navigation and project identity.
 const paths={
+ pencil:'<path d="m15 4 5 5M4 16 16 4a2 2 0 0 1 4 4L8 20l-5 1Z"/>',
  production:'<rect x="3" y="7" width="18" height="14" rx="3"/><path d="M3 11h18M4 7l3-4 4 4m-1-4 4 4m-1-4 4 4m-1-4 4 4"/>',
  home:'<path d="m3 11 9-8 9 8M5 10v10h5v-6h4v6h5V10"/>',
  calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 10h18M7 14h1m3 0h1m3 0h1M7 17h1m3 0h1"/>',

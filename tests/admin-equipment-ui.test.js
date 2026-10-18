@@ -7,7 +7,7 @@ test('admin renders each physical catalog item once with all project usages and 
  const second={...first,id:'gear-two',projectId:'project-two',projectName:'Fictional Two',assignee:'Fictional Operator'};
  const html=adminEquipmentCards([first,second,first],catalog);
  assert.equal((html.match(/class="card"/g)||[]).length,2);
- assert.equal((html.match(/<strong>Fictional Camera<\/strong>/g)||[]).length,1);
+ assert.equal((html.match(/<strong class="property-value">Fictional Camera<\/strong>/g)||[]).length,1);
  assert.equal((html.match(/Fictional One/g)||[]).length,1);
  assert.match(html,/Fictional Two/);assert.match(html,/Fictional Operator/);assert.match(html,/Retained &lt;Light&gt;/);assert.match(html,/프로젝트 연결 없음/);assert.doesNotMatch(html,/Old project name/);
 });

@@ -1,6 +1,6 @@
 import {request} from '../integrations/api.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
-export function manualClientPanel(){return `<details class="connection-guide manual-oauth"><summary>수동 OAuth 연결 · 관리자</summary><p>자동 등록(DCR)에서 연결이 진행되지 않을 때 사용합니다. 생성한 ID와 비밀키는 외부 앱의 OAuth 고급 설정에서 <strong>직접 클라이언트 자격 증명 입력</strong> 방식에 입력하세요.</p><form class="form" id="manual-oauth-form"><label class="field">허용할 콜백 주소<textarea name="callbacks" rows="3" required>https://chatgpt.com/connector_platform_oauth_redirect
+export function manualClientPanel(){return `<details class="connection-guide manual-oauth"><summary>수동 OAuth 연결 · 관리자</summary><p>자동 등록(DCR)에서 연결이 진행되지 않을 때 사용합니다. 생성한 ID와 비밀키는 외부 앱의 OAuth 고급 설정에서 <strong>직접 클라이언트 자격 증명 입력</strong> 방식에 입력하세요.</p><form class="form property-fields" id="manual-oauth-form"><label class="field">허용할 콜백 주소<textarea name="callbacks" rows="3" required>https://chatgpt.com/connector_platform_oauth_redirect
 https://chat.openai.com/connector_platform_oauth_redirect</textarea></label><p class="sub">ChatGPT가 별도 콜백 주소를 표시하면 그 주소로 바꿔 주세요. 한 줄에 하나씩, 최대 5개까지 등록합니다. 주소는 정확히 일치해야 합니다.</p><button class="btn" type="submit">수동 클라이언트 만들기</button></form><p class="login-error" id="manual-oauth-error" role="alert"></p><div id="manual-oauth-result" aria-live="polite"></div><button class="btn" type="button" id="refresh-manual-clients">연결 요청 새로고침</button><div id="manual-oauth-list"></div></details>`;}
 export function bindManualOAuth(root){
  const form=root.querySelector('#manual-oauth-form');if(!form)return;
