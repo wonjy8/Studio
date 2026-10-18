@@ -152,7 +152,7 @@ small,.stat small{font-size:var(--text-meta)}
 .layout-person{background:transparent;border:0;box-shadow:none}
 .layout-person .layout-symbol{color:var(--ink)}
 .layout-table{min-height:48px;align-content:center;overflow:visible}
-.layout-resize{position:absolute;width:14px;height:14px;background:var(--surface);border:1px solid var(--muted);border-radius:var(--r-control);z-index:1}
+.layout-resize{display:none;position:absolute;width:14px;height:14px;background:var(--surface);border:1px solid var(--muted);border-radius:0;corner-shape:round;z-index:1}
 .layout-resize-n{top:-7px;left:calc(50% - 7px);cursor:ns-resize}.layout-resize-s{bottom:-7px;left:calc(50% - 7px);cursor:ns-resize}
 .layout-resize-e{right:-7px;top:calc(50% - 7px);cursor:ew-resize}.layout-resize-w{left:-7px;top:calc(50% - 7px);cursor:ew-resize}
 .layout-resize-ne{right:-7px;top:-7px;cursor:nesw-resize}.layout-resize-sw{left:-7px;bottom:-7px;cursor:nesw-resize}
@@ -163,3 +163,12 @@ small,.stat small{font-size:var(--text-meta)}
 
 /* Inherited disabling also covers controls created by asynchronous feature loads. */
 .save-content{border:0;margin:0;padding:0;min-inline-size:0}
+
+/* Selected placement controls are transient and remain square at every size. */
+.layout-item.is-selected .layout-resize{display:block}
+.layout-item.is-selected{outline:1px solid var(--ink);outline-offset:3px}
+.layout-person{min-height:48px;padding:4px;grid-template-rows:minmax(0,1fr) auto}
+.layout-person .layout-symbol{width:100%;height:100%;min-height:0}
+.layout-person .layout-symbol svg{width:100%;height:100%}
+
+.layout-resize::before{content:"";position:absolute;inset:-5px}

@@ -35,7 +35,7 @@ export function addLayoutObject(project,{kind,name,gearId,memberId,shape}){
  const label=(name?.trim()||gear?.name||member?.name||(kind==='person'?'':layoutKinds[kind])).trim();
  if(!label||label.length>2000)throw Error('이름을 확인해 주세요.');
  if(kind==='table'&&shape!==undefined&&!['rectangle','circle'].includes(shape))throw Error('테이블 모양을 선택해 주세요.');
- const item={id:'obj-'+crypto.randomUUID(),kind,name:label,...nextPosition(project),rotation:0,...(kind==='table'?{shape:shape||'rectangle',width:120,height:shape==='circle'?120:80}:{}),...(gear?{gearId:gear.id}:{}),...(member?{memberId:member.id}:{})};
+ const item={id:'obj-'+crypto.randomUUID(),kind,name:label,...nextPosition(project),rotation:0,...(kind==='person'?{width:80,height:80}:{}),...(kind==='table'?{shape:shape||'rectangle',width:120,height:shape==='circle'?120:80}:{}),...(gear?{gearId:gear.id}:{}),...(member?{memberId:member.id}:{})};
  project.layoutObjects.push(item);return item;
 }
 export function moveLayoutItem(project,id,x,y,rotation){
@@ -52,6 +52,7 @@ export function removeLayoutItem(project,id){
 }
 
 export function validTableGeometry(item){
+ if(item.kind==='person')return item.shape===undefined&&['width','height'].every(key=>item[key]===undefined||(Number.isFinite(item[key])&&item[key]>=48&&item[key]<=240))&&(item.width??80)===(item.height??80);
  if(item.kind!=='table')return item.shape===undefined&&item.width===undefined&&item.height===undefined;
  if(item.shape!==undefined&&!['rectangle','circle'].includes(item.shape))return false;
  if(!['width','height'].every(key=>item[key]===undefined||(Number.isFinite(item[key])&&item[key]>=48&&item[key]<=360)))return false;
@@ -63,4 +64,11 @@ export function resizeLayoutTable(project,id,width,height,shape){
  if(shape!==undefined)item.shape=shape;
  item.width=Math.max(48,Math.min(360,width));item.height=item.shape==='circle'?item.width:Math.max(48,Math.min(360,height));
  return item;
+}
+
+export function resizeLayoutItem(project,id,width,height,shape){
+ const item=project.layoutObjects.find(x=>x.id===id);
+ if(item?.kind==='table')return resizeLayoutTable(project,id,width,height,shape);
+ if(item?.kind!=='person'||![width,height].every(Number.isFinite)||shape!==undefined)throw Error('배치 크기를 확인해 주세요.');
+ item.width=item.height=Math.max(48,Math.min(240,width));return item;
 }

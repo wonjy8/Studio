@@ -23,3 +23,9 @@ Repeated keyboard movement also exposed focus loss during save re-render. Direct
 ## Thin-table mobile fit
 
 Uniform fit previously reduced a valid360×48 table to240×32 in a260px canvas, conflicting with the48px domain/CSS minimum and causing drift on the next resize. Fitted rectangle axes now each retain at least48px (360×48 →240×48;48×360 →48×240 in a260px square canvas). Circle axes remain equal. This display-only adjustment retains stored dimensions until an intentional resize. Canvases below68px on either axis cannot contain the48px minimum plus handle gutters; pointer resize conservatively returns original stored geometry there. Tests exercise every handle, minimum axes, unaffected/opposite anchors and immutable source snapshots.
+
+## Selected square handles and people
+
+The canvas uses transient single selection: clicking/tapping or focusing an item exposes only its eight square handles. Blank/outside activation, Escape, navigation and reload clear selection. Enter, double-click and the existing position-edit list open numeric controls. Selection is never stored in project data.
+
+People now store a square placement size with a safe80px default and48–240px limits; the silhouette retains its aspect and name typography stays readable. Tables retain existing48–360px and rectangle/circle policies. Legacy people without dimensions remain valid without a migration. Resizing/removing placements never changes linked member records. Pointer cancellation restores original exact dimensions/coordinates, including absent legacy fields; unchanged numeric saves preserve dimension and coordinate decimals.
