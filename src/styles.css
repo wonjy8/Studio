@@ -174,7 +174,7 @@ small,.stat small{font-size:var(--text-meta)}
 .layout-resize::before{content:"";position:absolute;inset:-5px}
 
 /* Shared spacing and control roles. See docs/UI_CONTROL_STANDARDS.md. */
-:root{--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--control-height:40px;--control-padding:12px;--icon-control-size:36px;--page-gutter:24px;--panel-padding:20px}
+:root{--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--control-height:44px;--control-padding:12px;--icon-control-size:36px;--page-gutter:24px;--panel-padding:20px}
 .btn{min-height:var(--control-height);padding:8px var(--control-padding);display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);vertical-align:middle;line-height:1.5;max-width:100%;white-space:normal;overflow-wrap:anywhere}
 .field input:not([type=checkbox]):not([type=radio]),.field select,.invite-link-box input,.gear-row select{min-height:var(--control-height);padding:8px var(--control-padding);border-radius:var(--r-control);line-height:1.5;min-width:0;max-width:100%;color:var(--ink)}
 .field textarea,.diagnostic-output{padding:var(--space-3);border-radius:var(--r-control);min-width:0;max-width:100%}
@@ -187,7 +187,7 @@ small,.stat small{font-size:var(--text-meta)}
 .icon-button{width:var(--icon-control-size);height:var(--icon-control-size)}.project-item{min-height:44px;padding:var(--space-2) var(--space-3);gap:var(--space-3)}
 .layout-actions,.layout-object-list,.icon-options,.color-options{gap:var(--space-2)}.gear-row select{margin-top:var(--space-2)}
 .task-add{grid-template-columns:minmax(0,1fr) auto}.row{gap:var(--space-3);padding:var(--space-3) var(--space-4)}.row>div{min-width:0;overflow-wrap:anywhere}
-.login-form{gap:var(--space-5)}.login-form .field{gap:var(--space-2)}.login-form .field input{min-height:52px;padding:14px 16px}.login-submit{min-height:52px;padding:14px 18px}.password-toggle{min-height:42px}
+.login-form{gap:var(--space-5)}.login-form .field{gap:var(--space-2)}.login-form .field input{min-height:var(--control-height);padding:8px var(--control-padding)}.login-submit{min-height:var(--control-height);padding:8px var(--control-padding)}.password-toggle{min-height:42px}
 /* Compact calendar event chips retain their own density and text size. */
 .calendar-shoot{min-height:28px;padding:4px;display:block;font-size:var(--text-meta);text-align:left}
 .btn:focus-visible,.icon-button:focus-visible,.rail-button:focus-visible,.project-tab:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
@@ -272,3 +272,9 @@ small,.stat small{font-size:var(--text-meta)}
 @media(max-width:1100px){.members-split{gap:24px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.member-teams-panel{padding-left:24px}}
 @media(max-width:700px){.members-split{grid-template-columns:1fr;gap:28px}.member-teams-panel{padding:24px 0 0;border-left:0;border-top:1px solid var(--line)}}
 @media(max-width:520px){.project-appearance{gap:16px}.project-appearance .color-options{gap:8px;max-width:124px}.project-appearance .color-choice>span{width:28px;height:28px}}
+
+/* Standard controls share a single height across desktop and touch layouts. */
+input:not([type]),input:is([type=text],[type=search],[type=email],[type=password],[type=number],[type=date],[type=time],[type=datetime-local],[type=month],[type=url],[type=tel]),select:not([multiple]):not([size]){height:var(--control-height);min-height:var(--control-height);box-sizing:border-box;line-height:1.5}
+select:not([multiple]):not([size]){padding:8px var(--control-padding);border:1px solid var(--line);border-radius:var(--r-control);background-color:var(--surface);color:var(--ink);max-width:100%;min-width:0;font-family:inherit}
+.project-identity-fields>.project-appearance{grid-template-columns:84px minmax(0,1fr);gap:24px}
+.project-shoot-fields{align-self:stretch;align-content:start}
