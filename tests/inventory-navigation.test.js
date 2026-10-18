@@ -4,6 +4,17 @@ import {routePath,parseRoute,routeBelongsToAccount} from '../src/app/routes.js';
 import {projectNavigation} from '../src/patterns/navigation.js';
 import {appShell} from '../src/app/shell.js';
 import {emptyWorkspace} from '../src/domain/workspace.js';
+test('organization collection URLs retain account, section and history identity',()=>{
+ for(const view of ['inventory','inventory-outstanding','inventory-history']){
+  const path=routePath({view,username:'fictional.operator',inventoryContainerId:'fictional-org'}),route=parseRoute(path);
+  assert.equal(route.valid,true);assert.equal(route.view,view);assert.equal(route.inventoryContainerId,'fictional-org');assert.equal(route.username,'fictional.operator');assert.match(path,/\/inventory\/organizations\/fictional-org\//);
+  assert.equal(routeBelongsToAccount(route,{username:'outsider'}),false);
+ }
+ for(const path of ['/inventory/organizations/bad%2Fid/items','/inventory/organizations/a/unknown','/inventory/organizations/a/items/extra'])assert.equal(parseRoute(path).valid,false);
+ const admin=routePath({view:'admin-organizations',username:'fictional.admin'});assert.equal(admin,'/fictional.admin/admin/organizations');assert.equal(parseRoute(admin).view,'admin-organizations');
+ const ordinary=projectNavigation(emptyWorkspace(),'home',false,{});assert.doesNotMatch(ordinary,/data-view="admin-organizations"/);
+ const html=appShell({state:emptyWorkspace(),view:'admin-organizations',body:'',session:{isAdmin:true}});assert.match(html,/data-view="admin-organizations"/);assert.doesNotMatch(html,/class="project-tabs"/);
+});
 test('equipment workspace paths retain account scope and never become project tabs',()=>{
  for(const [view,tail]of [['inventory','items'],['inventory-outstanding','outstanding'],['inventory-history','history']]){
   const path=routePath({view,username:'fictional.operator',project:{id:'project',name:'Fictional'}});assert.equal(path,'/fictional.operator/inventory/'+tail);const route=parseRoute(path);assert.equal(route.view,view);assert.equal(routeBelongsToAccount(route,{username:'fictional.operator'}),true);assert.equal(routeBelongsToAccount(route,{username:'outsider'}),false);
