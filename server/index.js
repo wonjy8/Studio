@@ -1,3 +1,4 @@
+import {googleSheetsService} from './google-sheets.js';
 import {adminProjectFileRoutes} from './admin-project-files.js';
 import {accountDeletionRoutes} from './account-deletion.js';
 import {configureSiteRoleManagement,siteCapabilities,siteRoleRoutes,claimFirstSiteAdministrator} from './site-roles.js';
@@ -22,7 +23,7 @@ import { randomUUID } from 'node:crypto';
 import { openStore } from './store.js';
 import { digest, token, hashPassword, verifyPassword } from './auth.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
-export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false',enableSiteRoleManagement=process.env.STUDIO_SITE_ROLE_MANAGEMENT==='enabled'}={}) {
+export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false',google={},enableSiteRoleManagement=process.env.STUDIO_SITE_ROLE_MANAGEMENT==='enabled'}={}) {
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir,{siteRoleBootstrap:enableSiteRoleManagement});
   try{await prepareAccountSchema(db,dir);}catch(error){db.close();throw error;}
@@ -30,6 +31,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
   const handleInventory=inventoryRoutes(db);
+  let googleSheets;try{googleSheets=await googleSheetsService(db,{dir,origin,...google});}catch(error){db.close();throw error;}
   const handleEquipmentSharing=equipmentSharingRoutes(db);
   const handleAccounts=accountRoutes(db),handleAccountDeletion=accountDeletionRoutes(db);
   const dummy = await hashPassword(token());
@@ -77,6 +79,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
       if(session&&passwordChangeRequired(db,session.user_id)&&!['/api/session','/api/logout','/api/account/password'].includes(path)&&path.startsWith('/api/'))return json(403,{error:'PASSWORD_CHANGE_REQUIRED'});
       if(path==='/api/connections/diagnostics'&&req.method==='GET'){if(!session)return json(401,{error:'Login required'});if(!isAdmin(db,session.user_id))return json(403,{error:'Administrator required'});return json(200,{version:'connection-diagnostics-1',toolSchemaVersion,events:diagnostics.list()});}
+      if(path==='/oauth/google/callback'&&await googleSheets.routes({path,url,req,res,session,json,readJson}))return;
       if(path==='/mcp'){await handleMcp({req,res,json,readJson});return;}
       if(await oauth.routes({path,url,req,res,json,body,readJson,session}))return;
       if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
@@ -85,7 +88,8 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleAdminProjects({path,url,req,session,json,readJson}))return;
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;
-      if(await handleInventory({path,url,req,session,json,readJson}))return;
+      if(await googleSheets.routes({path,url,req,res,session,json,readJson}))return;
+      if(await handleInventory({path,url,req,session,json,readJson})){if(!['GET','HEAD'].includes(req.method)&&res.statusCode<400)googleSheets.kick();return;}
       if(await handleAccountDeletion({path,url,req,session,json,readJson,clearSessionCookie:()=>setCookie('',0)}))return;
       if(await handleAccounts({path,url,req,session,json,readJson}))return;
       if (path==='/api/login' && req.method==='POST') {
@@ -161,12 +165,12 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     } catch(e) {if(!res.headersSent) json(e.status|| (e.code==='ENOENT'?404:500),{error:e.status===413?'Request too large':(e.status&&pathForError(req.url)?e.message:'Request failed')});else res.end();}
   });
   server.requestTimeout=30000;server.headersTimeout=10000;
-  server.on('close',()=>db.close());
-  return {server,db};
+  server.on('close',()=>{googleSheets.close();db.close();});
+  return {server,db,googleSheets};
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)) {
   const {server}=await createApp();
   server.listen(Number(process.env.PORT||8080),'0.0.0.0',()=>console.log('Studio listening'));
 }
 
-function pathForError(url){return url.startsWith('/oauth/')||url.startsWith('/api/connections');}
+function pathForError(url){return url.startsWith('/oauth/')||url.startsWith('/api/connections')||url.startsWith('/api/google');}

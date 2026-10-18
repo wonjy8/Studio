@@ -13,7 +13,7 @@ export function setupEquipmentSharing(db){db.exec(`
  CREATE UNIQUE INDEX IF NOT EXISTS equipment_claim_pending ON equipment_claims(equipment_id) WHERE status='pending';
 `);}
 export function equipmentProjectScope(db,id){return exists(db,'equipment_project_scope')?db.prepare('SELECT * FROM equipment_project_scope WHERE equipment_id=?').get(id):null;}
-export function equipmentProjectAccess(db,ownerId,projectId,item){
+export function equipmentProjectAccess(db,ownerId,projectId,item){if(!item)return false;if(db.prepare("SELECT name FROM sqlite_master WHERE name='inventory_sheet_archives'").get()&&db.prepare('SELECT equipment_id FROM inventory_sheet_archives WHERE equipment_id=?').get(item.id))return false;
  if(!item)return false;const scope=equipmentProjectScope(db,item.id);if(scope)return scope.project_owner_id===ownerId&&scope.project_id===projectId;
  const meta=exists(db,'inventory_metadata')&&db.prepare('SELECT ownership,organization_id FROM inventory_metadata WHERE equipment_id=?').get(item.id);
  if(meta?.ownership==='organization')return exists(db,'inventory_project_approvals')&&Boolean(db.prepare('SELECT 1 FROM inventory_project_approvals WHERE org_id=? AND project_owner_id=? AND project_id=?').get(meta.organization_id,ownerId,projectId));

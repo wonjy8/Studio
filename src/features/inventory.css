@@ -8,3 +8,5 @@
 
 .inventory-sheet form{min-width:0;grid-template-columns:minmax(0,1fr)}.inventory-sheet .sheet-scroll{min-width:0;max-width:100%}.inventory-sheet .sheet-actions{min-width:0}.inventory-workspace [data-inventory-editor]{min-width:0}
 .inventory-sheet .section-head>div{min-width:0;overflow-wrap:anywhere}
+.google-sheet-linked{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 20px;border:1px solid var(--line);border-radius:12px;margin-bottom:20px}.google-sheet-linked>div:first-child{display:grid;gap:6px;min-width:0;overflow-wrap:anywhere}.google-sheet-linked a{color:inherit;font-weight:600}.google-sheet-error{color:#c52c3b}.google-setup{margin-top:20px}.google-setup li{margin:12px 0;line-height:1.7}.google-setup code{display:block;overflow-wrap:anywhere;white-space:normal;padding:8px;background:#f5f5f7;border-radius:6px}.google-connection .property-value{flex-wrap:wrap}[data-google-sheet-editor]:empty,[data-google-sheet-message]:empty{display:none}
+@media(max-width:700px){.google-sheet-linked{align-items:flex-start;flex-direction:column}.inventory-create-actions{flex-wrap:wrap}}
