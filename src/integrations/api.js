@@ -1,8 +1,8 @@
 let revision=0;
 export async function request(path,options={}) {
   const response=await fetch(`/api/${path}`,{credentials:'same-origin',...options});
-  const data=await response.json();
-  if(!response.ok){const error=Error(response.status===401?'로그인이 필요합니다. 새로고침 후 로그인해 주세요.':response.status===409?'다른 화면에서 변경되었습니다. 현재 내용을 보관한 뒤 새로고침해 주세요.':data.error||'요청에 실패했습니다.');error.status=response.status;throw error;}
+  let data;try{data=await response.json();}catch{const error=Error('서버 응답을 확인하지 못했습니다.');error.status=response.status;error.code='INVALID_RESPONSE';throw error;}
+  if(!response.ok){const error=Error(response.status===401?'로그인이 필요합니다. 새로고침 후 로그인해 주세요.':response.status===409?'다른 화면에서 변경되었습니다. 현재 내용을 보관한 뒤 새로고침해 주세요.':data?.error||'요청에 실패했습니다.');error.status=response.status;error.code=typeof data?.error==='string'?data.error:undefined;throw error;}
   return data;
 }
 // Ignored reads must not advance the revision and authorize a stale later save.

@@ -1,5 +1,6 @@
 import {request} from '../integrations/api.js';
 import {loginPage} from '../pages/login.js';
+import {loginFailureMessage} from '../features/login-errors.js';
 export let sessionInfo={isAdmin:false};
 export async function requireLogin() {
   try {sessionInfo=await request('session');return;}catch{}
@@ -17,8 +18,9 @@ export async function requireLogin() {
     };
     root.querySelector('form').onsubmit=async e=>{
       e.preventDefault();const form=e.target;const button=form.querySelector('[type=submit]');button.disabled=true;button.textContent='로그인 중…';form.setAttribute('aria-busy','true');root.querySelector('#login-error').textContent='';
-      try {await request('login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))});form.reset();sessionInfo=await request('session');resolve();}
-      catch {root.querySelector('#login-error').textContent='로그인하지 못했습니다. 계정 정보를 확인하거나 잠시 후 다시 시도하세요.';}
+      let stage='login';const credentials=Object.fromEntries(new FormData(form));credentials.username=credentials.username.trim();form.elements.username.value=credentials.username;const message=root.querySelector('#login-error');delete message.dataset.loginStage;delete message.dataset.httpStatus;
+      try {await request('login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(credentials)});stage='session';sessionInfo=await request('session');form.reset();resolve();}
+      catch(error) {message.textContent=loginFailureMessage(error,stage);message.dataset.loginStage=stage;message.dataset.httpStatus=String(error.status||'network');}
       finally {button.disabled=false;button.textContent='로그인';form.removeAttribute('aria-busy');}
     };
   });
