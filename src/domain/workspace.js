@@ -1,7 +1,8 @@
 import {gearCategories,layoutKinds,validTableGeometry} from './layout.js';
 import {projectIconIds} from '../design-system/icons/catalog.js';
 export const projectIcons=projectIconIds;
-export const projectColors=['violet','blue','orange','green','rose','graphite'];
+import {identityColors} from './colors.js';
+export const projectColors=identityColors;
 export function emptyWorkspace() {
   return {project:{name:'새 프로젝트',date:'',time:'',location:''},contents:[],schedule:[],members:[],gear:[],cameras:[],layoutObjects:[],refs:[],tasks:[],settings:{aiConnected:false,provider:''}};
 }
@@ -49,7 +50,7 @@ function validateProject(value) {
   if (!value.members.every(x => fields(x,['name','role','call']))) return false;
   if (!value.gear.every(x => fields(x,['name','owner','assignee']) && status(x.status) && (x.category===undefined||Object.hasOwn(gearCategories,x.category)))) return false;
   if (!value.cameras.every(x => fields(x,['name','role','operator','body','lens']) && [x.x,x.y].every(n=>Number.isFinite(n)&&n>=0&&n<=100) && (x.gearId===undefined||value.gear.some(g=>g.id===x.gearId&&g.category==='camera')) && Array.isArray(x.refs) && x.refs.every(id=>value.refs.some(r=>r.id===id)))) return false;
-  if (!(value.layoutObjects||[]).every(x=>fields(x,['name'])&&validTableGeometry(x)&&Object.hasOwn(layoutKinds,x.kind)&&[x.x,x.y].every(n=>Number.isFinite(n)&&n>=0&&n<=100)&&Number.isFinite(x.rotation)&&x.rotation>=0&&x.rotation<=360&&(x.kind==='equipment'?value.gear.some(g=>g.id===x.gearId):x.gearId===undefined)&&(x.memberId===undefined||(x.kind==='person'&&value.members.some(m=>m.id===x.memberId)))))return false;
+  if (!(value.layoutObjects||[]).every(x=>fields(x,['name'])&&(x.color===undefined||identityColors.includes(x.color))&&validTableGeometry(x)&&Object.hasOwn(layoutKinds,x.kind)&&[x.x,x.y].every(n=>Number.isFinite(n)&&n>=0&&n<=100)&&Number.isFinite(x.rotation)&&x.rotation>=0&&x.rotation<=360&&(x.kind==='equipment'?value.gear.some(g=>g.id===x.gearId):x.gearId===undefined)&&(x.memberId===undefined||(x.kind==='person'&&value.members.some(m=>m.id===x.memberId)))))return false;
   if (!value.refs.every(x => fields(x,['name','notes']) && Array.isArray(x.images) && x.images.length <= 100 && x.images.every(s=>typeof s==='string' && /^\/api\/files\/[a-f0-9-]{36}$/.test(s)))) return false;
   if (!value.schedule.every(x=>Array.isArray(x)&&x.length===3&&x.every(text))) return false;
   return value.settings && value.settings.aiConnected === false && value.settings.provider === '';

@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {emptyWorkspace,validateWorkspace} from '../src/domain/workspace.js';
 import {prepareProjects,addProject,switchProject} from '../src/domain/projects.js';
-import {prepareLayout,addCamera,addLayoutObject,moveLayoutItem,removeLayoutItem} from '../src/domain/layout.js';
+import {prepareLayout,addCamera,addLayoutObject,setLayoutColor,moveLayoutItem,removeLayoutItem} from '../src/domain/layout.js';
 test('legacy cameras reuse inventory and preparation is repeatable without data loss',()=>{
  const state=emptyWorkspace();delete state.layoutObjects;
  state.gear.push({id:'gear',name:'Fictional camera',owner:'',assignee:'',status:'ready'});
@@ -51,7 +51,7 @@ test('layout forms show icon choices, whole coordinate values with precise sourc
  const {placementForm,positionForm,layoutStage}=await import('../src/features/layout/layout.js');
  const state=emptyWorkspace();const table=addLayoutObject(state,{kind:'table',shape:'circle'});table.x=31.2345;
  const person=addLayoutObject(state,{kind:'person',name:'Fictional cast'});
- const form=placementForm(state,'table');assert.equal((form.match(/type="radio"/g)||[]).length,6);assert.match(form,/name="shape"/);assert.doesNotMatch(form,/<select name="kind"/);
+ const form=placementForm(state,'table');assert.equal((form.match(/name="kind"/g)||[]).length,6);assert.match(form,/name="shape"/);assert.doesNotMatch(form,/<select name="kind"/);
  assert.match(positionForm(table),/data-precise="31.2345" value="31"/);assert.match(positionForm(table),/name="height"[^>]*readonly/);
  const html=layoutStage(state);assert.equal((html.match(/data-resize=/g)||[]).length,16);assert.match(html,/<svg/);assert.match(html,/Fictional cast/);assert.doesNotMatch(html,/<small>사람<\/small>/);
  assert.equal(person.name,'Fictional cast');assert.throws(()=>addLayoutObject(state,{kind:'person'}));
@@ -85,4 +85,13 @@ test('people resize within fixed square limits and retain member links through p
  const source=state.project.id;state=addProject(state,{name:'Fictional Other',icon:'camera',color:'blue'},'fictional-other');state=switchProject(state,source);assert.equal(state.layoutObjects[0].width,123.456);
  for(const patch of [{width:47,height:47},{width:241,height:241},{width:100,height:80},{shape:'circle'}]){const invalid=structuredClone(state);Object.assign(invalid.layoutObjects[0],patch);assert.equal(validateWorkspace(invalid),false);}
  resizeLayoutItem(state,person.id,1000,1);assert.equal(state.layoutObjects[0].width,240);resizeLayoutItem(state,person.id,0,1);assert.equal(state.layoutObjects[0].width,48);assert.equal(validateWorkspace(state),true);
+});
+
+test('layout colors validate, preserve legacy records, survive project switches and edit independently',()=>{
+ let state=prepareProjects(emptyWorkspace());const source=state.project.id;
+ for(const color of ['violet','blue','orange','green','rose','graphite'])addLayoutObject(state,{kind:'chair',color});
+ assert.ok(validateWorkspace(state));const first=state.layoutObjects[0],before=structuredClone(first);setLayoutColor(state,first.id,'rose');assert.deepEqual(first,{...before,color:'rose'});
+ assert.throws(()=>addLayoutObject(state,{kind:'table',color:'red;display:none'}));assert.throws(()=>setLayoutColor(state,first.id,'invalid'));
+ state=addProject(state,{name:'Other',icon:'camera',color:'blue'},'color-other');state=switchProject(state,source);assert.equal(state.layoutObjects[0].color,'rose');
+ const legacy=structuredClone(state);delete legacy.layoutObjects[0].color;assert.ok(validateWorkspace(legacy));legacy.layoutObjects[0].color='red;display:none';assert.equal(validateWorkspace(legacy),false);
 });
