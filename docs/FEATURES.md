@@ -97,4 +97,21 @@ The authenticated server stores account-isolated project state and attachments i
 
 배치 색상: 사람·사물 추가 및 위치 편집에서 프로젝트와 동일한 6색을 선택한다. 종류별 원형 선택창은 자체 채움형 벡터를 사용한다. 색상은 항목별로 저장되며 기존 무색상 항목은 검정 계열로 표시한다. 팀 관리는 멤버 탭에서만 제공한다.
 
+## Equipment operations workspace
+
+Purpose: manage owned equipment availability and outstanding checkout without external spreadsheets. Equipment List, Outstanding Checkouts and Combined Checkout/Return History are separate navigation entries; a history record contains its line items and repeated partial return events together. Sheets, Google authentication, outside rentals and rental fees are excluded.
+
+The existing equipment_items ID is canonical. Project gear IDs remain project-local aliases; equipmentId links to the same inventory without increasing stock. Additive metadata and immutable loan/event tables preserve existing catalog/link table shapes and private data. Each checkout stores equipment and borrower snapshots. Individual items have one unit; bulk items use positive safe integer quantities. Availability is total quantity minus outstanding quantities. Serialized transactions, revision checks and replay-safe operation IDs prevent overselling, excessive returns and duplicate clicks. Outstanding items cannot change identity, quantity or ownership. No deletion path removes history.
+
+Ownership is personal or an organization label under an account custodian. An organization creator can explicitly appoint an existing account as an equipment operator. Operators act only within that organization; account administrators receive no implicit operational write permission. Existing project linking stays within the canonical owner account rather than broadening cross-account workspace access. Changing real account admin roles is outside this feature.
+
+The normal UI and API enforce scope; shared project projections do not include borrower or loan data. Additive migration uses a private online SQLite backup for populated databases and a transaction; no production data is used in tests. Shared tokens, controls, tables/cards and accessible labeled forms compose the responsive UI.
+
+Checkout display numbers use the issue time in Asia/Seoul and a per-issuing-account monthly sequence (for example 2026-01-001). The issuer is displayed alongside the number because an operation may span that account's personal and multiple authorized organizational items. Internal UUIDs remain canonical; every line and partial return retains the header number. Minimum three-digit sequence formatting never truncates 1000+. Allocation occurs within the checkout transaction and committed numbers are never reused. No cancel/delete-issued-record endpoint is provided; abandoning an unsubmitted draft issues no number. Legacy unnumbered rows retain their UUID and display an explicit legacy-record label.
+
+Organizational inventory remains in the creating organization's owner-account custody even when registered by an operator. Appointing an operator does not transfer canonical ownership or permit arbitrary cross-account project links. Personal items can be assigned only to an organization with the same custodian account. Revocation removes operational access immediately.
+
+The equipment UI selects one authorized collection (personal or organization) for the workspace, rather than choosing ownership on each equipment row. New items inherit that collection. Existing permissions still govern access; choosing a collection never grants a role. Displayed stock is owned quantity, checked-out quantity and available quantity only. Every item has an automatically assigned canonical Equipment ID. An optional management code is a display alias; the optional manufacturer serial field is labeled 장비 일련번호 and never replaces the Equipment ID.
+
+Loan visibility and return authorization require both current inventory permission and the immutable issuance scope. Reassigning fully returned equipment to another collection does not disclose previous private borrower records. Legacy records without an issuance scope remain visible only to the canonical owner.
 일정은 월간 달력을 기본으로 열며 주간·일간 시간표와 목록으로 전환할 수 있다. 오늘/이전/다음, 월 선택과 날짜 클릭을 지원한다. 일간에는 미니 달력과 당일 목록을 함께 제공한다. 촬영은 개별 날짜를 지정할 수 있고 기존 항목은 프로젝트 촬영일을 따른다. 할 일에도 선택적 날짜·시간을 지정하고 완료 상태를 달력에서 확인한다. 날짜 없는 항목은 날짜 미정으로 모으며 임의 날짜에 배정하지 않는다. 주간·일간의 겹치는 시간은 별도 열에 배치한다.

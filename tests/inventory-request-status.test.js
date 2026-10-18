@@ -1,0 +1,15 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createApp} from '../server/index.js';
+import {digest} from '../server/auth.js';
+test('operation recovery status is limited to the authenticated actor and committed loan/return keys',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'studio-inventory-status-')),origin='http://localhost';const {server,db}=await createApp({dir,origin,secure:false});for(const uid of ['fictional-owner','fictional-outsider']){db.prepare('INSERT INTO users VALUES(?,?,?)').run(uid,uid,'unused');db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(uid),uid,Date.now()+60000);}await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(async()=>{await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});});const base=`http://127.0.0.1:${server.address().port}`;
+ const call=async(path,method='GET',data,user='fictional-owner')=>{const r=await fetch(base+'/api/inventory/'+path,{method,headers:{Origin:origin,...(user?{Cookie:'studio_session='+user}:{}),...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined});return {status:r.status,body:await r.json()};};
+ assert.deepEqual(await call('requests/missing'),{status:200,body:{applied:false}});assert.equal((await call('requests/missing','GET',undefined,null)).status,401);assert.equal((await call('requests/'+ 'a'.repeat(101))).status,404);assert.equal((await call('requests/invalid.key')).status,404);
+ const item=await call('items','POST',{name:'Fictional Item',category:'other',trackingMode:'bulk',quantity:2});assert.equal(item.status,201);const payload={requestId:'loan-key',borrower:'Fictional Borrower',dueAt:new Date(Date.now()+86400000).toISOString(),lines:[{equipmentId:item.body.item.id,quantity:2}]};const loan=await call('loans','POST',payload);assert.equal(loan.status,201);const id=loan.body.loan.id;assert.deepEqual(await call('requests/loan-key'),{status:200,body:{applied:true,loanId:id}});assert.deepEqual(await call('requests/loan-key','GET',undefined,'fictional-outsider'),{status:200,body:{applied:false}});
+ const returned=await call('loans/'+id+'/returns','POST',{requestId:'return-key',note:'Fictional partial return',lines:[{lineId:loan.body.loan.lines[0].lineId,quantity:1}]});assert.equal(returned.status,201);assert.deepEqual(await call('requests/return-key'),{status:200,body:{applied:true,loanId:id}});assert.deepEqual(await call('requests/return-key','GET',undefined,'fictional-outsider'),{status:200,body:{applied:false}});const response=JSON.stringify((await call('requests/return-key')).body);assert.equal(response.includes('payload_hash'),false);assert.equal(response.includes('Fictional'),false);
+ const failed=await call('loans','POST',{...payload,requestId:'failed-key',lines:[{equipmentId:item.body.item.id,quantity:2}]});assert.equal(failed.status,409);assert.deepEqual(await call('requests/failed-key'),{status:200,body:{applied:false}});
+});

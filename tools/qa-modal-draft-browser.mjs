@@ -41,7 +41,7 @@ try{
   const readsBefore=workspaceReads;releaseInvite();await delivered;await page.waitForTimeout(150);
   assert.equal(workspaceReads,readsBefore,'Editing must block workspace refresh and revision adoption');assert.equal(await input.inputValue(),typed);
   const storedBefore=app.db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(username);
-  await page.locator(kind==='settings'?'[data-form=project] > button':`[data-form=${kind==='task'?'task-edit':'equipment-edit'}] > button`).click();
+  await page.locator(kind==='settings'?'[data-form=project] > button':`[data-form=${kind==='task'?'task-edit':'equipment-edit'}] > button[type=submit]`).click();
   await page.waitForFunction(()=>document.querySelector('.save-indicator')?.textContent==='저장 실패');assert.equal(putStatus,409);assert.equal(await page.locator('[data-action=retry-save]').count(),0);
   assert.ok((await page.locator('.content').innerText()).includes(typed)||kind==='settings'&&await page.locator('#project-name').inputValue()===typed,'Conflict must retain visible local intent');
   const storedAfter=app.db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(username);assert.deepEqual(storedAfter,storedBefore,'Conflict must not overwrite committed invitation/server data');
@@ -56,10 +56,10 @@ try{
   const form=page.locator(`[data-form=${kind==='task'?'task-edit':'equipment-edit'}]`);const typed=`Fictional profile-rerender ${kind} draft`;
   if(kind==='gear'){await form.locator('[name=ownerMode]').selectOption('member');await form.locator('[name=ownerMemberId]').selectOption('fictional-member');await form.locator('[name=assigneeMode]').selectOption('manual');}
   const input=form.locator(`[name=${kind==='task'?'name':'assignee'}]`);await input.fill(typed);await input.evaluate(node=>node.setSelectionRange(4,8));
-  await page.evaluate(()=>window.__modalBeforeProfile=document.querySelector('[data-modal-panel] form'));releaseProfile();await delivered;await page.waitForFunction(()=>document.querySelector('[data-modal-panel] form')!==window.__modalBeforeProfile);
+  await page.evaluate(()=>window.__modalBeforeProfile=document.querySelector('[data-modal-panel] form'));releaseProfile();await delivered;assert.equal(await page.evaluate(()=>document.querySelector('[data-modal-panel] form')===window.__modalBeforeProfile),true);
   assert.equal(await input.inputValue(),typed);assert.equal(await input.evaluate(node=>node===document.activeElement),true);assert.deepEqual(await input.evaluate(node=>[node.selectionStart,node.selectionEnd]),[4,8]);
   if(kind==='gear'){assert.equal(await form.locator('[name=ownerMode]').inputValue(),'member');assert.equal(await form.locator('[name=ownerMemberId]').inputValue(),'fictional-member');assert.equal(await form.locator('[name=assigneeMode]').inputValue(),'manual');assert.ok(await form.locator('[name=ownerMemberId]').isEnabled());assert.ok(await input.isEnabled());}
-  console.log(`PASS delayed profile response rerenders ${kind} editor retaining named values, modes, focus and selection`);await page.close();
+  await page.keyboard.press('Escape');await page.locator('[data-view=settings]').click();await page.getByText(`Fictional profile ${kind}`,{exact:true}).waitFor();console.log(`PASS delayed profile response preserves ${kind} editor values, modes, focus and selection without replacing the editor; updated profile appears on next visit`);await page.close();
  }
  assert.deepEqual(errors,[]);console.log('PASS delayed invitations preserve modal/main settings drafts and stale revision; explicit save409 retains local intent without overwriting server');
 }finally{await browser.close();await new Promise(r=>app.server.close(r));await rm(dir,{recursive:true,force:true});}

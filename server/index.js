@@ -1,3 +1,4 @@
+import {inventoryRoutes} from './inventory.js';
 import {isAppPath} from '../src/app/routes.js';
 import {prepareAccountSchema} from './account-migration.js';
 import {reconcileEquipment} from './equipment.js';
@@ -19,6 +20,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir);
   try{await prepareAccountSchema(db,dir);}catch(error){db.close();throw error;}
+  const handleInventory=inventoryRoutes(db);
   const handleAccounts=accountRoutes(db);
   const dummy = await hashPassword(token());
   const diagnostics=connectionDiagnostics(db);
@@ -58,6 +60,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await oauth.routes({path,url,req,res,json,body,readJson,session}))return;
       if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
       if(await handleInvitations({path,req,session,json,readJson}))return;
+      if(await handleInventory({path,url,req,session,json,readJson}))return;
       if(await handleAccounts({path,url,req,session,json,readJson}))return;
       if (path==='/api/login' && req.method==='POST') {
         const data = await readJson();
