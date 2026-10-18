@@ -66,3 +66,10 @@ Account settings also offer permanent account deletion with a fresh password che
 ## External apps
 
 External app connections are optional. Connect an app from settings, review the requested access and disconnect it when no longer needed. Connected assistants can help find project information and prepare supported changes within the access you allow.
+
+## 관리자·조직 연결·장비 시트
+
+- 관리자 사용자 화면에서 정지 및 영구삭제 사유는 선택 입력입니다. 아이디 확인은 `@` 없이 입력하며, 최근 관리 기록 영역은 표시하지 않습니다. 영구삭제의 미리보기·보호 계정·삭제 범위 확인은 유지됩니다.
+- 기존 조직 관리 화면에서 조직명과 선택 설명으로 조직을 만들 수 있습니다. 생성 후 해당 조직을 선택해 초대를 관리할 수 있습니다.
+- 프로젝트 멤버 화면에서 관리 권한이 있는 조직을 연결할 수 있습니다. 기존 조직의 프로젝트 공유 승인을 사용하며, 조직 장비는 원본 장비 ID로 자동 연동됩니다. 이후 추가된 장비도 프로젝트를 불러올 때 반영되며, 다른 프로젝트 및 조직의 재고·대여 내역 접근 권한은 추가하지 않습니다.
+- 장비 보관함의 **시트 만들기**에서 최대 200행을 작성하거나 CSV 양식을 내려받아 불러올 수 있습니다. 등록 전 행별 오류를 확인하며, 일괄 등록은 전체 성공 또는 전체 취소로 처리됩니다. 같은 요청을 재시도해도 장비가 중복 생성되지 않습니다. 등록 위치는 현재 선택한 개인/조직 보관함입니다.

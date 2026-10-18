@@ -164,3 +164,15 @@ test('assistant shared domain add_equipment and add_camera chain saves project s
  for(const id of newIds){const gear=saved.state.gear.find(value=>value.id===id);assert.equal(db.prepare('SELECT project_id FROM equipment_project_scope WHERE equipment_id=?').get(gear.equipmentId).project_id,'fictional-a');assert.equal(inventory.items.some(item=>item.id===gear.equipmentId),false);}
  const canonical=saved.state.gear.find(value=>value.id===existing.gearId);assert.equal(canonical.equipmentId,personal.id);assert.equal(inventory.items.some(item=>item.id===personal.id),true);assert.equal(db.prepare('SELECT equipment_id FROM equipment_project_scope WHERE equipment_id=?').get(personal.id),undefined);
 });
+
+test('project member organization connection discovers only manageable organizations and automatically reuses canonical equipment',async t=>{
+ const {db,call,ok}=await fixture(t);const org=(await ok('producer','/api/inventory/organizations','POST',{name:'Fictional connected organization'})).organization;
+ const first=(await ok('producer','/api/inventory/items','POST',{name:'Fictional panel',category:'lighting',ownership:'organization',organizationId:org.id})).item;
+ const options=await ok('producer','/api/projects/fictional-a/organizations');assert.equal(options.organizations[0].id,org.id);assert.equal(options.organizations[0].connected,false);
+ assert.equal((await call('outsider','/api/projects/fictional-a/organizations')).status,404);assert.equal((await call(null,'/api/projects/fictional-a/organizations')).status,401);
+ await ok('producer',`/api/inventory/organizations/${org.id}/projects`,'POST',{projectOwnerId:'producer',projectId:'fictional-a',revision:org.revision});
+ let current=readWorkspace(db,'producer');assert.equal(current.state.gear.length,1);assert.equal(current.state.gear[0].equipmentId,first.id);assert.equal(current.state.projects[0].gear.length,0);assert.equal(current.state.gear[0].equipmentSource,'organization');
+ const stableId=current.state.gear[0].id;writeWorkspace(db,'producer',current.state,current.revision);await ok('producer','/api/projects/fictional-a/equipment-links','POST',{equipmentId:first.id});assert.equal(readWorkspace(db,'producer').state.gear.length,1);
+ const second=(await ok('producer','/api/inventory/items','POST',{name:'Fictional new chair',category:'other',ownership:'organization',organizationId:org.id})).item;current=readWorkspace(db,'producer');assert.equal(current.state.gear.length,2);assert.equal(current.state.gear.find(g=>g.equipmentId===first.id).id,stableId);assert.ok(current.state.gear.some(g=>g.equipmentId===second.id));assert.equal(db.prepare('SELECT count(*) n FROM equipment_items').get().n,2);
+ const latest=(await ok('producer',`/api/inventory/organizations/${org.id}`)).organization;await ok('producer',`/api/inventory/organizations/${org.id}/projects/producer/fictional-a`,'DELETE',{revision:latest.revision});current=readWorkspace(db,'producer');assert.ok(current.state.gear.every(g=>g.equipmentUnavailable));assert.equal((await ok('producer','/api/projects/fictional-a/equipment-options')).catalog.length,0);
+});

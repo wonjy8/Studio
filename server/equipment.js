@@ -10,6 +10,11 @@ export function assertEquipmentCategory(db,uid,equipmentId,category,candidate){
  for(const entry of states)for(const p of projects(entry.state)){const pid=p.project.id||'project-main';for(const gear of p.gear){const link=db.prepare('SELECT equipment_id FROM equipment_links WHERE owner_id=? AND project_id=? AND gear_id=?').get(entry.uid,pid,gear.id);if((gear.equipmentId===equipmentId||link?.equipment_id===equipmentId)&&p.cameras.some(c=>c.gearId===gear.id))throw Object.assign(Error('Camera-linked equipment must remain in camera category'),{status:400});}}
 }
 export function reconcileEquipment(db,uid,state,{write=false,previous}={}){
+ // Organization project approvals expose canonical gear automatically, without copying inventory ownership.
+ for(const p of projects(state)){
+  const pid=p.project.id||'project-main',items=db.prepare("SELECT e.id,e.name,e.category FROM equipment_items e JOIN inventory_metadata m ON m.equipment_id=e.id JOIN inventory_project_approvals a ON a.org_id=m.organization_id WHERE m.ownership='organization' AND a.project_owner_id=? AND a.project_id=? AND NOT EXISTS (SELECT 1 FROM equipment_project_scope s WHERE s.equipment_id=e.id) ORDER BY e.id").all(uid,pid);
+  for(const item of items){if(p.gear.some(g=>g.equipmentId===item.id))continue;if(p.gear.length>=2000)throw Object.assign(Error('Organization equipment exceeds project equipment limit'),{status:400});const linked=db.prepare('SELECT gear_id FROM equipment_links WHERE owner_id=? AND project_id=? AND equipment_id=?').get(uid,pid,item.id);let id=linked?.gear_id||'org-'+item.id;for(let n=1;p.gear.some(g=>g.id===id);n++)id='org-'+item.id+'-'+n;p.gear.push({id,equipmentId:item.id,name:item.name,category:item.category,owner:'',assignee:'',status:'check'});}
+ }
  const seen=new Map(),edits=new Map();
  // Read-time canonical baselines distinguish explicit edits from stale copies.
  // A project switch changes traversal order, never canonical inventory values.

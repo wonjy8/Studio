@@ -1,3 +1,4 @@
+import {openInventorySheet} from './inventory-sheet.js';
 import {sessionInfo} from '../app/session.js';
 import {request} from '../integrations/api.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
@@ -10,7 +11,7 @@ export function inventoryContainerItems(){return (organizationItemsByAccount.get
 export function setInventoryContainer(id){const key=inventoryAccountKey();if(!key)return false;containersByAccount.set(key,id||'personal');return true;}
 
 const draftSnapshot=form=>JSON.stringify([...form.querySelectorAll('input,select,textarea')].map(input=>[input.name||input.dataset.checkoutQuantity||input.dataset.checkoutItem||input.dataset.returnQuantity||'',input.type==='checkbox'||input.type==='radio'?input.checked:input.value]));
-const draftForms=root=>[...root.querySelectorAll('[data-inventory-item],[data-inventory-checkout],[data-inventory-return],[data-inventory-organization],[data-inventory-operator],[data-org-invite],[data-org-settings],[data-org-member],[data-project-approval]')];
+const draftForms=root=>[...root.querySelectorAll('[data-inventory-sheet],[data-inventory-item],[data-inventory-checkout],[data-inventory-return],[data-inventory-organization],[data-inventory-operator],[data-org-invite],[data-org-settings],[data-org-member],[data-project-approval]')];
 const rememberDrafts=root=>draftForms(root).forEach(form=>form.dataset.inventoryBaseline=draftSnapshot(form));
 export function inventoryDraftPending(){return Boolean(activeInventory?.root.isConnected&&activeInventory.pending());}
 export function openInventoryOrganizationCreation(){return Boolean(activeInventory?.root.isConnected&&activeInventory.createOrganization());}
@@ -23,7 +24,7 @@ const field=(name,label,value='',options='')=>`<label class="field">${label}<inp
 const empty=text=>`<div class="inventory-empty"><p>${text}</p></div>`;
 export function inventoryPage(section='items'){
  section=sections.has(section)?section:'items';
- return `<section class="inventory-workspace" data-inventory data-section="${section}"><div class="hero"><div><p class="eyebrow">EQUIPMENT</p><h2>${labels[section]}</h2><p class="sub">장비 현황과 반출·반납을 한곳에서 관리하세요.</p></div>${section==='items'?'<button class="btn primary" data-new-inventory disabled>장비 등록</button>':''}</div><p class="inventory-message" role="status" aria-live="polite" data-inventory-message>불러오는 중…</p><div class="inventory-container-control" data-inventory-container-control></div><div data-inventory-recovery></div><div data-inventory-editor></div><div data-inventory-content></div></section>`;
+ return `<section class="inventory-workspace" data-inventory data-section="${section}"><div class="hero"><div><p class="eyebrow">EQUIPMENT</p><h2>${labels[section]}</h2><p class="sub">장비 현황과 반출·반납을 한곳에서 관리하세요.</p></div>${section==='items'?'<div class="inventory-create-actions"><button class="btn" data-new-inventory-sheet disabled>시트 만들기</button><button class="btn primary" data-new-inventory disabled>장비 등록</button></div>':''}</div><p class="inventory-message" role="status" aria-live="polite" data-inventory-message>불러오는 중…</p><div class="inventory-container-control" data-inventory-container-control></div><div data-inventory-recovery></div><div data-inventory-editor></div><div data-inventory-content></div></section>`;
 }
 export function inventoryItemValues(form){
  const values=Object.fromEntries(new FormData(form));
@@ -63,6 +64,8 @@ export async function bindInventory({section='items',containerId,onOrganizations
   catch(error){if(!alive())return;busy=false;lock(false);tell(error.message,true);if(error.status===409){recovery.innerHTML='<p class="sub">입력은 유지됩니다. 다른 변경 사항을 확인한 후 다시 시작하세요.</p><button class="btn" data-inventory-reload>최신 현황 불러오기</button>';recovery.querySelector('button').onclick=()=>{if(confirm('저장하지 않은 입력을 버리고 최신 현황을 불러올까요?')){editor.innerHTML='';content.inert=false;load();}};}else if(!error.status||error.status>=500){failedOperation=operation;lock(true);showOperationRecovery(operation);}}
  }
  function bindForms(){
+  const sheetButton=root.querySelector('[data-new-inventory-sheet]');if(sheetButton){const allowed=container==='personal'||Boolean(organizations.find(org=>org.id===container)?.canManage);sheetButton.disabled=!allowed;sheetButton.onclick=()=>{if(busy||!allowed)return;if(dirty()&&!confirm('작성 중인 입력을 닫고 시트를 만들까요?'))return;content.inert=true;const organizationId=container==='personal'?null:container;openInventorySheet({editor,collectionLabel:organizationId?organizations.find(org=>org.id===organizationId)?.name||'조직 장비':'내 장비',onCancel:()=>{if(busy)return;if(dirty()&&!confirm('작성 중인 시트를 닫을까요?'))return;editor.innerHTML='';content.inert=false;sheetButton.focus();},onSubmit:(rows,requestId)=>perform({retrySafe:true,requestId,run:()=>post('inventory/import',{requestId,items:rows.map(row=>({...row,ownership:organizationId?'organization':'personal',organizationId}))}),success:`장비 ${rows.length}개가 등록됐습니다.`})});rememberDrafts(root);editor.querySelector('[data-sheet-key=name]')?.focus();};}
+
   content.querySelectorAll('[data-edit-inventory]').forEach(button=>button.onclick=()=>openItem(items.find(item=>item.id===button.dataset.editInventory),button));
   content.querySelector('[data-inventory-filters]')?.addEventListener('submit',e=>{e.preventDefault();if(!activeInventory.leave())return;load(new URLSearchParams([...new FormData(e.target)].filter(([,value])=>value)).toString());});
   content.querySelector('[data-inventory-checkout]')?.addEventListener('submit',e=>{e.preventDefault();try{const form=e.target,data=Object.fromEntries(new FormData(form)),lines=[...form.querySelectorAll('[data-checkout-item]:checked')].map(input=>({equipmentId:input.value,quantity:Number([...form.querySelectorAll('[data-checkout-quantity]')].find(q=>q.dataset.checkoutQuantity===input.value).value)}));if(!lines.length)throw Error('반출할 장비를 선택하세요.');if(lines.some(line=>!Number.isSafeInteger(line.quantity)||line.quantity<1))throw Error('대여 수량을 확인하세요.');const payload={requestId:crypto.randomUUID(),borrower:data.borrower,team:data.team,destination:data.destination,dueAt:new Date(data.dueAt).toISOString(),note:data.note,lines};perform({requestId:payload.requestId,retrySafe:true,run:()=>post('inventory/loans',payload),success:'반출이 기록됐습니다.'});}catch(error){tell(error.message,true);}});

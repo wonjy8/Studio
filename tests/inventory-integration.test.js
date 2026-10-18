@@ -208,3 +208,12 @@ test('organization conversion cannot reveal previous private borrower history an
  const moved=await ok('/api/inventory/loans?status=all','GET',undefined,'fictional-other');assert.equal(moved.loans.some(value=>value.id===shared.loan.id),false);assert.equal(JSON.stringify(moved).includes('Fictional Organization Borrower'),false);
 
 });
+
+test('spreadsheet import validates all rows atomically and replays a stable request without duplicate equipment',async t=>{
+ const {db,call,ok}=await fixture(t),rows=[{name:'Fictional sheet camera',category:'camera'},{name:'Fictional sheet cards',category:'sd',trackingMode:'bulk',quantity:8}];
+ const invalid=await call('/api/inventory/import','POST',{requestId:'invalid-sheet',items:[rows[0],{...rows[1],quantity:-1}]});assert.equal(invalid.status,400);assert.equal(db.prepare('SELECT count(*) n FROM equipment_items').get().n,0);
+ const first=await call('/api/inventory/import','POST',{requestId:'sheet-once',items:rows});assert.equal(first.status,201);assert.equal(first.body.createdCount,2);const again=await call('/api/inventory/import','POST',{requestId:'sheet-once',items:rows});assert.equal(again.status,200);assert.deepEqual(again.body.ids,first.body.ids);assert.equal(db.prepare('SELECT count(*) n FROM equipment_items').get().n,2);
+ assert.equal((await call('/api/inventory/import','POST',{requestId:'sheet-once',items:[rows[0]]})).status,409);
+ const org=(await ok('/api/inventory/organizations','POST',{name:'Fictional sheet org'})).organization;const denied=await call('/api/inventory/import','POST',{requestId:'foreign-sheet',items:[{...rows[0],ownership:'organization',organizationId:org.id}]},'fictional-other');assert.equal(denied.status,403);assert.equal(db.prepare('SELECT count(*) n FROM equipment_items').get().n,2);
+ const authorized=await call('/api/inventory/import','POST',{requestId:'org-sheet',items:[{...rows[0],ownership:'organization',organizationId:org.id}]});assert.equal(authorized.status,201);assert.equal(db.prepare('SELECT owner_id FROM equipment_items WHERE id=?').get(authorized.body.ids[0]).owner_id,'fictional-owner');
+});
