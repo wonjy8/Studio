@@ -1,3 +1,4 @@
+import {solidProjectIconPaths} from './solid-paths.js';
 // Vendored metadata: Tabler Icons 3.34.1 (MIT), Simple Icons 15.19.0 (CC0). See docs/PROJECT_ICONS.md.
 export const projectIconCatalog=[
 {"id":"production","name":"클래퍼보드","category":"기본","keywords":"클래퍼보드"},
@@ -1902,7 +1903,10 @@ export const projectIconCatalog=[
 {"id":"brand-kakaotalk","name":"KakaoTalk","category":"브랜드 · SNS","keywords":"카카오톡 카카오 kakaotalk kakao sns 소통"}
 ];
 export const projectIconIds=projectIconCatalog.map(item=>item.id);
-export const projectIconCategories=[...new Set(projectIconCatalog.map(item=>item.category))];
+const preferredIconIds=['production','play','book','camera','folder','sparkle','tabler-bookmark','tabler-key','tabler-gift','tabler-cake','tabler-backpack','tabler-ruler','tabler-file','tabler-wallet','tabler-cash','tabler-barbell','tabler-home','tabler-building','tabler-briefcase','tabler-tools','tabler-heart','tabler-star','tabler-circle','tabler-square','tabler-triangle'];
+const iconRank=item=>{const index=preferredIconIds.indexOf(item.id);return index>=0?index:item.category==='브랜드 · SNS'?200:100;};
+export const selectableProjectIcons=projectIconCatalog.filter(item=>['production','play','book','camera','folder','sparkle'].includes(item.id)||solidProjectIconPaths[item.id]).sort((a,b)=>iconRank(a)-iconRank(b));
+export const projectIconCategories=[...new Set(selectableProjectIcons.map(item=>item.category))];
 const byId=new Map(projectIconCatalog.map(item=>[item.id,item]));
 export function projectIconInfo(id){return byId.get(id);}
-export function findProjectIcons(query="",category=""){const words=query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);return projectIconCatalog.filter(item=>(!category||item.category===category)&&words.every(word=>`${item.name} ${item.keywords}`.toLocaleLowerCase().includes(word)));}
+export function findProjectIcons(query="",category=""){const words=query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);return selectableProjectIcons.filter(item=>(!category||item.category===category)&&words.every(word=>`${item.name} ${item.keywords}`.toLocaleLowerCase().includes(word)));}
