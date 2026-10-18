@@ -33,3 +33,14 @@
 .production-app [data-master-id][hidden]{display:none!important}
 .production-app :is(.master-list,.master-pane){corner-shape:squircle}
 @media(max-width:600px){.production-app .master-search{font-size:16px}}
+/* Keep the frame and editor affordances aligned even on empty screens. */
+.production-app .topbar{padding-left:var(--workspace-gutter);padding-right:var(--workspace-gutter)}
+.production-app .project-tabs{padding-left:var(--workspace-gutter);padding-right:var(--workspace-gutter);border-bottom:0}
+.production-app .project-header{border-bottom:1px solid var(--line)}
+.production-app:has(.project-tabs) .master-list{top:128px;max-height:calc(100vh - 152px)}
+.production-app .workspace-empty,.production-app .managed-project-empty{display:grid;place-items:center;text-align:center;min-height:240px;padding:32px;color:var(--muted);font-size:var(--text-body);border-style:solid;border-radius:var(--r-surface)}
+.production-app .workspace-empty-list{margin:0;padding:16px 8px;color:var(--muted);font-size:var(--text-support)}
+.production-app [data-admin-org-editor]>p:only-child{margin:0;min-height:200px;display:grid;place-items:center;text-align:center;color:var(--muted)}
+.production-app :is(.master-pane form>.actions,.inventory-form-actions,.managed-project-actions){display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:8px;padding-top:16px;margin-top:8px;border-top:1px solid var(--line)}
+.production-app :is(.master-pane form>.actions,.inventory-form-actions,.managed-project-actions)>.primary{order:2}
+@media(max-width:760px){.production-app:has(.project-tabs) .master-list{position:static;max-height:240px}.production-app .workspace-empty,.production-app .managed-project-empty{min-height:160px;padding:24px}}
