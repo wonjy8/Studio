@@ -46,6 +46,8 @@ test('inventory bulk stock, idempotency, simultaneous checkout and partial retur
 
 test('active loans lock canonical identity through catalog, workspace and MCP domain mutations',async t=>{
  const {db,call,ok,loan}=await fixture(t);const state=emptyWorkspace();state.project.id='fictional-a';state.gear=[{id:'fictional-alias',name:'Fictional Shared Lamp',category:'lighting',owner:'',assignee:'',status:'check'}];
+ // This fixture intentionally links an existing personal catalog item, rather than creating project-only equipment.
+ db.prepare('INSERT INTO equipment_items VALUES(?,?,?,?)').run('fictional-personal-lamp','fictional-owner','Fictional Shared Lamp','lighting');state.gear[0].equipmentId='fictional-personal-lamp';
  writeWorkspace(db,'fictional-owner',state,0);let current=readWorkspace(db,'fictional-owner');const id=current.state.gear[0].equipmentId;assert.notEqual(id,'fictional-alias');
  const other=emptyWorkspace();other.project.id='fictional-b';other.gear=[{...current.state.gear[0],id:'fictional-alias-b'}];current.state.projects=[other];writeWorkspace(db,'fictional-owner',current.state,current.revision);
  const active=await ok('/api/inventory/loans','POST',loan(id,1,'fictional-lock-loan'));
@@ -109,12 +111,13 @@ test('administrator catalog exposes stock summaries but no borrower history and 
 
 test('inventory endpoint retains camera category protection from linked project camera setups',async t=>{
  const {db,call}=await fixture(t),state=emptyWorkspace();state.gear=[{id:'fictional-camera-alias',name:'Fictional Camera',category:'camera',owner:'',assignee:'',status:'check'}];state.cameras=[{id:'fictional-camera-position',name:'Fictional Position',role:'',operator:'',body:'Fictional Camera',lens:'',x:50,y:50,refs:[],gearId:'fictional-camera-alias'}];
+ db.prepare('INSERT INTO equipment_items VALUES(?,?,?,?)').run('fictional-personal-camera','fictional-owner','Fictional Camera','camera');state.gear[0].equipmentId='fictional-personal-camera';
  writeWorkspace(db,'fictional-owner',state,0);const id=readWorkspace(db,'fictional-owner').state.gear[0].equipmentId;
  assert.equal((await call(`/api/inventory/items/${id}`,'PUT',{revision:0,category:'lighting'})).status,400);assert.equal(db.prepare('SELECT category FROM equipment_items WHERE id=?').get(id).category,'camera');
 });
 
 test('legacy catalog and workspace canonical edits invalidate stale inventory revisions atomically',async t=>{
- const {db,call,ok}=await fixture(t),state=emptyWorkspace();state.project.id='fictional-revision-project';state.gear=[{id:'fictional-revision-alias',name:'Fictional Revision Lamp',category:'lighting',owner:'',assignee:'',status:'check'}];writeWorkspace(db,'fictional-owner',state,0);
+ const {db,call,ok}=await fixture(t),state=emptyWorkspace();state.project.id='fictional-revision-project';state.gear=[{id:'fictional-revision-alias',name:'Fictional Revision Lamp',category:'lighting',owner:'',assignee:'',status:'check'}];db.prepare('INSERT INTO equipment_items VALUES(?,?,?,?)').run('fictional-personal-revision','fictional-owner','Fictional Revision Lamp','lighting');state.gear[0].equipmentId='fictional-personal-revision';writeWorkspace(db,'fictional-owner',state,0);
  const id=readWorkspace(db,'fictional-owner').state.gear[0].equipmentId;
  let snapshot=(await ok('/api/inventory')).items.find(item=>item.id===id);assert.equal(snapshot.revision,0);
  await ok(`/api/equipment/${id}`,'PUT',{name:'Fictional Catalog Revision',category:'lighting'});

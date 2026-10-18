@@ -12,7 +12,7 @@ test('account administration, invitations, teams and equipment preserve authoriz
  const {server,db}=await createApp({dir,origin,secure:false});
  for(const id of ['owner','member','outsider'])db.prepare('INSERT INTO users VALUES(?,?,?)').run(id,id,await hashPassword('Fictional-password!'));
  db.prepare("INSERT INTO site_settings VALUES('admin_user_id','owner')").run();
- const state=emptyWorkspace();state.project.id='p1';state.members=[{id:'manual',name:'Fictional Person',role:'',call:''}];state.gear=[{id:'g1',name:'Fictional Camera',owner:'',assignee:'',status:'check',category:'camera'}];db.prepare('INSERT INTO workspaces VALUES(?,?,?)').run('owner',1,JSON.stringify(state));
+ const state=emptyWorkspace();state.project.id='p1';state.members=[{id:'manual',name:'Fictional Person',role:'',call:''}];state.gear=[{id:'g1',equipmentId:'fictional-personal-camera',name:'Fictional Camera',owner:'',assignee:'',status:'check',category:'camera'}];db.prepare('INSERT INTO equipment_items VALUES(?,?,?,?)').run('fictional-personal-camera','owner','Fictional Camera','camera');db.prepare('INSERT INTO workspaces VALUES(?,?,?)').run('owner',1,JSON.stringify(state));
  await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(async()=>{await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});});
  const base=`http://127.0.0.1:${server.address().port}`;let cookie='';
  const call=(path,method='GET',data)=>fetch(base+path,{method,headers:{Origin:origin,Cookie:cookie,...(data===undefined?{}:{'Content-Type':'application/json'})},body:data===undefined?undefined:JSON.stringify(data)});

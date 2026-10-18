@@ -7,6 +7,7 @@ import {createApp} from '../server/index.js';
 import {digest} from '../server/auth.js';
 import {emptyWorkspace} from '../src/domain/workspace.js';
 import {readWorkspace,writeWorkspace} from '../server/workspace-service.js';
+import {applyCommands} from '../src/domain/commands.js';
 async function fixture(t){
  const dir=await mkdtemp(join(tmpdir(),'studio-fictional-sharing-')),origin='http://localhost', {server,db}=await createApp({dir,origin,secure:false});
  for(const id of ['producer','member','outsider','organization']){db.prepare('INSERT INTO users VALUES(?,?,?)').run(id,'fictional-'+id,'unused-fictional-hash');db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(id),id,Date.now()+600000);}
@@ -116,4 +117,50 @@ test('pending manual claims revoke on committed identity or owner changes but su
   assert.equal((await call('member',`/api/inventory/equipment-claims/${pending.id}/accept`,'POST',{revision:1})).status,404,change);
   assert.equal(db.prepare('SELECT owner_id FROM equipment_items WHERE id=?').get(gear.equipmentId).owner_id,'producer');
  }
+});
+
+test('legacy raw workspace gear always stays project scoped despite free owner, forged source and camera or layout creation',async t=>{
+ const {db,call,ok}=await fixture(t);
+ const personal=(await ok('producer','/api/inventory/items','POST',{name:'Fictional Explicit Personal Light',category:'lighting'})).item;
+ const preserved=await ok('producer','/api/projects/fictional-a/equipment-links','POST',{equipmentId:personal.id});
+ const legacyPersonal=await ok('producer','/api/equipment','POST',{name:'Fictional Explicit Legacy Personal Light',category:'lighting'});const preservedLegacy=await ok('producer','/api/projects/fictional-a/equipment-links','POST',{equipmentId:legacyPersonal.id});
+ const current=await ok('producer','/api/workspace'),variants=[
+  {id:'fictional-raw-free-owner',name:'Fictional Free Owner Light',category:'lighting',owner:'Fictional External Owner'},
+  {id:'fictional-raw-forged-source',name:'Fictional Forged Personal Light',category:'lighting',owner:'',equipmentSource:'personal'},
+  {id:'fictional-raw-no-owner',name:'Fictional Unassigned Light',category:'lighting',owner:''},
+  {id:'fictional-raw-camera',name:'Fictional New Camera',category:'camera',owner:''},
+  {id:'fictional-raw-layout',name:'Fictional New Layout Light',category:'lighting',owner:''}
+ ];
+ for(const gear of variants)current.state.gear.push({...gear,assignee:'',status:'check'});
+ current.state.cameras.push({id:'fictional-raw-camera-position',name:'Fictional New Camera Position',role:'',operator:'',body:'Fictional New Camera',lens:'',x:50,y:50,gearId:'fictional-raw-camera',refs:[]});
+ current.state.layoutObjects.push({id:'fictional-raw-layout-position',kind:'equipment',name:'Fictional New Layout Light',gearId:'fictional-raw-layout',x:50,y:50,rotation:0});
+ await ok('producer','/api/workspace','PUT',current);
+ const saved=await ok('producer','/api/workspace'),personalInventory=await ok('producer','/api/inventory'),legacyInventory=await ok('producer','/api/equipment');
+ for(const original of variants){
+  const gear=saved.state.gear.find(value=>value.id===original.id);assert.ok(gear.equipmentId);assert.equal(gear.equipmentSource,'manual');
+  const scope=db.prepare('SELECT project_owner_id,project_id FROM equipment_project_scope WHERE equipment_id=?').get(gear.equipmentId);assert.equal(scope.project_owner_id,'producer');assert.equal(scope.project_id,'fictional-a');
+  assert.equal(personalInventory.items.some(value=>value.id===gear.equipmentId),false);assert.equal(legacyInventory.catalog.some(value=>value.id===gear.equipmentId),false);
+  assert.equal((await call('producer','/api/inventory/loans','POST',{requestId:'fictional-raw-checkout-'+original.id,borrower:'Fictional Borrower',dueAt:new Date(Date.now()+86400000).toISOString(),lines:[{equipmentId:gear.equipmentId,quantity:1}]})).status,403);
+  assert.equal((await call('producer','/api/projects/fictional-b/equipment-links','POST',{equipmentId:gear.equipmentId})).status,403);
+ }
+ assert.equal(saved.state.gear.find(value=>value.id===preservedLegacy.gearId).equipmentId,legacyPersonal.id);assert.equal(personalInventory.items.some(value=>value.id===legacyPersonal.id),true);assert.equal(db.prepare('SELECT equipment_id FROM equipment_project_scope WHERE equipment_id=?').get(legacyPersonal.id),undefined);
+ assert.equal(saved.state.gear.find(value=>value.id===preserved.gearId).equipmentId,personal.id);assert.equal(personalInventory.items.some(value=>value.id===personal.id),true);assert.equal(db.prepare('SELECT equipment_id FROM equipment_project_scope WHERE equipment_id=?').get(personal.id),undefined);
+ const claimGear=saved.state.gear.find(value=>value.id===variants[0].id),claim=await ok('producer',`/api/projects/fictional-a/equipment/${claimGear.id}/claim`,'POST',{revision:saved.revision,userId:'member',confirm:true});
+ await ok('member',`/api/inventory/equipment-claims/${claim.id}/accept`,'POST',{revision:1});
+ assert.equal((await ok('member','/api/inventory')).items.some(value=>value.id===claimGear.equipmentId),true);assert.equal(readWorkspace(db,'producer').state.gear.find(value=>value.id===claimGear.id).equipmentId,claimGear.equipmentId);assert.equal(db.prepare('SELECT COUNT(*) n FROM equipment_items WHERE id=?').get(claimGear.equipmentId).n,1);
+});
+
+test('assistant shared domain add_equipment and add_camera chain saves project scope without reclassifying legacy canonical gear',async t=>{
+ const {db,ok}=await fixture(t),personal=await ok('producer','/api/equipment','POST',{name:'Fictional Existing Canonical Camera',category:'camera'});
+ const existing=await ok('producer','/api/projects/fictional-a/equipment-links','POST',{equipmentId:personal.id}),current=await ok('producer','/api/workspace'),before=structuredClone(current.state);
+ // This exercises the shared assistant domain chain and authenticated workspace
+ // write boundary; it does not impersonate an OAuth/MCP transport invocation.
+ const result=applyCommands(current.state,'fictional-a',[
+  {operation:'add_equipment',values:{name:'Fictional Assistant Added Light',category:'lighting',owner:'Fictional Manual Owner'}},
+  {operation:'add_camera',values:{name:'Fictional Assistant Added Camera',body:'Fictional Assistant Camera Body'}}
+ ]);assert.deepEqual(current.state,before);
+ const newIds=result.state.gear.filter(value=>!before.gear.some(old=>old.id===value.id)).map(value=>value.id);assert.equal(newIds.length,2);assert.ok(newIds.every(id=>result.state.gear.find(value=>value.id===id).equipmentSource==='manual'));
+ await ok('producer','/api/workspace','PUT',{revision:current.revision,state:result.state});const saved=await ok('producer','/api/workspace'),inventory=await ok('producer','/api/inventory');
+ for(const id of newIds){const gear=saved.state.gear.find(value=>value.id===id);assert.equal(db.prepare('SELECT project_id FROM equipment_project_scope WHERE equipment_id=?').get(gear.equipmentId).project_id,'fictional-a');assert.equal(inventory.items.some(item=>item.id===gear.equipmentId),false);}
+ const canonical=saved.state.gear.find(value=>value.id===existing.gearId);assert.equal(canonical.equipmentId,personal.id);assert.equal(inventory.items.some(item=>item.id===personal.id),true);assert.equal(db.prepare('SELECT equipment_id FROM equipment_project_scope WHERE equipment_id=?').get(personal.id),undefined);
 });
