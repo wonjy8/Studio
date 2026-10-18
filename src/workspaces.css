@@ -103,3 +103,26 @@
 @media(max-width:760px){.production-app .equipment-tabbar{margin-top:-8px;flex-wrap:wrap;gap:12px;padding-bottom:0}.production-app .equipment-tabs{width:100%;gap:20px}.production-app .equipment-owner-picker{width:100%}.production-app .equipment-owner-menu{min-width:100%;width:100%}}
 
 .production-app .inventory-workspace>.hero[hidden]{display:none!important}
+
+/* Page titles join the navigation below without a separating rule. */
+.production-app .project-header{border-bottom:0}
+.production-app .equipment-tabbar{margin-top:-12px;min-width:0;max-width:100%;gap:24px}
+.production-app .equipment-tabbar>[data-organization-picker]{flex:0 0 200px;min-width:0}
+.production-app .equipment-tabs{flex:1 1 0;min-width:0;max-width:100%;gap:22px;overflow-x:auto}
+.production-app .equipment-tabs .project-tab{flex-shrink:0}
+.production-app .equipment-owner-picker{width:100%}
+.production-app [data-member-picker]{width:220px}
+.production-app .inventory-workspace .equipment-owner-picker[open]>summary{margin-bottom:0}
+.production-app .inventory-workspace .equipment-owner-picker>summary{padding:10px 14px;min-height:44px}
+.production-app .inventory-grid>.master-detail{min-width:0;max-width:100%}
+.production-app .inventory-checkout{margin:0;min-width:0;max-width:100%}
+.production-app .inventory-checkout fieldset{min-width:0;margin:20px 0;padding:16px;border:1px solid var(--line);border-radius:10px}
+.production-app .inventory-checkout .inventory-line{display:grid;grid-template-columns:minmax(0,1fr) 110px auto;gap:16px;align-items:center}
+.production-app .inventory-checkout .inventory-line>label:first-child{display:flex;gap:10px;align-items:center;min-width:0;overflow-wrap:anywhere}
+.production-app .inventory-checkout input[type=checkbox]{width:18px;min-height:18px;flex-shrink:0}
+.production-app .inventory-fields>.field,.production-app .inventory-organizations form{min-width:0}
+.production-app .google-sheet-linked{flex-wrap:wrap;min-width:0}
+.production-app .google-sheet-linked .actions{flex-wrap:wrap}
+.production-app :is([data-reference-library],[data-rental-vendors])>.hero{justify-content:flex-end}
+.production-app .settings-page>.settings-section:first-child{margin-top:0;padding-top:0}
+@media(max-width:760px){.production-app .equipment-tabbar>[data-organization-picker]{flex:1 1 100%}.production-app .equipment-tabs{flex:1 1 100%;width:100%;gap:20px}.production-app [data-member-picker]{width:100%}.production-app .inventory-fields,.production-app .inventory-item-form{grid-template-columns:minmax(0,1fr)}.production-app .inventory-checkout .inventory-line{grid-template-columns:minmax(0,1fr) 90px;gap:12px}.production-app .inventory-checkout .inventory-line>span{grid-column:1/-1}.production-app .inventory-checkout .inventory-line>.field{width:100%;min-width:0}}

@@ -5,7 +5,7 @@ import {projectNavigation} from '../src/patterns/navigation.js';
 import {appShell} from '../src/app/shell.js';
 import {emptyWorkspace} from '../src/domain/workspace.js';
 test('organization collection URLs retain account, section and history identity',()=>{
- for(const view of ['inventory','inventory-outstanding','inventory-history']){
+ for(const view of ['inventory','inventory-checkout','inventory-outstanding','inventory-history','inventory-settings']){
   const path=routePath({view,username:'fictional.operator',inventoryContainerId:'fictional-org'}),route=parseRoute(path);
   assert.equal(route.valid,true);assert.equal(route.view,view);assert.equal(route.inventoryContainerId,'fictional-org');assert.equal(route.username,'fictional.operator');assert.match(path,/\/inventory\/organizations\/fictional-org\//);
   assert.equal(routeBelongsToAccount(route,{username:'outsider'}),false);
