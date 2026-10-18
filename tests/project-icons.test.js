@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {projectIconCatalog,findProjectIcons,projectIconInfo} from '../src/design-system/icons/catalog.js';
+import {projectIconCatalog,selectableProjectIcons,findProjectIcons,projectIconInfo} from '../src/design-system/icons/catalog.js';
 import {projectIconPaths} from '../src/design-system/icons/paths.js';
 import {icon} from '../src/design-system/primitives/icons.js';
 import {projectForm,projectIconPage,iconPageSize} from '../src/features/projects/project-form.js';
@@ -30,7 +30,8 @@ test('picker caps DOM size, clamps pagination and retains out-of-page saved icon
  assert.equal(projectIconPage('no-icon-found').pages,1);
  const html=projectForm({name:'Fictional project',icon:'brand-kakaotalk',color:'blue'});
  assert.match(html,/name="icon" value="brand-kakaotalk"/);
- assert.match(html,/선택:.*KakaoTalk/);
+ assert.match(html,/title="KakaoTalk"/);
+ assert.match(html,/popover class="project-icon-popover"/);
  assert.equal((html.match(/name="project-icon-choice"/g)||[]).length,48);
  assert.match(html,/for="project-icon-search"/);
 });
@@ -50,4 +51,10 @@ test('settings and creation forms can coexist with unique labelled control ids',
    assert.ok(html.includes(`for="${prefix}-${suffix}"`));
   }
  }
+});
+
+test('every selectable icon uses a real filled vector and legacy identities stay valid',()=>{
+ assert.ok(selectableProjectIcons.length>500);
+ for(const item of selectableProjectIcons){const svg=icon(item.id,{solid:true});assert.match(svg,/fill="currentColor"/);assert.match(svg,/stroke="none"/);}
+ const state=emptyWorkspace();state.project.icon='tabler-device-desktop-search';assert.ok(validateWorkspace(state));
 });
