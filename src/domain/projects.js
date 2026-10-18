@@ -18,6 +18,11 @@ export function switchProject(state,id){
  if(!selected)throw Error('Project not found');
  return {...structuredClone(selected),projects:[projectSnapshot(state),...state.projects.filter(p=>p.project.id!==id)]};
 }
+// Server snapshots include the last persisted selection; navigation may be newer.
+export function adoptProjectWorkspace(incoming,selectedId){
+ const fresh=prepareProjects(structuredClone(incoming));
+ return [fresh,...fresh.projects].some(p=>p.project.id===selectedId)?switchProject(fresh,selectedId):fresh;
+}
 export function addProject(state,{name,icon,color},id){
  if(!name.trim()||state.projects.length>=99)throw Error('프로젝트 이름을 입력해 주세요. 프로젝트는 최대 100개입니다.');
  const next=emptyWorkspace();next.project={...next.project,id,name:name.trim(),icon,color,order:Math.max(...[state,...state.projects].map(p=>p.project.order||0))+1};

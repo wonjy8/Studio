@@ -50,3 +50,11 @@ test('project checklist and description retain data through preparation and swit
  assert.equal(validateWorkspace(state),true);
  for(const tasks of [[{id:'bad',name:'',completed:false}],[{id:'a',name:'One',completed:false},{id:'a',name:'Two',completed:true}],[{id:'a',name:'One',completed:'yes'}]])assert.equal(validateWorkspace({...state,tasks}),false);
 });
+test('server snapshots retain the newer selected project without losing canonical updates',async()=>{
+ const {adoptProjectWorkspace}=await import('../src/domain/projects.js');
+ let incoming=prepareProjects(emptyWorkspace());incoming.project.id='fictional-a';incoming.tasks=[{id:'task-a',name:'Canonical A',completed:true}];
+ incoming=addProject(incoming,{name:'Fictional B',icon:'camera',color:'blue'},'fictional-b');incoming.tasks=[{id:'task-b',name:'Canonical B',completed:false}];
+ const before=structuredClone(incoming),selected=adoptProjectWorkspace(incoming,'fictional-a');
+ assert.equal(selected.project.id,'fictional-a');assert.equal(selected.tasks[0].name,'Canonical A');assert.equal(selected.projects.find(p=>p.project.id==='fictional-b').tasks[0].name,'Canonical B');assert.deepEqual(incoming,before);
+ assert.equal(adoptProjectWorkspace(incoming,'missing-project').project.id,'fictional-b');
+});
