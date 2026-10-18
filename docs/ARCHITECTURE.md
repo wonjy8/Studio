@@ -151,3 +151,10 @@ Administration uses the same left list / right detail pattern for users, equipme
 The Data Space workspace (`/dataspace/rental-vendors`, also account-namespaced) stores rental vendor contacts in `rental_vendors`. Reads and writes are scoped to the authenticated account; updates/deletes require the current revision. Vendor records are private account data in permanent deletion. Project rental equipment stores the chosen vendor name as its historical owner-label snapshot and an `isRental` boolean; deleting or renaming a vendor does not rewrite existing project records.
 
 Layout viewport height (280–1200 px) and zoom (40–300%) are browser preferences keyed by account and project. Both top and bottom handles resize the viewport; wheel/pinch gestures zoom about the pointer. Existing pointer geometry converts screen movement through the stage transform so dragging, resizing and rotation remain correct when zoomed.
+
+
+### Project member selection
+
+The member tab opens a native modal dialog with separate member and organization tabs. Account choices are scoped to an owned project, searchable with a single character, paginated in batches of 50, and contain only public name/username/ID and connection flags. Organization choices retain organization-admin authorization. Selection persists across searches and tabs; existing connections are checked and disabled.
+
+`POST /api/projects/:id/member-selection` validates a workspace revision and all selected active accounts/organization permissions inside one transaction, then creates all membership and organization approvals together. It shares the client workspace mutation queue with team assignment. Repeating an already-applied selection returns the current revision without duplicating records, including after a response is lost. Site administrators and the highest administrator are eligible project members without receiving or transferring any additional site privileges. Owners may add themselves to their roster; their own projects remain excluded from the shared-project sidebar.
