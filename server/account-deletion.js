@@ -1,6 +1,6 @@
-// Irreversible application deletion is deliberately limited to accounts with no
-// shared ownership or historical dependencies. Shared records are never cascaded,
-// transferred, or anonymized here. Existing backups follow their retention policy.
+// Representatives use complete account deletion; delegated administrators and
+// self-deletion retain the narrower dependency-protected policy.
+import {setupCompleteDeletion,completeDeletionPreview,purgeCompleteAccount} from './account-complete-deletion.js';
 import {createHash,randomUUID} from 'node:crypto';
 import {siteCapabilities,siteRole} from './site-roles.js';
 import {representativeMemberId} from './project-representative.js';
@@ -54,6 +54,7 @@ function automaticRepresentativeEquipmentLinks(db,uid){
  });
 }
 function preview(db,actorId,uid,{self=false}={}){
+ if(!self&&siteRole(db,actorId)==='super_admin')return completeDeletionPreview(db,actorId,uid);
  const target=db.prepare('SELECT id,username FROM users WHERE id=?').get(uid);if(!target)throw fail(404,'Account not found');
  const status=exists(db,'account_status')&&db.prepare('SELECT deleted_at FROM account_status WHERE user_id=?').get(uid);target.deleted=Boolean(status&&status.deleted_at!=null);
  const retainedHistory={legacyDeletionAudit:0};
@@ -115,10 +116,10 @@ function commitDeletion(db,session,uid,data,{self=false,passwordHash}={}){
  db.exec('BEGIN IMMEDIATE');try{
   if(self){assertSelf(db,session);if(db.prepare('SELECT password FROM users WHERE id=?').get(uid)?.password!==passwordHash)throw fail(409,'Password changed. Sign in and preview deletion again');}else assertActor(db,session);
   const current=preview(db,session.user_id,uid,{self});if(current.target.username!==data.confirmUsername)throw fail(400,'Account confirmation required');if(!current.allowed)throw fail(409,'Account has protected or shared dependencies');if(current.expectedSnapshot!==data.expectedSnapshot)throw fail(409,'Account changed. Preview deletion again.');
-  purge(db,session.user_id,uid,self?'self-delete':(data.reason||'').trim());db.exec('COMMIT');return {ok:true,permanent:true};
+  if(current.deletionMode==='complete')purgeCompleteAccount(db,session.user_id,uid);else purge(db,session.user_id,uid,self?'self-delete':(data.reason||'').trim());db.exec('COMMIT');return {ok:true,permanent:true};
  }catch(error){db.exec('ROLLBACK');throw error;}
 }
-export function accountDeletionRoutes(db){const attempts=new Map();return async({path,req,session,json,readJson,clearSessionCookie})=>{
+export function accountDeletionRoutes(db){setupCompleteDeletion(db);const attempts=new Map();return async({path,req,session,json,readJson,clearSessionCookie})=>{
  const self=path==='/api/account/deletion-preview'||path==='/api/account/delete',match=path.match(/^\/api\/admin\/users\/([A-Za-z0-9_-]{1,100})\/(deletion-preview|actions)$/);if(!self&&!match)return false;
  if(self&&!(path==='/api/account/deletion-preview'&&req.method==='GET')&&!(path==='/api/account/delete'&&req.method==='POST')){json(404,{error:'Not found'});return true;}
  if(!self&&((match[2]==='actions'&&req.method!=='POST')||(match[2]==='deletion-preview'&&req.method!=='GET')))return false;
