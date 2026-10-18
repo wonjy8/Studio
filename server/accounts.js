@@ -32,9 +32,9 @@ export function sharedProjectProjection(p){
   gear:list('gear',['id','name','category','owner','assignee','status']),
   schedule:(p.schedule||[]).map(row=>row.filter(value=>typeof value==='string')),
   cameras:(p.cameras||[]).map(camera=>({...pick(camera,['id','name','role','operator','body','lens','x','y','gearId']),refs:[]})),
-  layoutObjects:list('layoutObjects',['id','kind','name','x','y','rotation','width','height','shape','memberId','gearId']),
+  layoutObjects:list('layoutObjects',['id','kind','name','x','y','rotation','width','height','shape','memberId','gearId','lightType','color','background']),
   refs:(p.refs||[]).map(ref=>({...pick(ref,['id','name','notes']),images:[]})),
-  tasks:list('tasks',['id','name','completed','date','time'])
+  tasks:list('tasks',['id','name','completed','date','time','flagged'])
  };
 }
 export function linkedWorkspace(db,uid,state){for(const p of projects(state)){const pid=p.project.id||'project-main';for(const m of p.members)delete m.accountId;for(const link of db.prepare('SELECT a.member_id,a.user_id,u.username,p.name FROM project_accounts a JOIN users u ON u.id=a.user_id LEFT JOIN account_profiles p ON p.user_id=u.id WHERE a.owner_id=? AND a.project_id=?').all(uid,pid)){let m=p.members.find(m=>m.id===link.member_id);if(!m){m={id:link.member_id,name:link.name||link.username,role:'',call:''};p.members.push(m);}m.accountId=link.user_id;}}return state;}

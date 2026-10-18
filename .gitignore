@@ -49,3 +49,8 @@ tmp/
 .studio-update.lock/
 
 .studio-update.failed-image
+
+# Private operational evidence is kept outside the source checkout.
+/docs/QA_OVERNIGHT.md
+/reports/
+/backups/

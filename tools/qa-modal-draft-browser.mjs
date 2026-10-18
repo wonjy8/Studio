@@ -41,7 +41,7 @@ try{
   const readsBefore=workspaceReads;releaseInvite();await delivered;await page.waitForTimeout(150);
   assert.equal(workspaceReads,readsBefore,'Editing must block workspace refresh and revision adoption');assert.equal(await input.inputValue(),typed);
   const storedBefore=app.db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(username);
-  await page.locator(kind==='settings'?'[data-form=project] > button':`[data-form=${kind==='task'?'task-edit':'equipment-edit'}] > button`).click();
+  await page.locator(kind==='settings'?'[data-form=project] > button':`[data-form=${kind==='task'?'task-edit':'equipment-edit'}] > button[type=submit]`).click();
   await page.waitForFunction(()=>document.querySelector('.save-indicator')?.textContent==='저장 실패');assert.equal(putStatus,409);assert.equal(await page.locator('[data-action=retry-save]').count(),0);
   assert.ok((await page.locator('.content').innerText()).includes(typed)||kind==='settings'&&await page.locator('#project-name').inputValue()===typed,'Conflict must retain visible local intent');
   const storedAfter=app.db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(username);assert.deepEqual(storedAfter,storedBefore,'Conflict must not overwrite committed invitation/server data');

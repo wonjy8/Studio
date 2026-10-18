@@ -1,6 +1,6 @@
 import {icon} from '../design-system/primitives/icons.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
-export const projectTabs=[['home','홈','home'],['schedule','일정','calendar'],['contents','촬영','production'],['camera','카메라','camera'],['references','레퍼런스','image'],['members','멤버','people'],['gear','장비','gear'],['tasks','할 일','book'],['shoot','촬영 모드','play'],['project-settings','설정','settings']];
+export const projectTabs=[['home','홈','home'],['schedule','일정','calendar'],['tasks','할 일','book'],['camera','카메라','camera'],['references','레퍼런스','image'],['members','멤버','people'],['gear','장비','gear'],['shoot','촬영 모드','play'],['project-settings','설정','settings']];
 export function projectNavigation(state,view,open,session={}){
  const projects=[state,...(state.projects||[])].map(p=>p.project).sort((a,b)=>(a.order||0)-(b.order||0));
  const adminWorkspace=Boolean(session.isAdmin&&['admin','admin-equipment'].includes(view)),settings=view==='settings',inventory=['inventory','inventory-outstanding','inventory-history'].includes(view);
