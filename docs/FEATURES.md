@@ -96,3 +96,5 @@ The authenticated server stores account-isolated project state and attachments i
 **Reuse/privacy:** the same read grant, private workspace and project snapshots; no external index, OpenAI API key or private attachment byte access. Search/fetch are additions, not evidence that a particular ChatGPT account has activated the tools. Reference: OpenAI's Deep Research MCP cookbook search/fetch example.
 
 배치 색상: 사람·사물 추가 및 위치 편집에서 프로젝트와 동일한 6색을 선택한다. 종류별 원형 선택창은 자체 채움형 벡터를 사용한다. 색상은 항목별로 저장되며 기존 무색상 항목은 검정 계열로 표시한다. 팀 관리는 멤버 탭에서만 제공한다.
+
+일정은 월간 달력을 기본으로 열며 주간·일간 시간표와 목록으로 전환할 수 있다. 오늘/이전/다음, 월 선택과 날짜 클릭을 지원한다. 일간에는 미니 달력과 당일 목록을 함께 제공한다. 촬영은 개별 날짜를 지정할 수 있고 기존 항목은 프로젝트 촬영일을 따른다. 할 일에도 선택적 날짜·시간을 지정하고 완료 상태를 달력에서 확인한다. 날짜 없는 항목은 날짜 미정으로 모으며 임의 날짜에 배정하지 않는다. 주간·일간의 겹치는 시간은 별도 열에 배치한다.

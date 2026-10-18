@@ -1,3 +1,4 @@
+import {validSchedule,validDate} from './calendar.js';
 import {gearCategories,layoutKinds,validTableGeometry} from './layout.js';
 import {projectIconIds} from '../design-system/icons/catalog.js';
 export const projectIcons=projectIconIds;
@@ -30,7 +31,7 @@ function validateProject(value) {
   const fields = (o, names) => o && names.every(k => text(o[k]));
   if (!fields(value.project,['name','date','time','location'])) return false;
   if(value.project.description!==undefined&&!text(value.project.description))return false;
-  if(value.tasks!==undefined&&(!Array.isArray(value.tasks)||value.tasks.length>2000||!value.tasks.every(x=>x&&/^[a-zA-Z0-9_-]{1,80}$/.test(x.id)&&text(x.name)&&x.name.trim()&&typeof x.completed==='boolean')||new Set(value.tasks.map(x=>x.id)).size!==value.tasks.length))return false;
+  if(value.tasks!==undefined&&(!Array.isArray(value.tasks)||value.tasks.length>2000||!value.tasks.every(x=>x&&/^[a-zA-Z0-9_-]{1,80}$/.test(x.id)&&text(x.name)&&x.name.trim()&&typeof x.completed==='boolean'&&validSchedule(x))||new Set(value.tasks.map(x=>x.id)).size!==value.tasks.length))return false;
   if(value.project.id!==undefined&&!/^[a-zA-Z0-9_-]{1,80}$/.test(value.project.id))return false;
   if(value.project.order!==undefined&&(!Number.isSafeInteger(value.project.order)||value.project.order<0))return false;
   if(value.project.icon!==undefined&&!projectIcons.includes(value.project.icon))return false;
@@ -46,7 +47,7 @@ function validateProject(value) {
   }
   for(const item of value.layoutObjects||[]){if(!item||!/^[a-zA-Z0-9_-]{1,80}$/.test(item.id)||ids.has(item.id))return false;ids.add(item.id);}
   const status = x => ['ready','check','problem'].includes(x);
-  if (!value.contents.every(x => fields(x,['name','time','location']) && status(x.status) && typeof x.script === 'boolean' && (x.completed === undefined || typeof x.completed === 'boolean') && (!x.scriptFile || /^[a-f0-9-]{36}$/.test(x.scriptFile)))) return false;
+  if (!value.contents.every(x => fields(x,['name','time','location']) && (x.date===undefined||x.date===''||validDate(x.date)) && status(x.status) && typeof x.script === 'boolean' && (x.completed === undefined || typeof x.completed === 'boolean') && (!x.scriptFile || /^[a-f0-9-]{36}$/.test(x.scriptFile)))) return false;
   if (!value.members.every(x => fields(x,['name','role','call']))) return false;
   if (!value.gear.every(x => fields(x,['name','owner','assignee']) && status(x.status) && (x.category===undefined||Object.hasOwn(gearCategories,x.category)))) return false;
   if (!value.cameras.every(x => fields(x,['name','role','operator','body','lens']) && [x.x,x.y].every(n=>Number.isFinite(n)&&n>=0&&n<=100) && (x.gearId===undefined||value.gear.some(g=>g.id===x.gearId&&g.category==='camera')) && Array.isArray(x.refs) && x.refs.every(id=>value.refs.some(r=>r.id===id)))) return false;
