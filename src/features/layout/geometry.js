@@ -1,11 +1,11 @@
 const edges=['n','ne','e','se','s','sw','w','nw'];
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const radians=degrees=>(Number.isFinite(degrees)?degrees:0)*Math.PI/180;
-export function layoutDefaults(item){return item.kind==='person'?{width:80,height:80,max:240,locked:true}:item.kind==='text'?{width:160,height:60,max:600,locked:false}:item.kind==='table'?{width:120,height:item.shape==='circle'?120:80,max:360,locked:item.shape==='circle'}:{width:96,height:80,max:360,locked:false};}
+export function layoutDefaults(item){return item.kind==='person'?{width:80,height:80,max:240,locked:true}:item.kind==='text'?{width:160,height:60,max:600,locked:false}:['line','arrow'].includes(item.kind)?{width:160,height:48,max:600,locked:false}:item.kind==='table'?{width:120,height:item.shape==='circle'?120:80,max:360,locked:item.shape==='circle'}:{width:96,height:80,max:360,locked:false};}
 function footprint(width,height,rotation){const a=radians(rotation||0),c=Math.abs(Math.cos(a)),s=Math.abs(Math.sin(a));return {width:width*c+height*s,height:width*s+height*c};}
 function rotate(x,y,angle){const a=radians(angle),c=Math.cos(a),s=Math.sin(a);return {x:x*c-y*s,y:x*s+y*c};}
 export function layoutItemGeometry(item,stageWidth,stageHeight){
- const resizable=['table','person','text'].includes(item.kind),defaults=layoutDefaults(item),padding=resizable?10:0;
+ const resizable=['table','person','text','line','arrow'].includes(item.kind),defaults=layoutDefaults(item),padding=resizable?10:0;
  let width=resizable?(item.width??defaults.width):96,height=resizable?(item.height??defaults.height):80;
  if(resizable){const bounds=footprint(width,height,item.rotation),scale=Math.min(1,Math.max(1,stageWidth-padding*2)/bounds.width,Math.max(1,stageHeight-padding*2)/bounds.height);width=Math.max(48,width*scale);height=Math.max(48,height*scale);}
  const bounds=footprint(width,height,item.rotation),travelX=Math.max(0,stageWidth-bounds.width-padding*2),travelY=Math.max(0,stageHeight-bounds.height-padding*2);
@@ -42,7 +42,7 @@ export function rotateLayoutGeometry(start,pointerStart,pointerNow,stageWidth,st
 // Keep the visual center stable during rotation, except where canvas bounds require clamping.
 export function layoutRotationPosition(start,rotation,stageWidth,stageHeight){
  if(!Number.isFinite(rotation))throw Error('Invalid rotation geometry');
- const angle=((rotation%360)+360)%360,old=layoutItemGeometry(start,stageWidth,stageHeight),next=layoutItemGeometry({...start,rotation:angle},stageWidth,stageHeight),padding=['table','person','text'].includes(start.kind)?10:0;
+ const angle=((rotation%360)+360)%360,old=layoutItemGeometry(start,stageWidth,stageHeight),next=layoutItemGeometry({...start,rotation:angle},stageWidth,stageHeight),padding=['table','person','text','line','arrow'].includes(start.kind)?10:0;
  const coordinate=(center,size,travel,original)=>travel>1e-8?clamp((center-padding-size/2)/travel*100,0,100):original;
  return {rotation:angle,x:coordinate(old.left,next.boundsWidth,next.travelX,start.x),y:coordinate(old.top,next.boundsHeight,next.travelY,start.y)};
 }

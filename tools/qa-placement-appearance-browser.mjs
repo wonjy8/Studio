@@ -16,7 +16,7 @@ try{
  await page.locator('[data-view=members]').click();await page.locator('[data-member-accounts]').waitFor();assert.equal(await page.locator('[data-team-create]').count(),1);
  await page.locator('[data-view=camera]').click();await page.locator('[data-action=add-placement]').click();
  const form=page.locator('[data-form=placement]');await form.locator('[name=name]').fill('Fictional colored table');await form.locator('.color-choice').filter({has:page.locator('[value=blue]')}).click();await form.getByRole('button',{name:'종류 선택',exact:true}).click();
- await page.screenshot({path:'/tmp/studio-placement-desktop.png'});assert.equal(await form.locator('.placement-kind-choice svg[fill="currentColor"][stroke=none]').count(),7);
+ await page.screenshot({path:'/tmp/studio-placement-desktop.png'});assert.equal(await form.locator('.placement-kind-choice svg[fill="currentColor"][stroke=none]').count(),9);
  await form.locator('[name=kind][value=table]').check();assert.equal(await form.locator('[name=name]').inputValue(),'Fictional colored table');assert.equal(await form.locator('[name=color]:checked').inputValue(),'blue');
  assert.equal(await form.locator('[popover]').isVisible(),false);await form.locator('[name=shape]').selectOption('circle');await form.locator('button.primary').click();await page.waitForFunction(()=>document.querySelector('.save-indicator')?.textContent==='저장됨');
  await page.reload();await page.locator('[data-view=camera]').click();const table=page.locator('.layout-table');await table.waitFor();assert.ok(await table.evaluate(e=>getComputedStyle(e).getPropertyValue('--layout-color').trim()===getComputedStyle(e).getPropertyValue('--blue').trim()));

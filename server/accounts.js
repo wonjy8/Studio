@@ -31,7 +31,7 @@ export function sharedProjectProjection(p){
   gear:list('gear',['id','name','category','owner','assignee','status']),
   schedule:(p.schedule||[]).map(row=>row.filter(value=>typeof value==='string')),
   cameras:(p.cameras||[]).map(camera=>({...pick(camera,['id','name','role','operator','body','lens','x','y','gearId']),refs:[]})),
-  layoutObjects:list('layoutObjects',['id','kind','name','x','y','rotation','width','height','shape','memberId','gearId','lightType']),
+  layoutObjects:list('layoutObjects',['id','kind','name','x','y','rotation','width','height','shape','memberId','gearId','lightType','color','background']),
   refs:(p.refs||[]).map(ref=>({...pick(ref,['id','name','notes']),images:[]})),
   tasks:list('tasks',['id','name','completed','date','time','flagged'])
  };
