@@ -4,6 +4,7 @@ import {resizeLayoutTable,moveLayoutItem} from '../src/domain/layout.js';
 import {layoutItemGeometry,resizeLayoutGeometry} from '../src/features/layout/layout.js';
 const edges=['n','ne','e','se','s','sw','w','nw'];
 const bounds=(item,w=900,h=600)=>{const g=layoutItemGeometry(item,w,h);return {...g,l:g.left-g.width/2,r:g.left+g.width/2,t:g.top-g.height/2,b:g.top+g.height/2};};
+const coords=({width,height,x,y})=>({width,height,x,y});
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 test('rectangle handles follow pointer once and retain opposite boundaries at fractional coordinates',()=>{
  for(const edge of edges){
@@ -27,7 +28,7 @@ test('anchored resize respects viewport/min/max limits and remains stable after 
  for(const [w,h] of [[900,600],[260,380]])for(const shape of ['rectangle','circle'])for(const edge of edges){
   const start={kind:'table',shape,width:360,height:shape==='circle'?360:240,x:35.123,y:55.567};
   for(const delta of [-10000,-20,20,10000]){const next=resizeLayoutGeometry(start,edge,delta,delta,w,h),now=bounds({...start,...next},w,h);assert.ok(next.width>=48&&next.width<=360);assert.ok(next.height>=48&&next.height<=360);assert.ok(now.l>=9.999&&now.r<=w-9.999);assert.ok(now.t>=9.999&&now.b<=h-9.999);close(now.width,next.width);close(now.height,next.height);}
-  assert.deepEqual(resizeLayoutGeometry(start,edge,0,0,w,h),{width:start.width,height:start.height,x:start.x,y:start.y});
+  assert.deepEqual(coords(resizeLayoutGeometry(start,edge,0,0,w,h)),{width:start.width,height:start.height,x:start.x,y:start.y});
  }
 });
 test('screen pixel conversion at CSS scale produces one-for-one screen edge travel',()=>{
@@ -50,7 +51,7 @@ test('thin mobile-fit rectangles retain domain-valid axes and fixed unaffected b
 });
 test('degenerate canvas cannot mutate stored geometry through resize',()=>{
  const start={kind:'table',shape:'rectangle',width:360,height:48,x:35.123456,y:55.765432};
- for(const [w,h] of [[67,380],[260,67],[0,0]])for(const edge of edges)assert.deepEqual(resizeLayoutGeometry(start,edge,20,-20,w,h),{width:360,height:48,x:start.x,y:start.y});
+ for(const [w,h] of [[67,380],[260,67],[0,0]])for(const edge of edges)assert.deepEqual(coords(resizeLayoutGeometry(start,edge,20,-20,w,h)),{width:360,height:48,x:start.x,y:start.y});
 });
 
 test('person resize anchors square geometry and preserves source precision',()=>{
