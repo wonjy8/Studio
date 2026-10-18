@@ -31,9 +31,9 @@ test('admin and global settings secondary menus never mix for either account rol
   assert.doesNotMatch(secondary,/data-view="admin|관리자 메뉴|초대 링크|invitations/);assert.equal((secondary.match(/data-settings-section=/g)||[]).length,3);
   assert.doesNotMatch(settingsPage(state,{isAdmin,settingsSection:'invitations'}),/초대 링크|가입 초대/);
  }
- for(const view of ['admin','admin-equipment']){
+ for(const view of ['admin','admin-equipment','admin-organizations']){
   const html=projectNavigation(state,view,true,{isAdmin:true}),secondary=html.slice(html.indexOf('<section class="project-sidebar">'));
   assert.match(secondary,/aria-label="관리자 메뉴"/);assert.doesNotMatch(secondary,/data-settings-section|설정 메뉴|외부 앱 연결|초대 링크/);
-  assert.deepEqual([...secondary.matchAll(/data-view="([^"]+)"/g)].map(match=>match[1]),['admin','admin-equipment']);
+  assert.deepEqual([...secondary.matchAll(/data-view="([^"]+)"/g)].map(match=>match[1]),['admin','admin-equipment','admin-organizations']);
  }
 });

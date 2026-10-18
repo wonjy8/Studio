@@ -1,124 +1,58 @@
 # Studio Features
 
-Every feature follows `PRODUCT.md`, `UI_LANGUAGE.md`, `ARCHITECTURE.md`, and `SECURITY.md`.
+## Projects and account settings
 
-## Overview / readiness
-**Why:** the production owner needs to see readiness before navigating management screens.
-**Flow:** Home → readiness stats → warnings → schedule/Shoot.
-**Data:** Shoot readiness + equipment readiness.
-**UX:** status uses text and color; warnings are actionable.
+Choose a project from the production sidebar, then use its tabs to plan the shoot. Project settings let you edit the name, description, date, time, location, icon and color. On mobile, open the project drawer from the menu button.
 
-## Schedule
-**Why:** time is the primary operational axis on shoot day.
-**Flow:** Schedule → Shoot row → Shoot context.
-**Data:** schedule item links to Shoot by ID.
-**UX:** script/location/readiness appear without leaving the row.
+Use an invitation link to sign up. Account settings provide name editing, password changes and logout.
 
-## Shoot detail
-**Why:** production information should converge around the shooting unit.
-**Flow:** Shoot → contextual detail → camera/reference/script.
-**Data:** Shoot links rather than duplicating people/equipment/reference data.
+## Readiness and shooting
 
-## Script
-**Why:** crews need the approved source document, not another editor.
-**Flow:** Shoot → script status/preview → original file.
-**Privacy:** runtime files only; never repository assets.
-**Current demo:** script registration state is implemented. PDF originals and private preview are available through the authenticated NAS backend.
+Home shows readiness, upcoming activity and items needing attention. Open a shoot to edit its date, name, time and location, or view its script, camera plan and references. Upload a PDF script to preview it or download the original.
 
-## Camera ↔ Reference
-**Why:** an operator should understand the intended frame immediately.
-**Flow:** Camera Layout → camera → linked reference groups.
-**Data:** camera stores reference group IDs.
-**UX:** references are visual-first and reachable directly from camera context.
+Shoot Mode focuses on the current and next shoot, with quick access to scripts and references and an action to mark a shoot complete.
 
-## Members ↔ Equipment
-**Why:** ownership and day-of responsibility are different facts.
-**Data:** equipment has `owner` and `assignee` independently.
-**UX:** member views show day-of equipment responsibility while equipment views show both roles.
+## Schedule and tasks
 
-## Shoot Mode
-**Why:** management UI is too dense for active shooting.
-**Flow:** NOW → script/reference → complete → NEXT.
-**UX:** mobile-first, large actions, minimal metadata.
+Switch between the schedule calendar and list. Calendar controls offer month, week and day views, date selection and navigation to today. Shoots can have individual dates; undated items remain marked as undated.
 
-## AI & Integrations
-**Why:** natural language can help with cross-feature operations and production checks.
-**Privacy:** disconnected by default; credentials never live in public source or frontend fixtures.
-**Current scope:** the in-app GPT/AI integration and its settings entry are removed at the user’s request. External ChatGPT access is a separate account-authorized integration, not a server-side OpenAI API chat feature.
+The task tab supports adding, renaming, completing, flagging and deleting tasks, with optional dates and times.
 
-## NAS persistence
-The authenticated server stores account-isolated project state and attachments in the private NAS SQLite volume. Writes use revision checks. The browser demo is no longer the deployed persistence layer. See AUTH_AND_SERVER.md and NAS_DEPLOYMENT.md.
+## Members and teams
 
-## Login presentation
-**Why:** provide a calm, readable entry to a private production workspace.
-**Flow:** username and password → submit with loading/error feedback → existing Project.
-**Reuse:** shared color/shape tokens, field and button primitives; dedicated login page composition outside app.js.
-**UX:** white background, centered single-column form, mobile sizing, visible keyboard focus, optional password visibility, administrator help.
-**Privacy:** no external images/fonts, account discovery, or credential persistence in frontend storage.
+Search for an existing account and select it to invite a project member. People without accounts can be added to the manual roster. Labels distinguish linked accounts from manual entries. Create teams and assign one person to multiple teams.
 
-## Production navigation and multiple projects
-**Why:** keep project selection separate from within-project work.
-**Flow:** production rail → project list → project tabs below the header. Settings and logout are reached from the rail's bottom Settings action.
-**Data:** account-private workspace retains the active Project and a list of inactive Project snapshots. Legacy single-project data is preserved on first use. Switching projects retains each Shoot, schedule, file link, member, equipment and reference set.
-**Reuse:** original vector icon primitive, navigation pattern, project identity form, shell and settings page. Projects select from six icons and six semantic identity colors.
-**UX:** two-column desktop sidebar, persistent workspace rail, mobile project drawer, scrolling project tabs, visible focus and selected state.
-**Privacy:** every attachment across active and inactive projects is validated for account ownership. No screenshots or user project names are fixtures.
+Equipment ownership and shoot-day responsibility are separate. Member views show assigned equipment, while equipment views show the owner and responsible person.
 
-## Invitation-only signup
-**Why:** let the owner onboard members without opening public registration.
-**Flow:** administrator Settings → choose a 12/24/48-hour window and positive integer/unlimited capacity, then create/copy a link → recipient chooses a username/password → login. Administrators can list invitation status and cancel available links.
-**Reuse:** existing login fields/button styles, separate signup page/controller and invitation feature module.
-**Privacy:** only the first owner's account is administrator; invitees retain private account workspaces. Tokens are hashed server-side, not stored in browser storage, and never committed.
+## Camera plans and references
 
-## Typography and scene layout
-**Why:** consistent type roles make production information easier to scan; a camera plan needs people, furniture, stage and equipment context.
-**Flow:** Camera → add camera or placement → drag or edit coordinates → save; Equipment → select category → reuse that item in the layout.
-**Data:** camera setups link to equipment by ID; other placements link optionally to a member or equipment, with independent position/rotation. Existing camera setups gain a linked camera equipment record on load without dropping old fields. People/furniture/stage are layout objects, not equipment inventory. Camera, lighting, tripod and SD card are equipment categories.
-**Reuse:** shared typography tokens, layout domain operations and layout feature composition; existing form/button primitives.
-**UX:** fixed type roles, visible object type labels, keyboard arrows and numeric position controls as alternatives to dragging. Layout coordinates are percentages; changes persist per project.
-**Privacy:** layout data stays inside the existing authenticated workspace and revision/ownership boundaries. Fixtures are fictional. This release keeps the existing project-level layout; per-Shoot plans are future work.
+Add cameras, people, furniture, equipment, lighting and annotations to the project plan. Move, resize, rotate or recolor placements using the available pointer, keyboard or numeric controls. People and round tables keep their proportions. Select existing equipment when adding a camera or lighting placement.
 
-## Configurable invitations and connected assistants
-**Why:** invite groups with a suitable signup window and work on production data through natural language without bypassing ownership or validation.
-**Flow:** owner chooses 12/24/48 hours and one-or-more/unlimited signups; each successful atomic signup consumes capacity. Existing links remain single-use. ChatGPT connects through a private MCP endpoint with account consent and scoped, revocable OAuth credentials.
-**Data:** account-private workspaces, revision checks and shared domain commands; AI never supplies authoritative account IDs or raw database operations. External content is data, not instructions. Changes target a selected project, report impact, and preserve unrelated projects/files.
-**Reuse:** common command service for external tools, existing account/session and settings controls. No third-party frontend scripts or provider keys in browser storage.
-**Privacy:** users explicitly authorize an external ChatGPT connection before selected workspace data is accessible; tokens are hashed and revocable. ChatGPT connection registration is an external prerequisite, not implied by a successful local test.
+Reference groups collect images and notes. Link them to cameras and open them from the shoot context.
 
-## Manual OAuth client setup
-**Why:** provide a supported alternative when app creation stops before dynamic client registration.
-**Flow:** administrator creates a confidential client in Studio, copies the one-time ID/secret into the external app's manual OAuth configuration, then signs in and consents normally. Callback URLs are exact registered HTTPS ChatGPT URLs. Client registration does not grant account/data access.
-**Privacy:** client secrets are shown once, stored only as hashes, and never placed in diagnostics, URLs, browser storage or chat. Administrators can revoke a manual client and its existing grants. This alternative does not establish the cause of platform-side app rejection or guarantee that it will resolve it.
+## Equipment collections and checkout
 
-## Search-compatible external retrieval
-**Why:** search-oriented ChatGPT clients discover `search` and `fetch`, while Studio previously exposed only its named project/mutation tools.
-**Flow:** search/query a signed-in account's projects → fetch one search result → cite its project URL. Empty query or the project-list phrase returns projects; specific queries match production metadata.
-**Reuse/privacy:** the same read grant, private workspace and project snapshots; no external index, OpenAI API key or private attachment byte access. Search/fetch are additions, not evidence that a particular ChatGPT account has activated the tools. Reference: OpenAI's Deep Research MCP cookbook search/fetch example.
+Open the equipment workspace and use the sidebar dropdown to choose My Equipment or an organization collection you can access. The same dropdown has an Add Organization action. The selected collection stays selected when you reload or use browser history.
 
-배치 색상: 사람·사물 추가 및 위치 편집에서 프로젝트와 동일한 6색을 선택한다. 종류별 원형 선택창은 자체 채움형 벡터를 사용한다. 색상은 항목별로 저장되며 기존 무색상 항목은 검정 계열로 표시한다. 팀 관리는 멤버 탭에서만 제공한다.
+Register individual or quantity-based equipment, optionally adding a management code, model, serial number, storage location, condition and custodian. View owned, checked-out and available quantities. Record checkout, filter outstanding loans and record partial or complete returns. Checkout and return history retains earlier events.
 
-## Equipment operations workspace
+Project equipment offers personal equipment, shared member equipment, approved organization equipment and direct project registration. Link existing equipment instead of registering it again; linking does not increase stock. Newly registered project equipment stays within that project. Connecting manual equipment to an account requires an explicit request and that account's acceptance; matching names does not create ownership.
 
-Purpose: manage owned equipment availability and outstanding checkout without external spreadsheets. Equipment List, Outstanding Checkouts and Combined Checkout/Return History are separate navigation entries; a history record contains its line items and repeated partial return events together. Sheets, Google authentication, outside rentals and rental fees are excluded.
+Personal equipment owners choose which projects may use their equipment. Organization managers approve project access to organization equipment. A project link does not share the whole organization collection or other borrowers' records. Project colleagues cannot change someone else's equipment source.
 
-The existing equipment_items ID is canonical. Project gear IDs remain project-local aliases; equipmentId links to the same inventory without increasing stock. Additive metadata and immutable loan/event tables preserve existing catalog/link table shapes and private data. Each checkout stores equipment and borrower snapshots. Individual items have one unit; bulk items use positive safe integer quantities. Availability is total quantity minus outstanding quantities. Serialized transactions, revision checks and replay-safe operation IDs prevent overselling, excessive returns and duplicate clicks. Outstanding items cannot change identity, quantity or ownership. No deletion path removes history.
+## Organization roles and invitations
 
-Ownership is personal or an organization label under an account custodian. An organization creator can explicitly appoint an existing account as an equipment operator. Operators act only within that organization; account administrators receive no implicit operational write permission. Existing project linking stays within the canonical owner account rather than broadening cross-account workspace access. Changing real account admin roles is outside this feature.
+| Role | Available actions |
+| --- | --- |
+| Owner | Edit organization settings, appoint administrators, invite members and manage equipment, checkout and returns. |
+| Administrator | Invite members, manage lower roles and manage equipment, checkout and returns. |
+| Operator | Register and edit equipment and manage checkout and returns. |
+| Viewer | View equipment, checkout status and return history. |
 
-The normal UI and API enforce scope; shared project projections do not include borrower or loan data. Additive migration uses a private online SQLite backup for populated databases and a transaction; no production data is used in tests. Shared tokens, controls, tables/cards and accessible labeled forms compose the responsive UI.
+Organization invitations require acceptance. Members can leave, but the last available owner cannot leave or give up ownership. Equipment and history remain with the organization when a member leaves.
 
-Checkout display numbers use the issue time in Asia/Seoul and a per-issuing-account monthly sequence (for example 2026-01-001). The issuer is displayed alongside the number because an operation may span that account's personal and multiple authorized organizational items. Internal UUIDs remain canonical; every line and partial return retains the header number. Minimum three-digit sequence formatting never truncates 1000+. Allocation occurs within the checkout transaction and committed numbers are never reused. No cancel/delete-issued-record endpoint is provided; abandoning an unsubmitted draft issues no number. Legacy unnumbered rows retain their UUID and display an explicit legacy-record label.
+The Studio administrator workspace includes user and equipment pages and an organization invitation page. Its organization page lists organizations and can invite an account as administrator, operator or viewer, or cancel a pending invitation sent from that page. This invitation action does not transfer ownership or give the Studio administrator additional organization equipment or borrowing access.
 
-Organizational inventory remains in the creating organization's owner-account custody even when registered by an operator. Appointing an operator does not transfer canonical ownership or permit arbitrary cross-account project links. Personal items can be assigned only to an organization with the same custodian account. Revocation removes operational access immediately.
+## External apps
 
-The equipment UI selects one authorized collection (personal or organization) for the workspace, rather than choosing ownership on each equipment row. New items inherit that collection. Existing permissions still govern access; choosing a collection never grants a role. Displayed stock is owned quantity, checked-out quantity and available quantity only. Every item has an automatically assigned canonical Equipment ID. An optional management code is a display alias; the optional manufacturer serial field is labeled 장비 일련번호 and never replaces the Equipment ID.
-
-Loan visibility and return authorization require both current inventory permission and the immutable issuance scope. Reassigning fully returned equipment to another collection does not disclose previous private borrower records. Legacy records without an issuance scope remain visible only to the canonical owner.
-일정은 월간 달력을 기본으로 열며 주간·일간 시간표와 목록으로 전환할 수 있다. 오늘/이전/다음, 월 선택과 날짜 클릭을 지원한다. 일간에는 미니 달력과 당일 목록을 함께 제공한다. 촬영은 개별 날짜를 지정할 수 있고 기존 항목은 프로젝트 촬영일을 따른다. 할 일에도 선택적 날짜·시간을 지정하고 완료 상태를 달력에서 확인한다. 날짜 없는 항목은 날짜 미정으로 모으며 임의 날짜에 배정하지 않는다. 주간·일간의 겹치는 시간은 별도 열에 배치한다.
-# Organization equipment collections
-
-Equipment can remain personal, belong to an organization collection, or be registered only within a project for an unregistered member. These scopes reuse canonical equipment IDs and existing stock and checkout ledgers; project links never create stock. The equipment sidebar lists personal and accessible organization collections, using the shared navigation controls and a stable camcorder icon.
-
-Organization owners control settings and administrator assignment. Administrators invite members and manage lower roles, equipment and checkout operations. Operators manage equipment and checkout/return operations; viewers read the collection and status. Invitations grant access only after the selected account accepts. Membership revisions, last-owner protection and removal tombstones prevent conflicting changes or restored access after restart. Application administration grants no organization operating role. Departing members do not remove organization equipment or history.
-
-Personal equipment sharing requires its owner to explicitly approve a project. Organization managers approve projects separately; project responses contain only linkable equipment identity and owner labels, without organization stock or borrowing records. Project colleagues cannot edit another person's canonical equipment. All new equipment created through project workspace, assistant commands, and automatic camera registration defaults to project scope; existing canonical equipment is never reclassified. Manual project equipment stays project scoped, displays its declared owner, and requires a confirmed request and the selected account's acceptance before becoming account equipment. Names never establish account ownership. Existing private records are not automatically shared by migration. Runtime invitations and all permission checks use the existing authenticated, origin-protected API; test records are fictional and temporary.
+External app connections are optional. Connect an app from settings, review the requested access and disconnect it when no longer needed. Connected assistants can help find project information and prepare supported changes within the access you allow.
