@@ -172,3 +172,26 @@ small,.stat small{font-size:var(--text-meta)}
 .layout-person .layout-symbol svg{width:100%;height:100%}
 
 .layout-resize::before{content:"";position:absolute;inset:-5px}
+
+/* Shared spacing and control roles. See docs/UI_CONTROL_STANDARDS.md. */
+:root{--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--control-height:40px;--control-padding:12px;--icon-control-size:36px;--page-gutter:24px;--panel-padding:20px}
+.btn{min-height:var(--control-height);padding:8px var(--control-padding);display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);vertical-align:middle;line-height:1.5;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.field input:not([type=checkbox]):not([type=radio]),.field select,.invite-link-box input,.gear-row select{min-height:var(--control-height);padding:8px var(--control-padding);border-radius:var(--r-control);line-height:1.5;min-width:0;max-width:100%;color:var(--ink)}
+.field textarea,.diagnostic-output{padding:var(--space-3);border-radius:var(--r-control);min-width:0;max-width:100%}
+.field input[type=checkbox],.field input[type=radio]{width:auto;min-height:0;padding:0;accent-color:var(--ink)}
+.form,.project-form{gap:var(--space-4)}.field{gap:var(--space-2);min-width:0}.grid{gap:var(--space-4)}.grid>*{min-width:0}
+.card{padding:var(--panel-padding)}.card h3{margin-bottom:var(--space-4)}.modal{padding:var(--space-6)}.modal-head{gap:var(--space-3);margin-bottom:var(--space-5);align-items:center}.modal-head h2{min-width:0;overflow-wrap:anywhere}
+.hero{gap:var(--space-6);margin-bottom:var(--space-6)}.section-head{gap:var(--space-3);flex-wrap:wrap;margin:var(--space-6) 0 var(--space-3)}
+.production-app .content{padding:var(--space-8) var(--page-gutter) 60px}.production-app .topbar,.project-tabs{padding-left:var(--page-gutter);padding-right:var(--page-gutter)}
+.settings-section{margin-bottom:var(--space-8)}.settings-row{padding:var(--space-6) 0;gap:var(--space-6);min-width:0}.settings-row>div{min-width:0;overflow-wrap:anywhere}.settings-row .btn{flex-shrink:0}.page-heading{margin:var(--space-2) 0 var(--space-8)}
+.icon-button{width:var(--icon-control-size);height:var(--icon-control-size)}.project-item{min-height:44px;padding:var(--space-2) var(--space-3);gap:var(--space-3)}
+.layout-actions,.layout-object-list,.icon-options,.color-options{gap:var(--space-2)}.gear-row select{margin-top:var(--space-2)}
+.task-add{grid-template-columns:minmax(0,1fr) auto}.row{gap:var(--space-3);padding:var(--space-3) var(--space-4)}.row>div{min-width:0;overflow-wrap:anywhere}
+.login-form{gap:var(--space-5)}.login-form .field{gap:var(--space-2)}.login-form .field input{min-height:52px;padding:14px 16px}.login-submit{min-height:52px;padding:14px 18px}.password-toggle{min-height:42px}
+/* Compact calendar event chips retain their own density and text size. */
+.calendar-shoot{min-height:28px;padding:4px;display:block;font-size:var(--text-meta);text-align:left}
+.btn:focus-visible,.icon-button:focus-visible,.rail-button:focus-visible,.project-tab:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+@media(max-width:900px){:root{--control-height:44px;--icon-control-size:44px;--page-gutter:16px;--panel-padding:16px}.production-app .topbar{height:auto;min-height:64px;padding-top:var(--space-2);padding-bottom:var(--space-2);gap:var(--space-2)}.rail-button{width:40px;height:44px}.workspace-rail{padding-left:1px;padding-right:1px;gap:var(--space-4)}.topbar-actions{gap:var(--space-2)}.production-app .content{padding-top:var(--space-6)}.settings-row{gap:var(--space-4)}.settings-row .btn{min-height:var(--control-height)}.add-shoot{min-width:44px;min-height:44px;padding:var(--space-2)}.modal-wrap{padding:var(--space-3)}.modal{padding:var(--space-5);max-height:calc(100svh - 24px)}.field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea,.gear-row select{font-size:var(--text-title)}}
+@media(max-width:520px){:root{--page-gutter:12px}.production-app .hero{gap:var(--space-4)}.task-add{grid-template-columns:minmax(0,1fr)}.task-add>.btn{justify-self:start}.settings-row .btn{white-space:normal}.settings-identity{gap:var(--space-3)}.calendar-shoot{min-height:28px;padding:2px;font-size:var(--text-meta)}}
+/* Dialogs cover the workspace rail as well as the page content. */
+.modal-wrap{z-index:40}.sidebar-heading{gap:var(--space-2);min-width:0}.sidebar-heading h2{min-width:0;overflow-wrap:anywhere}.sidebar-heading .icon-button{flex-shrink:0}
