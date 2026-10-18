@@ -61,16 +61,19 @@ export function accountRoutes(db){
  const data=await readJson(16384),id=admin[1],user=db.prepare('SELECT id,username FROM users WHERE id=?').get(id);
  if(!data||typeof data!=='object')return fail(400,'Invalid input');if(!user)return fail(404,'Account not found');if(id===uid||isProtectedSiteAccount(db,id))return fail(403,'Administrator account protected');
  if(data.action==='delete')return fail(400,'Permanent deletion preview required');
+ if(db.prepare('SELECT deleted_at FROM account_status WHERE user_id=?').get(id)?.deleted_at!=null)return fail(409,'Deleted accounts cannot be restored or modified. Preview permanent deletion.');
  if(data.confirmUsername!==user.username||typeof data.reason!=='string'||!data.reason.trim()||data.reason.length>500)return fail(400,'Confirmation and reason required');
- if(!['reset-password','suspend','restore','delete'].includes(data.action))return fail(400,'Invalid action');
+ if(!['reset-password','suspend','restore'].includes(data.action))return fail(400,'Invalid action');
  if(data.action==='suspend'&&data.until!==null&&(!Number.isSafeInteger(data.until)||data.until<=Date.now()||data.until>Date.now()+366*86400000))return fail(400,'Invalid suspension period');
  let temporaryPassword,password;if(data.action==='reset-password'){temporaryPassword=`A!${token()}`;password=await hashPassword(temporaryPassword);}
  db.exec('BEGIN IMMEDIATE');try{
  if(!accountActive(db,uid)||!isAdmin(db,uid)){db.exec('ROLLBACK');return fail(403,'Administrator required');}
  if(!session.token||!db.prepare('SELECT token FROM sessions WHERE token=? AND user_id=? AND expires>?').get(session.token,uid,Date.now())){db.exec('ROLLBACK');return fail(401,'Session changed. Sign in again');}
  if(id===uid||isProtectedSiteAccount(db,id)){db.exec('ROLLBACK');return fail(403,'Administrator account protected');}
+ if(!db.prepare('SELECT id FROM users WHERE id=?').get(id)){db.exec('ROLLBACK');return fail(404,'Account not found');}
+ if(db.prepare('SELECT deleted_at FROM account_status WHERE user_id=?').get(id)?.deleted_at!=null){db.exec('ROLLBACK');return fail(409,'Deleted accounts cannot be restored or modified. Preview permanent deletion.');}
  if(password){db.prepare('UPDATE users SET password=? WHERE id=?').run(password,id);db.prepare('INSERT OR IGNORE INTO password_changes VALUES(?)').run(id);}
- else {const until=data.action==='suspend'?(data.until===null?8640000000000000:data.until):null,deleted=data.action==='delete'?Date.now():null;db.prepare('INSERT INTO account_status VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET suspended_until=excluded.suspended_until,deleted_at=excluded.deleted_at').run(id,until,deleted);}
+ else {const until=data.action==='suspend'?(data.until===null?8640000000000000:data.until):null;db.prepare('INSERT INTO account_status VALUES(?,?,NULL) ON CONFLICT(user_id) DO UPDATE SET suspended_until=excluded.suspended_until').run(id,until);}
  revoke(id);db.prepare('INSERT INTO admin_audit VALUES(?,?,?,?,?,?)').run(randomUUID(),uid,id,data.action,data.reason.trim(),Date.now());db.exec('COMMIT');
  }catch(e){db.exec('ROLLBACK');throw e;}json(200,{ok:true,...(temporaryPassword?{temporaryPassword}:{})});return true;}
  if(path==='/api/equipment'&&req.method==='POST'){

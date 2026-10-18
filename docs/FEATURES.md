@@ -59,7 +59,9 @@ Site roles are Supreme Administrator, Administrator and User, separate from orga
 
 Both administrator grades can open the All Projects page and edit project details, shoots, members, teams, tasks and reference notes, with a reason recorded for changes. The page also edits existing cameras and placement position, size and text, and manages scripts and reference images linked to the selected project. Upload, preview, download or unlink an attachment; unlinking retains its original file and other links. Equipment changes there are limited to project assignments and readiness. Account settings and equipment ownership remain separately controlled.
 
-When site role management is enabled and the highest administrator is established, account deletion requires a separate preview and explicit confirmation. Protected accounts and accounts connected to shared or historical records cannot be deleted. An allowed deletion removes the login and private project/file data and cannot be restored in the app; separately retained backups are unaffected.
+When site role management is enabled and the highest administrator is established, account deletion requires a separate preview and explicit confirmation. Protected accounts and accounts connected to shared or historical records cannot be deleted. An allowed deletion removes the login and private project/file data and cannot be restored in the app; separately retained backups and eligible historical deletion audit records are unaffected. Previously deleted accounts are not restored or automatically purged. Administrators can delete ordinary users; only the supreme administrator can review deleting another administrator, subject to the same dependency checks. The supreme administrator cannot be deleted.
+
+Account settings also offer permanent account deletion with a fresh password check and explicit confirmation. Administrator accounts must first have their administrator role removed by the supreme administrator. Shared ownership and retained history can block deletion and require separate review; no shared records are removed automatically.
 
 ## External apps
 

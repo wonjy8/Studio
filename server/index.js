@@ -77,7 +77,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;
       if(await handleInventory({path,url,req,session,json,readJson}))return;
-      if(await handleAccountDeletion({path,url,req,session,json,readJson}))return;
+      if(await handleAccountDeletion({path,url,req,session,json,readJson,clearSessionCookie:()=>setCookie('',0)}))return;
       if(await handleAccounts({path,url,req,session,json,readJson}))return;
       if (path==='/api/login' && req.method==='POST') {
         const data = await readJson();

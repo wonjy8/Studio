@@ -59,9 +59,9 @@ test('account administration, invitations, teams and equipment preserve authoriz
  r=await action('member','reset-password');assert.equal(r.status,200);const reset=await r.json();assert.ok(await verifyPassword(reset.temporaryPassword,db.prepare('SELECT password FROM users WHERE id=?').get('member').password));assert.equal(JSON.stringify((await (await call('/api/admin/users')).json())).includes('password'),false);
  cookie='';r=await call('/api/login','POST',{username:'member',password:reset.temporaryPassword});assert.equal(r.status,200);assert.equal((await r.json()).passwordChangeRequired,true);cookie=r.headers.get('set-cookie').split(';')[0];assert.equal((await call('/api/workspace')).status,403);assert.equal((await call('/api/account/password','POST',{currentPassword:'wrong',password:'Replacement-fiction!'})).status,403);assert.equal((await call('/api/account/password','POST',{currentPassword:reset.temporaryPassword,password:'Replacement-fiction!'})).status,200);assert.equal((await call('/api/session')).status,401);r=await call('/api/login','POST',{username:'member',password:'Replacement-fiction!'});assert.equal(r.status,200);assert.equal((await r.json()).passwordChangeRequired,false);cookie=ownerCookie;
  assert.equal((await action('member','delete')).status,400);assert.equal((await call('/api/admin/users/member/deletion-preview')).status,403);assert.equal(db.prepare('SELECT count(*) n FROM project_accounts').get().n,1);
- // Existing pre-permanent-delete tombstones remain recoverable without rewriting historical data.
- db.prepare('UPDATE account_status SET deleted_at=? WHERE user_id=?').run(Date.now(),'member');assert.equal((await action('member','restore')).status,200);
- const audit=await (await call('/api/admin/audit')).json();assert.equal(audit.events.length,4);assert.equal(JSON.stringify(audit).includes(reset.temporaryPassword),false);
+ // Historical deletion statuses cannot be restored; suspension release remains separate.
+ db.prepare('UPDATE account_status SET deleted_at=? WHERE user_id=?').run(Date.now(),'member');for(const actionName of ['restore','suspend','reset-password'])assert.equal((await action('member',actionName,{until:null})).status,409);assert.ok(db.prepare('SELECT deleted_at FROM account_status WHERE user_id=?').get('member').deleted_at);
+ const audit=await (await call('/api/admin/audit')).json();assert.equal(audit.events.length,3);assert.equal(JSON.stringify(audit).includes(reset.temporaryPassword),false);
 });
 
 test('password replacement cannot overwrite a concurrent administrator reset',async t=>{
