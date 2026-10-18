@@ -1,6 +1,6 @@
 import {identityColors} from './colors.js';
 export const gearCategories={camera:'카메라',lens:'렌즈',lighting:'조명',tripod:'삼각대',sd:'SD 카드',audio:'음향',other:'기타 장비'};
-export const layoutKinds={person:'사람',table:'테이블',chair:'의자',stage:'무대',equipment:'장비',other:'기타 사물'};
+export const layoutKinds={person:'사람',table:'테이블',chair:'의자',stage:'무대',equipment:'장비',other:'기타 사물',text:'텍스트'};
 export function prepareLayout(project){
  project.layoutObjects ||= [];
  for(const camera of project.cameras){
@@ -26,7 +26,7 @@ export function addCamera(project,fields){
  const camera={id:'cam-'+crypto.randomUUID(),name:fields.name.trim(),role:fields.role||'',operator:fields.operator||'',body:gear.name,lens:fields.lens||'',gearId:gear.id,...nextPosition(project),refs:fields.ref?[fields.ref]:[]};
  project.cameras.push(camera);return camera;
 }
-export function addLayoutObject(project,{kind,name,gearId,memberId,shape,color}){
+export function addLayoutObject(project,{kind,name,gearId,memberId,shape,background,color}){
  if(color!==undefined&&!identityColors.includes(color))throw Error('색상을 선택해 주세요.');
  if(!Object.hasOwn(layoutKinds,kind))throw Error('배치할 종류를 선택해 주세요.');
  if(project.layoutObjects.length>=2000)throw Error('배치 개수 제한에 도달했습니다.');
@@ -34,10 +34,13 @@ export function addLayoutObject(project,{kind,name,gearId,memberId,shape,color})
  const member=kind==='person'&&memberId&&project.members.find(m=>m.id===memberId);
  if(kind==='equipment'&&!gear)throw Error('먼저 장비 탭에서 장비를 등록해 주세요.');
  if(kind==='person'&&memberId&&!member)throw Error('멤버를 선택해 주세요.');
- const label=(name?.trim()||gear?.name||member?.name||(kind==='person'?'':layoutKinds[kind])).trim();
+ if(kind==='text'&&(gearId!==undefined||memberId!==undefined||shape!==undefined))throw Error('텍스트 연결 값을 확인해 주세요.');
+ if(kind!=='text'&&background!==undefined)throw Error('배경색은 텍스트에서만 설정할 수 있습니다.');
+ const text=kind==='text'?layoutTextValues(name,background):null;
+ const label=(text?.name||name?.trim()||gear?.name||member?.name||(kind==='person'?'':layoutKinds[kind])).trim();
  if(!label||label.length>2000)throw Error('이름을 확인해 주세요.');
  if(kind==='table'&&shape!==undefined&&!['rectangle','circle'].includes(shape))throw Error('테이블 모양을 선택해 주세요.');
- const item={id:'obj-'+crypto.randomUUID(),kind,name:label,color:color||'graphite',...nextPosition(project),rotation:0,...(kind==='person'?{width:80,height:80}:{}),...(kind==='table'?{shape:shape||'rectangle',width:120,height:shape==='circle'?120:80}:{}),...(gear?{gearId:gear.id}:{}),...(member?{memberId:member.id}:{})};
+ const item={id:'obj-'+crypto.randomUUID(),kind,name:label,color:color||'graphite',...nextPosition(project),rotation:0,...(text?{background:text.background,width:160,height:60}:{}),...(kind==='person'?{width:80,height:80}:{}),...(kind==='table'?{shape:shape||'rectangle',width:120,height:shape==='circle'?120:80}:{}),...(gear?{gearId:gear.id}:{}),...(member?{memberId:member.id}:{})};
  project.layoutObjects.push(item);return item;
 }
 export function moveLayoutItem(project,id,x,y,rotation){
@@ -54,6 +57,7 @@ export function removeLayoutItem(project,id){
 }
 
 export function validTableGeometry(item){
+ if(item.kind==='text')return item.shape===undefined&&['width','height'].every(key=>item[key]===undefined||(Number.isFinite(item[key])&&item[key]>=48&&item[key]<=600));
  if(item.kind==='person')return item.shape===undefined&&['width','height'].every(key=>item[key]===undefined||(Number.isFinite(item[key])&&item[key]>=48&&item[key]<=240))&&(item.width??80)===(item.height??80);
  if(item.kind!=='table')return item.shape===undefined&&item.width===undefined&&item.height===undefined;
  if(item.shape!==undefined&&!['rectangle','circle'].includes(item.shape))return false;
@@ -71,8 +75,21 @@ export function resizeLayoutTable(project,id,width,height,shape){
 export function resizeLayoutItem(project,id,width,height,shape){
  const item=project.layoutObjects.find(x=>x.id===id);
  if(item?.kind==='table')return resizeLayoutTable(project,id,width,height,shape);
+ if(item?.kind==='text'){if(![width,height].every(Number.isFinite)||shape!==undefined)throw Error('텍스트 크기를 확인해 주세요.');item.width=Math.max(48,Math.min(600,width));item.height=Math.max(48,Math.min(600,height));return item;}
  if(item?.kind!=='person'||![width,height].every(Number.isFinite)||shape!==undefined)throw Error('배치 크기를 확인해 주세요.');
  item.width=item.height=Math.max(48,Math.min(240,width));return item;
+}
+
+function layoutTextValues(name,background='transparent'){
+ if(typeof name!=='string'||!name.trim()||name.trim().length>2000)throw Error('텍스트는 1~2000자로 입력해 주세요.');
+ if(typeof background!=='string'||! /^(transparent|#[0-9a-fA-F]{6})$/.test(background))throw Error('텍스트 배경색을 확인해 주세요.');
+ return {name:name.trim(),background};
+}
+export function updateLayoutText(project,id,fields){
+ const item=project.layoutObjects.find(item=>item.id===id&&item.kind==='text');
+ if(!item||!fields||typeof fields!=='object'||Array.isArray(fields)||Object.keys(fields).some(key=>!['name','background'].includes(key)))throw Error('텍스트 편집 값을 확인해 주세요.');
+ const values=layoutTextValues(Object.hasOwn(fields,'name')?fields.name:item.name,Object.hasOwn(fields,'background')?fields.background:item.background??'transparent');
+ Object.assign(item,values);return item;
 }
 
 export function setLayoutColor(project,id,color){

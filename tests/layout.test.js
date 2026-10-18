@@ -51,7 +51,7 @@ test('layout forms show icon choices, whole coordinate values with precise sourc
  const {placementForm,positionForm,layoutStage}=await import('../src/features/layout/layout.js');
  const state=emptyWorkspace();const table=addLayoutObject(state,{kind:'table',shape:'circle'});table.x=31.2345;
  const person=addLayoutObject(state,{kind:'person',name:'Fictional cast'});
- const form=placementForm(state,'table');assert.equal((form.match(/name="kind"/g)||[]).length,6);assert.match(form,/name="shape"/);assert.doesNotMatch(form,/<select name="kind"/);
+ const form=placementForm(state,'table');assert.equal((form.match(/name="kind"/g)||[]).length,7);assert.match(form,/name="shape"/);assert.doesNotMatch(form,/<select name="kind"/);
  assert.match(positionForm(table),/data-precise="31.2345" value="31"/);assert.match(positionForm(table),/name="height"[^>]*readonly/);
  const html=layoutStage(state);assert.equal((html.match(/data-resize=/g)||[]).length,16);assert.match(html,/<svg/);assert.match(html,/Fictional cast/);assert.doesNotMatch(html,/<small>사람<\/small>/);
  assert.equal(person.name,'Fictional cast');assert.throws(()=>addLayoutObject(state,{kind:'person'}));
@@ -94,4 +94,15 @@ test('layout colors validate, preserve legacy records, survive project switches 
  assert.throws(()=>addLayoutObject(state,{kind:'table',color:'red;display:none'}));assert.throws(()=>setLayoutColor(state,first.id,'invalid'));
  state=addProject(state,{name:'Other',icon:'camera',color:'blue'},'color-other');state=switchProject(state,source);assert.equal(state.layoutObjects[0].color,'rose');
  const legacy=structuredClone(state);delete legacy.layoutObjects[0].color;assert.ok(validateWorkspace(legacy));legacy.layoutObjects[0].color='red;display:none';assert.equal(validateWorkspace(legacy),false);
+});
+
+test('text keeps rotation, background and geometry alongside merged appearance controls',async()=>{
+ const {placementForm,positionForm,layoutStage,bindLayoutAppearance}=await import('../src/features/layout/layout.js');
+ const state=emptyWorkspace(),text=addLayoutObject(state,{kind:'text',name:'Fictional merged text',background:'#123456',color:'rose'});
+ moveLayoutItem(state,text.id,31.234567,57.765432,45);assert.ok(validateWorkspace(state));
+ assert.equal(typeof bindLayoutAppearance,'function');
+ const create=placementForm(state,'text'),edit=positionForm(text),stage=layoutStage(state);
+ assert.equal((create.match(/name="kind"/g)||[]).length,7);assert.match(create,/name="color"/);assert.match(create,/name="background"/);assert.match(create,/data-layout-preview/);
+ assert.match(edit,/name="color" value="rose"[^>]*checked/);assert.match(edit,/max="600"/);
+ assert.match(stage,/--layout-color:var\(--rose\)/);assert.match(stage,/rotate\(45deg\)/);assert.match(stage,/background:#123456/);assert.equal((stage.match(/data-resize=/g)||[]).length,8);assert.equal((stage.match(/data-rotate=/g)||[]).length,4);
 });

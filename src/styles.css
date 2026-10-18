@@ -228,7 +228,19 @@ small,.stat small{font-size:var(--text-meta)}
 .placement-kind-choice:has(input:checked)>span:first-of-type{outline:2px solid var(--blue);outline-offset:3px;color:var(--ink)}
 .placement-kind-choice .icon{width:26px;height:26px}
 .layout-item .layout-symbol{color:var(--layout-color,var(--graphite))}.layout-person .layout-symbol{color:var(--layout-color,var(--graphite))}
-.layout-item:not(.layout-camera):not(.layout-person){border-color:color-mix(in srgb,var(--layout-color,var(--graphite)) 45%,var(--line));background:color-mix(in srgb,var(--layout-color,var(--graphite)) 9%,var(--surface));color:var(--ink)}
+.layout-item:not(.layout-camera):not(.layout-person):not(.layout-text){border-color:color-mix(in srgb,var(--layout-color,var(--graphite)) 45%,var(--line));background:color-mix(in srgb,var(--layout-color,var(--graphite)) 9%,var(--surface));color:var(--ink)}
 .layout-item .layout-symbol .icon{width:28px;height:28px}.layout-person .layout-symbol .icon{width:100%;height:100%}
 @media(max-width:520px){.placement-kind-control{padding-left:16px;gap:8px}}
 .placement-kind-popover .placement-kind-choice:has(input:checked){background:transparent}
+
+
+/* Rotation targets sit beyond the resize hit boxes, and never persist selection. */
+.layout-rotate{display:none;position:absolute;width:24px;height:24px;align-items:center;justify-content:center;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:50%;z-index:3;cursor:url('/src/rotation-cursor.svg') 16 16,crosshair;touch-action:none;font-size:18px;line-height:1;box-shadow:0 1px 4px rgba(24,24,27,.08)}
+.layout-item.is-selected .layout-rotate{display:grid}
+.layout-rotate-nw{top:-38px;left:-38px}.layout-rotate-ne{top:-38px;right:-38px}.layout-rotate-sw{bottom:-38px;left:-38px}.layout-rotate-se{bottom:-38px;right:-38px}
+.layout-rotate:hover{background:var(--selected);border-color:var(--blue)}
+.layout-text{background:transparent;color:var(--ink);min-height:32px;display:flex;align-items:center;justify-content:center;padding:8px;border:0;border-radius:var(--r-control);box-shadow:none;white-space:pre-wrap;overflow-wrap:anywhere;text-align:center;line-height:1.4}
+.layout-text b,.layout-text-content{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;overflow:visible;font-weight:500;font-size:var(--text-body);pointer-events:none}
+.layout-text small{display:none}
+@media(pointer:coarse){.layout-rotate{width:44px;height:44px;background:rgba(255,255,255,.96)}.layout-rotate-nw{top:-58px;left:-58px}.layout-rotate-ne{top:-58px;right:-58px}.layout-rotate-sw{bottom:-58px;left:-58px}.layout-rotate-se{bottom:-58px;right:-58px}}
+.layout-text-content{display:block;max-height:100%;overflow:hidden}

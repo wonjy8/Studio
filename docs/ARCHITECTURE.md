@@ -134,3 +134,11 @@ Optional `layoutObjects` supports person/table/chair/stage/equipment/other, perc
 
 ## External assistant boundary
 ChatGPT is an external MCP client, not an embedded in-app API assistant. OAuth grants bind the account and read/write scope; the same account-private workspace validation and revision service is used by UI and MCP. Shared domain commands create/update shoots, members, inventory and reference metadata, update/create projects, and call camera/layout operations. Proposals stage a candidate snapshot with the current revision; confirmation commits once or returns a conflict. ChatGPT cannot provide an account ID, direct database patch or attachment access token. Details and limitations are in AUTH_AND_SERVER.md.
+
+## Placement rotation and text
+
+Purpose: annotate a project floor plan and adjust object orientation without switching to numeric fields. Select a placement, drag one of its four outside corner handles to rotate, and hold Shift to snap to 45°; Alt+Left/Right rotates by 5°, with Shift by 45°. Cameras retain their existing move/edit flow. Tables, people and text have eight resize handles; people and round tables preserve their aspect ratio. Resize snaps near the original default size using an 8 screen-pixel entry threshold and 12-pixel release threshold. Rotated resizing uses local axes and keeps the opposite world anchor fixed within canvas bounds.
+
+Text is a layout object: its name stores the literal multiline content once, with an optional transparent or six-digit hexadecimal background. The shared layout form and appearance controls add/edit it; the canvas escapes markup and clips visible content to its box without discarding the stored text. Pointer cancellation restores exact values and does not save. Keyboard and numeric alternatives remain available. Coordinates keep internal precision while forms show integers.
+
+Workspace validation covers active and inactive projects, text size/content/background and project-local references. No schema migration, account permission change or destructive link propagation is required. Removing a placement keeps its reusable member/equipment source. Regression fixtures are isolated fictional accounts and temporary databases.
