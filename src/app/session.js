@@ -19,7 +19,7 @@ export async function requireLogin() {
       e.preventDefault();const form=e.target;const button=form.querySelector('[type=submit]');button.disabled=true;button.textContent='로그인 중…';form.setAttribute('aria-busy','true');root.querySelector('#login-error').textContent='';
       try {await request('login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))});form.reset();sessionInfo=await request('session');resolve();}
       catch {root.querySelector('#login-error').textContent='로그인하지 못했습니다. 계정 정보를 확인하거나 잠시 후 다시 시도하세요.';}
-      finally {button.disabled=false;button.innerHTML='로그인 <span aria-hidden="true">↗</span>';form.removeAttribute('aria-busy');}
+      finally {button.disabled=false;button.textContent='로그인';form.removeAttribute('aria-busy');}
     };
   });
 }
