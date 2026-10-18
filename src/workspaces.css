@@ -1,0 +1,35 @@
+/* One workspace layout contract; feature-specific canvases keep their own behavior. */
+:root{--workspace-width:1440px;--workspace-gutter:24px;--workspace-gap:24px;--workspace-list-width:280px;--workspace-panel-padding:24px}
+.production-app .content{max-width:var(--workspace-width);padding:28px var(--workspace-gutter) 64px;margin:0 auto}
+.production-app .save-content{min-width:0}
+.production-app :is(.inventory-workspace,.managed-projects,.settings-page,.member-directory,[data-rental-vendors],[data-admin-organizations],[data-admin-panel]){max-width:none;width:100%;margin-left:0;margin-right:0;min-width:0}
+.production-app :is(.hero,.page-heading){display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:44px;margin:0 0 24px}
+.production-app :is(.hero,.page-heading) h2{font-size:var(--text-page);font-weight:700;line-height:1.35;letter-spacing:-.6px;margin:0}
+.production-app :is(.hero,.page-heading) p{margin:6px 0 0}
+.production-app :is(.inventory-create-actions,.schedule-add-actions,.layout-actions){display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.production-app :is(.master-detail,.managed-projects-grid){grid-template-columns:minmax(200px,var(--workspace-list-width)) minmax(0,1fr);gap:var(--workspace-gap)}
+.production-app .master-list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-surface);padding:12px;gap:6px;position:sticky;top:96px;max-height:calc(100vh - 120px)}
+.production-app .master-pane{padding:var(--workspace-panel-padding);border:1px solid var(--line);border-radius:var(--r-surface);background:var(--surface)}
+.production-app :is(.master-choice,.managed-project-card,.master-list [data-admin-org]){min-height:48px;padding:12px;border:0;border-radius:var(--r-control);text-align:left;color:var(--ink);background:transparent;line-height:1.5;font-size:var(--text-body);font-weight:500;box-shadow:none}
+.production-app :is(.master-choice[aria-pressed=true],.managed-project-card.active,.master-list [aria-current=true]){background:var(--surface-2);font-weight:650;box-shadow:inset 3px 0 var(--accent)}
+.production-app :is(.master-choice,.managed-project-card,.master-list [data-admin-org]):hover{background:var(--surface-2)}
+.production-app .master-search{width:100%;min-width:0;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r-control);margin:0 0 6px;background:var(--surface);color:var(--ink)}
+.production-app .master-list>.field{margin:0 0 6px}
+.production-app .inventory-grid:has(>.master-detail){display:block;margin-bottom:24px}
+.production-app .master-pane>.inventory-item,.production-app .master-pane>.inventory-loan{margin:0;padding:0;border:0;border-radius:0;box-shadow:none}
+.production-app .master-pane :is(.section-head,h3){margin-top:0}
+.production-app .inventory-item h3,.production-app .inventory-loan h3{font-size:var(--text-section);line-height:1.4}
+.production-app .master-pane .inventory-code{font-size:var(--text-meta);letter-spacing:0}
+.production-app .inventory-facts{gap:20px 24px;margin-top:24px}
+.production-app :is(.equipment-count,.member-chip){font-size:var(--text-meta)}
+.production-app :is([data-admin-message],[data-admin-org-message],[data-vendor-message],[data-admin-project-message]):empty{display:none}
+.production-app .settings-section>.hero{border:0;padding:0}
+.production-app .sidebar-heading h2{font-size:var(--text-body)}
+.production-app .project-list .project-item{min-height:44px;border-radius:var(--r-control)}
+.production-app .inventory-collection-picker{margin-bottom:24px}
+.production-app :is(.master-search,.master-choice,.managed-project-card):focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media(max-width:900px){:root{--workspace-gutter:20px;--workspace-panel-padding:20px}.production-app .master-list{top:88px}}
+@media(max-width:760px){:root{--workspace-gutter:16px;--workspace-gap:16px;--workspace-panel-padding:18px}.production-app .content{padding-top:20px;padding-bottom:40px}.production-app :is(.hero,.page-heading){align-items:flex-start;flex-wrap:wrap;margin-bottom:20px;gap:12px}.production-app :is(.hero,.page-heading) h2{font-size:var(--text-page)}.production-app :is(.master-detail,.managed-projects-grid){grid-template-columns:minmax(0,1fr)}.production-app .master-list{position:static;max-height:240px}.production-app :is(.inventory-create-actions,.schedule-add-actions,.layout-actions){justify-content:flex-start;max-width:100%}.production-app .hero>div:has(>.btn){flex-wrap:wrap}.production-app .inventory-summary{gap:12px}.production-app .inventory-facts{gap:16px}}
+.production-app [data-master-id][hidden]{display:none!important}
+.production-app :is(.master-list,.master-pane){corner-shape:squircle}
+@media(max-width:600px){.production-app .master-search{font-size:16px}}

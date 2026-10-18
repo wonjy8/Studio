@@ -111,3 +111,17 @@ The workspace icon rail uses a compact 44px desktop / 42px mobile width. Use the
 설정 제목은 한국어 제목만 남긴다. 계정·데이터·외부 연결·관리자 정보는 왼쪽 속성명, 오른쪽 값/동작으로 정렬한다. 이름은 연필 버튼으로 편집하며 600ms 입력 대기 또는 Enter/포커스 이동 시 자동 저장한다. 실패한 입력은 유지하고 재시도를 제공한다. 로그아웃은 구분선 아래 붉은 버튼으로 표시한다. 사이드바의 공유 프로젝트는 존재할 때만 표시하며 불러오기 실패 시에는 재시도를 제공한다.
 
 사람·사물 추가의 모양 선택은 왼쪽 아이콘 아래에 종류 이름을 두고, 색상 팔레트를 바로 오른쪽에 배치한다. 색상 제목은 화면에서 생략하고 보조기기용 레이블은 유지한다.
+
+## Workspace layout contract
+
+`src/workspaces.css` is loaded after feature styles and owns the shared workspace frame. Production, equipment, Data Space, settings and administration use the same page title size and aligned action row. Avoid local page-width and heading-spacing overrides.
+
+- Content maximum width: 1,440 px; desktop gutter 24 px, tablet 20 px, mobile 16 px.
+- Page title: 24 px; title/action row minimum height 44 px; following gap 24 px (20 px on mobile).
+- List/detail layouts: 280 px list column, flexible detail column, 24 px gap; one column at 760 px and below.
+- Detail padding: 24 px desktop, 20 px tablet, 18 px mobile. List padding: 12 px.
+- Inputs and action buttons: 44 px minimum height; list choices: 48 px minimum height.
+- Selected rows: neutral secondary surface plus a 3 px leading marker. Focus uses the shared blue outline.
+- List/detail panel corners use the shared surface radius; controls use the shared control radius.
+
+Equipment item and loan lists use the same master/detail selection pattern as admin and Data Space. Operational canvases such as the calendar and camera layout retain their task-specific content inside the common frame.
