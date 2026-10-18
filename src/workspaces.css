@@ -77,3 +77,29 @@
 .subscriber-member-profile dd { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
 .admin-directory .site-role-management > summary { cursor:pointer; font-weight:600; }
 .admin-directory .site-role-management[open] > summary { margin-bottom:16px; }
+
+/* Equipment owners and organization sections share one horizontal navigation row. */
+.production-app .equipment-tabbar{display:flex;align-items:center;gap:28px;min-height:64px;margin:-24px 0 24px;padding:0 0 12px;border-bottom:1px solid var(--line);position:relative;z-index:3}
+.production-app .equipment-tabs{display:flex;align-self:stretch;align-items:stretch;gap:24px;min-width:0;overflow-x:auto}
+.production-app .equipment-tabs .project-tab{white-space:nowrap;margin-bottom:-1px;padding:8px 0;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--muted);min-height:44px}
+.production-app .equipment-tabs .project-tab.active{border-bottom-color:var(--ink);color:var(--ink)}
+.production-app .equipment-owner-picker{position:relative;flex-shrink:0;width:220px;max-width:100%}
+.production-app .equipment-owner-picker>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none;cursor:pointer;min-height:44px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;font-weight:600;background:var(--surface);overflow-wrap:anywhere}
+.production-app .equipment-owner-picker>summary::-webkit-details-marker{display:none}
+.production-app .equipment-owner-menu{position:absolute;top:calc(100% + 8px);left:0;min-width:280px;max-width:calc(100vw - 40px);padding:12px;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px #0002;background:var(--surface);z-index:20}
+.production-app .equipment-owner-menu>div{max-height:320px;overflow:auto;margin-top:8px}
+.production-app .equipment-owner-menu input{width:100%;min-height:44px}
+.production-app .equipment-owner-menu .master-choice{min-height:44px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.production-app .equipment-owner-menu [hidden]{display:none!important}
+.production-app .equipment-owner-picker>summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.production-app .inventory-workspace>.hero{justify-content:flex-end;margin-bottom:20px}
+.production-app .inventory-workspace>.hero:empty{display:none}
+.production-app .personal-equipment>.hero{margin-top:0}
+.production-app .inventory-organization-settings{margin-top:24px;border-top:1px solid var(--line);padding-top:20px}
+.production-app .inventory-organization-settings>summary{cursor:pointer;color:var(--muted);font-weight:600}
+.production-app [data-equipment-only]>[data-contact-editor]>h3{display:none}
+.production-app [data-equipment-only] [data-contact-gear-form]{max-width:720px}
+.production-app [data-equipment-only]>[data-contact-message]:empty{display:none}
+@media(max-width:760px){.production-app .equipment-tabbar{margin-top:-8px;flex-wrap:wrap;gap:12px;padding-bottom:0}.production-app .equipment-tabs{width:100%;gap:20px}.production-app .equipment-owner-picker{width:100%}.production-app .equipment-owner-menu{min-width:100%;width:100%}}
+
+.production-app .inventory-workspace>.hero[hidden]{display:none!important}

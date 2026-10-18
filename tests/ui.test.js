@@ -14,7 +14,7 @@ test('self profile uses authenticated nested identity and administrators have se
 
 test('administrator workspace has separate rail, sidebar menus and header',()=>{
  const admin=projectNavigation(state,'admin',true,{isAdmin:true});assert.match(admin,/aria-label="관리자 워크스페이스" title="관리자 워크스페이스"/);assert.match(admin,/<h2>관리자 워크스페이스<\/h2>/);assert.match(admin,/aria-label="관리자 메뉴"/);assert.match(admin,/data-view="admin" aria-current="page"/);assert.doesNotMatch(admin,/data-settings-section/);assert.match(admin,/<span>회원 초대<\/span>/);assert.doesNotMatch(admin,/data-view="admin-equipment"/);assert.match(admin,/aria-label="프로젝트 목록 닫기"/);
- assert.match(appShell({state,view:'admin',body:'',modal:'',session:{isAdmin:true}}),/<h1>관리자 워크스페이스<\/h1>/);assert.doesNotMatch(projectNavigation(state,'settings',false,{isAdmin:false}),/관리자 워크스페이스|초대 링크|data-settings-section="invitations"/);
+ assert.match(appShell({state,view:'admin',body:'',modal:'',session:{isAdmin:true}}),/<h1>사용자 관리<\/h1>/);assert.doesNotMatch(projectNavigation(state,'settings',false,{isAdmin:false}),/관리자 워크스페이스|초대 링크|data-settings-section="invitations"/);
 });
 test('settings sections select independently and keep account, storage and integration bodies separate',()=>{
  for(const section of ['account','connections','data']){

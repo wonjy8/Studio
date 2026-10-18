@@ -22,6 +22,6 @@ test('equipment workspace paths retain account scope and never become project ta
  }
  assert.equal(parseRoute('/fictional.operator/inventory/unknown').valid,false);
 });
-test('inventory navigation has three clear entries and administrator uses a separate shield',()=>{
- const state=emptyWorkspace(),html=projectNavigation(state,'inventory',false,{isAdmin:true});for(const name of ['전체 장비','장비 관리','반출 현황','반출·반납 내역'])assert.ok(html.includes(name));assert.match(html,/aria-label="자료 워크스페이스"/);assert.match(html,/aria-label="관리자 워크스페이스"/);const admin=html.match(/<button[^>]*aria-label="관리자 워크스페이스"[\s\S]*?<\/button>/)?.[0];assert.match(admin,/M12 3 4 6v6/);assert.doesNotMatch(projectNavigation(state,'inventory',false,{}),/aria-label="관리자 워크스페이스"/);
+test('equipment navigation has exactly two entries and administrator uses a separate shield',()=>{
+ const state=emptyWorkspace(),html=projectNavigation(state,'inventory',false,{isAdmin:true});for(const name of ['멤버 장비','조직 장비'])assert.ok(html.includes(name));assert.doesNotMatch(html,/전체 장비|반출 현황|반출·반납 내역|data-inventory-collections/);const sidebar=html.match(/<nav class="project-list" aria-label="장비 관리 메뉴">([\s\S]*?)<\/nav>/)[1];assert.equal((sidebar.match(/data-view=/g)||[]).length,2);assert.match(html,/aria-label="자료 워크스페이스"/);assert.match(html,/aria-label="관리자 워크스페이스"/);const admin=html.match(/<button[^>]*aria-label="관리자 워크스페이스"[\s\S]*?<\/button>/)?.[0];assert.match(admin,/M12 3 4 6v6/);assert.doesNotMatch(projectNavigation(state,'inventory',false,{}),/aria-label="관리자 워크스페이스"/);
 });
