@@ -10,10 +10,10 @@ test('signup is concise and global settings no longer duplicates project editing
 test('settings sidebar replaces projects and exposes admin only to admin session',()=>{const regular=projectNavigation(state,'settings',false,{isAdmin:false});assert.match(regular,/설정 메뉴/);assert.doesNotMatch(regular,/data-project=/);assert.doesNotMatch(regular,/data-view="admin"/);assert.match(projectNavigation(state,'settings',false,{isAdmin:true}),/data-view="admin"/);const glyph=html=>html.match(/aria-pressed="(?:true|false)">(.+?)<\/button>/s)[1];assert.equal(glyph(regular),glyph(projectNavigation(state,'home',false)));});
 test('global header avoids ambiguous shoot action and member/admin forms retain safeguards',()=>{assert.doesNotMatch(appShell({state,view:'home',body:'',modal:'',session:{}}),/add-content/);assert.match(accountMembersPanel('p1'),/data-team-create/);assert.match(accountMembersPanel('p1'),/data-project-org-list/);assert.doesNotMatch(accountMembersPanel('p1'),/data-account-search|data-members-add-panel/);const admin=adminPanel();assert.doesNotMatch(admin,/password"/);assert.match(admin,/property-settings/);assert.match(admin,/data-admin-users/);});
 
-test('self profile uses authenticated nested identity and administrators have separate equipment view',()=>{const html=settingsPage(state,{account:{username:'fictional-crew',name:'Fictional Crew'},isAdmin:false});assert.match(html,/Fictional Crew/);assert.match(html,/@fictional-crew/);assert.match(html,/data-account-profile/);assert.match(signupPage(),/name="name" maxlength="80"/);const nav=projectNavigation(state,'admin-equipment',false,{isAdmin:true});assert.match(nav,/data-view="admin-equipment"/);assert.doesNotMatch(projectNavigation(state,'settings',false,{isAdmin:false}),/data-view="admin-equipment"/);});
+test('self profile uses authenticated nested identity and administrators have separate equipment view',()=>{const html=settingsPage(state,{account:{username:'fictional-crew',name:'Fictional Crew'},isAdmin:false});assert.match(html,/Fictional Crew/);assert.match(html,/@fictional-crew/);assert.match(html,/data-account-profile/);assert.match(signupPage(),/name="name" maxlength="80"/);const nav=projectNavigation(state,'admin-equipment',false,{isAdmin:true});assert.match(nav,/aria-label="장비 워크스페이스"/);assert.doesNotMatch(nav,/data-view="admin-equipment"/);assert.doesNotMatch(projectNavigation(state,'settings',false,{isAdmin:false}),/data-view="admin-equipment"/);});
 
 test('administrator workspace has separate rail, sidebar menus and header',()=>{
- const admin=projectNavigation(state,'admin-equipment',true,{isAdmin:true});assert.match(admin,/aria-label="관리자 워크스페이스" title="관리자 워크스페이스"/);assert.match(admin,/<h2>관리자 워크스페이스<\/h2>/);assert.match(admin,/aria-label="관리자 메뉴"/);assert.match(admin,/data-view="admin-equipment" aria-current="page"/);assert.doesNotMatch(admin,/data-settings-section/);assert.match(admin,/<span>장비<\/span>/);assert.match(admin,/aria-label="프로젝트 목록 닫기"/);
+ const admin=projectNavigation(state,'admin',true,{isAdmin:true});assert.match(admin,/aria-label="관리자 워크스페이스" title="관리자 워크스페이스"/);assert.match(admin,/<h2>관리자 워크스페이스<\/h2>/);assert.match(admin,/aria-label="관리자 메뉴"/);assert.match(admin,/data-view="admin" aria-current="page"/);assert.doesNotMatch(admin,/data-settings-section/);assert.match(admin,/<span>회원 초대<\/span>/);assert.doesNotMatch(admin,/data-view="admin-equipment"/);assert.match(admin,/aria-label="프로젝트 목록 닫기"/);
  assert.match(appShell({state,view:'admin',body:'',modal:'',session:{isAdmin:true}}),/<h1>관리자 워크스페이스<\/h1>/);assert.doesNotMatch(projectNavigation(state,'settings',false,{isAdmin:false}),/관리자 워크스페이스|초대 링크|data-settings-section="invitations"/);
 });
 test('settings sections select independently and keep account, storage and integration bodies separate',()=>{
@@ -31,9 +31,9 @@ test('admin and global settings secondary menus never mix for either account rol
   assert.doesNotMatch(secondary,/data-view="admin|관리자 메뉴|초대 링크|invitations/);assert.equal((secondary.match(/data-settings-section=/g)||[]).length,3);
   assert.doesNotMatch(settingsPage(state,{isAdmin,settingsSection:'invitations'}),/초대 링크|가입 초대/);
  }
- for(const view of ['admin','admin-equipment','admin-organizations']){
+ for(const view of ['admin','admin-invitations','admin-organizations']){
   const html=projectNavigation(state,view,true,{isAdmin:true}),secondary=html.slice(html.indexOf('<section class="project-sidebar">'));
   assert.match(secondary,/aria-label="관리자 메뉴"/);assert.doesNotMatch(secondary,/data-settings-section|설정 메뉴|외부 앱 연결|초대 링크/);
-  assert.deepEqual([...secondary.matchAll(/data-view="([^"]+)"/g)].map(match=>match[1]),['admin','admin-equipment','admin-organizations']);
+  assert.deepEqual([...secondary.matchAll(/data-view="([^"]+)"/g)].map(match=>match[1]),['admin','admin-invitations']);
  }
 });

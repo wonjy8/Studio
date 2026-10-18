@@ -5,7 +5,7 @@ let activeRoles=null;
 export function siteRoleManagementDraftPending(){return Boolean(activeRoles?.root.isConnected&&activeRoles.pending());}
 export function siteRoleManagementCanLeave(){return !activeRoles?.root.isConnected||activeRoles.leave();}
 export function siteRoleManagementPanel(session={}){
- return `<section class="card site-role-management" data-site-role-management data-can-manage="${Boolean(session.capabilities?.canManageSiteRoles??session.canManageSiteRoles)}"><div class="section-head"><div><h2>사이트 관리자 권한</h2><p class="sub">사이트 권한은 조직 역할과 별개입니다. 최고 관리자만 관리자 권한을 부여하거나 해제할 수 있습니다.</p></div></div><p role="status" data-site-role-message>${(session.capabilities?.canManageSiteRoles??session.canManageSiteRoles)?'불러오는 중…':'현재 계정에서는 관리자 권한을 변경할 수 없습니다.'}</p><div data-site-role-content></div></section>`;
+ return `<details class="card site-role-management" data-site-role-management data-can-manage="${Boolean(session.capabilities?.canManageSiteRoles??session.canManageSiteRoles)}"><summary>관리자 권한</summary><p role="status" data-site-role-message>${(session.capabilities?.canManageSiteRoles??session.canManageSiteRoles)?'불러오는 중…':'현재 계정에서는 관리자 권한을 변경할 수 없습니다.'}</p><div data-site-role-content></div></details>`;
 }
 export async function bindSiteRoleManagement(scope=document){
  const root=scope.matches?.('[data-site-role-management]')?scope:scope.querySelector('[data-site-role-management]');if(!root||root.dataset.canManage!=='true')return;

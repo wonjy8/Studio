@@ -181,4 +181,4 @@ if(process.argv[1]===fileURLToPath(import.meta.url)) {
   server.listen(Number(process.env.PORT||8080),'0.0.0.0',()=>console.log('Studio listening'));
 }
 
-function pathForError(url){return url.startsWith('/oauth/')||url.startsWith('/api/connections')||url.startsWith('/api/google')||url.startsWith('/api/contacts')||url.startsWith('/api/reference-library')||url.startsWith('/api/material-equipment')||/^\/api\/projects\/[^/]+\/(contact-selection|reference-library)(?:[/?]|$)/.test(url);}
+function pathForError(url){return url.startsWith('/oauth/')||url.startsWith('/api/connections')||url.startsWith('/api/google')||url.startsWith('/api/contacts')||url.startsWith('/api/admin/contacts')||url.startsWith('/api/reference-library')||url.startsWith('/api/material-equipment')||/^\/api\/projects\/[^/]+\/(contact-selection|reference-library)(?:[/?]|$)/.test(url);}
