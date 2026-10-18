@@ -13,8 +13,8 @@ const commandValues=schema({
  name:text,time:text,location:text,status:{type:'string',enum:['ready','check','problem']},completed:{type:'boolean'},
  role:text,call:text,category:{type:'string',enum:['camera','lens','lighting','tripod','sd','audio','other']},owner:text,assignee:text,
  notes:text,date:text,icon:{type:'string',enum:['production','play','book','camera','folder','sparkle']},color:{type:'string',enum:['violet','blue','orange','green','rose','graphite']},
- operator:text,body:text,lens:text,ref:text,gearId:text,memberId:text,
- kind:{type:'string',enum:['person','table','chair','stage','equipment','other']},x:{type:'number',minimum:0,maximum:100},y:{type:'number',minimum:0,maximum:100},rotation:{type:'number',minimum:0,maximum:360}
+ operator:text,body:text,lens:text,ref:text,gearId:text,memberId:text,lightType:{type:'string',enum:['panel','softbox','octabox','stripbox','spot','tube','umbrella']},
+ kind:{type:'string',enum:['person','table','chair','stage','equipment','lighting','other']},x:{type:'number',minimum:0,maximum:100},y:{type:'number',minimum:0,maximum:100},rotation:{type:'number',minimum:0,maximum:360}
 });
 const commandSchema=schema({operation:{type:'string',enum:commandOperations},entityId:text,values:{...commandValues,description:'Only include fields relevant to the operation. Shoot: name/date/time/location/status/completed; member: name/role/call; equipment: name/category/owner/assignee/status; reference: name/notes; project: name/date/time/location/icon/color; camera: name/role/operator/body/lens/ref/gearId; layout: kind/name/gearId/memberId/color or x/y/rotation. Never include file contents or credentials.'}},['operation','values']);
 export function mcpService(db,origin,oauth){

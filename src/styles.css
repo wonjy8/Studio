@@ -341,3 +341,6 @@ select:not([multiple]):not([size]){padding:8px var(--control-padding);border:1px
 .timeline-position{container-type:size}
 .is-timed.is-task .calendar-event-mark{display:none}.is-timed.is-task .calendar-event-name::before{content:'○ ';color:var(--blue)}.is-timed.is-task.is-complete .calendar-event-name::before{content:'✓ '}
 @container(max-height:60px){.is-timed .calendar-event-name{white-space:nowrap;display:block;text-overflow:ellipsis;width:100%;max-height:20px}.is-timed .calendar-event-time{max-width:100%;overflow:hidden;text-overflow:ellipsis}}
+
+/* Keep rotation drag areas available without visible corner buttons. */
+.layout-rotate,.layout-rotate:hover{color:transparent;background:transparent;border:0;box-shadow:none}
