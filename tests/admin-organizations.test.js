@@ -58,3 +58,24 @@ test('site-issued invitations retain expiry, revocation, availability and exact-
  assert.equal((await call('fictional-target',`/api/inventory/invitations/${issued.invitation.id}/accept`,'POST',{revision:1})).status,403);
  assert.equal((await call('fictional-site-admin',path,'DELETE',{revision:0})).status,401);
 });
+
+test('site administrators cannot self-invite or accept legacy self-issued invitations',async t=>{
+ const {db,call,ok,org,path,revision}=await fixture(t);
+ const initialRevision=await revision();
+ for(const role of ['admin','operator','viewer']){
+  assert.equal((await call('fictional-site-admin',path,'POST',{userId:'fictional-site-admin',role,revision:initialRevision})).status,403);
+  for(const forged of [{inviterId:'fictional-owner'},{inviter_id:'fictional-owner'},{target:'fictional-target'},{user_id:'fictional-target'},{siteIssued:false}])assert.equal((await call('fictional-site-admin',path,'POST',{userId:'fictional-site-admin',role,revision:initialRevision,...forged})).status,400);
+ }
+ assert.equal(await revision(),initialRevision);assert.equal(db.prepare('SELECT count(*) n FROM inventory_invitations').get().n,0);assert.equal(orgRole(db,'fictional-site-admin',org.id),null);
+ const now=Date.now();db.prepare('INSERT INTO inventory_invitations VALUES(?,?,?,?,?,?,?,?,?)').run('fictional-old-self-invite',org.id,'fictional-site-admin','fictional-site-admin','admin','pending',1,now,now+600000);db.prepare('INSERT INTO inventory_site_invitations VALUES(?,?)').run('fictional-old-self-invite','fictional-site-admin');
+ const before=db.prepare('SELECT * FROM inventory_invitations WHERE id=?').get('fictional-old-self-invite');
+ assert.equal((await call('fictional-site-admin','/api/inventory/invitations/fictional-old-self-invite/accept','POST',{revision:1})).status,403);
+ assert.deepEqual(db.prepare('SELECT * FROM inventory_invitations WHERE id=?').get(before.id),before);assert.equal(await revision(),initialRevision);assert.equal(orgRole(db,'fictional-site-admin',org.id),null);
+ // Even preexisting legitimate organization roles must not be overwritten through this stale site-issued invitation.
+ for(const role of ['owner','admin']){
+  db.prepare('INSERT INTO inventory_memberships VALUES(?,?,?,1) ON CONFLICT(org_id,user_id) DO UPDATE SET role=excluded.role').run(org.id,'fictional-site-admin',role);
+  assert.equal((await call('fictional-site-admin','/api/inventory/invitations/fictional-old-self-invite/accept','POST',{revision:1})).status,403);assert.equal(orgRole(db,'fictional-site-admin',org.id),role);assert.equal(await revision(),initialRevision);
+ }
+ // Other recipients retain the pending acceptance flow.
+ const issued=await ok('fictional-site-admin',path,'POST',{userId:'fictional-target',role:'operator',revision:initialRevision});await ok('fictional-target',`/api/inventory/invitations/${issued.invitation.id}/accept`,'POST',{revision:1});assert.equal(orgRole(db,'fictional-target',org.id),'operator');assert.equal(orgRole(db,'fictional-site-admin',org.id),'admin');
+});

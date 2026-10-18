@@ -51,7 +51,7 @@ Personal equipment owners choose which projects may use their equipment. Organiz
 
 Organization invitations require acceptance. Members can leave, but the last available owner cannot leave or give up ownership. Equipment and history remain with the organization when a member leaves.
 
-The Studio administrator workspace includes user and equipment pages and an organization invitation page. Its organization page lists organizations and can invite an account as administrator, operator or viewer, or cancel a pending invitation sent from that page. This invitation action does not transfer ownership or give the Studio administrator additional organization equipment or borrowing access.
+The Studio administrator workspace includes user and equipment pages and an organization invitation page. Its organization page lists organizations and can invite another account as administrator, operator or viewer, or cancel a pending invitation sent from that page. This invitation action does not transfer ownership or give the Studio administrator additional organization equipment or borrowing access.
 
 ## External apps
 
