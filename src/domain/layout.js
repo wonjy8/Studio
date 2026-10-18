@@ -33,8 +33,8 @@ export function addLayoutObject(project,{kind,name,gearId,memberId,shape,backgro
  if(project.layoutObjects.length>=2000)throw Error('배치 개수 제한에 도달했습니다.');
  if(kind==='lighting'){lightType ||= 'panel';if(!Object.hasOwn(lightingTypes,lightType))throw Error('조명 종류를 선택해 주세요.');}
  else if(lightType!==undefined)throw Error('조명 종류를 확인해 주세요.');
- let gear=['equipment','lighting'].includes(kind)&&project.gear.find(g=>g.id===gearId);
- if(kind==='lighting'&&gearId&&(!gear||gear.category!=='lighting'))throw Error('조명 장비를 선택해 주세요.');
+ const gear=['equipment','lighting'].includes(kind)&&project.gear.find(g=>g.id===gearId);
+ if(kind==='lighting'&&(!gear||gear.category!=='lighting'))throw Error('조명 장비를 선택해 주세요.');
  const member=kind==='person'&&memberId&&project.members.find(m=>m.id===memberId);
  if(kind==='equipment'&&!gear)throw Error('먼저 장비 탭에서 장비를 등록해 주세요.');
  if(kind==='person'&&memberId&&!member)throw Error('멤버를 선택해 주세요.');
@@ -44,7 +44,6 @@ export function addLayoutObject(project,{kind,name,gearId,memberId,shape,backgro
  const label=(text?.name||name?.trim()||gear?.name||member?.name||(kind==='person'?'':kind==='lighting'?lightingTypes[lightType]:layoutKinds[kind])).trim();
  if(!label||label.length>2000)throw Error('이름을 확인해 주세요.');
  if(kind==='table'&&shape!==undefined&&!['rectangle','circle'].includes(shape))throw Error('테이블 모양을 선택해 주세요.');
- if(kind==='lighting'&&!gear){if(project.gear.length>=2000)throw Error('장비 개수 제한에 도달했습니다.');gear={id:'g-'+crypto.randomUUID(),name:label,category:'lighting',owner:'',assignee:'',status:'check'};project.gear.push(gear);}
  const item={id:'obj-'+crypto.randomUUID(),kind,name:label,color:color||'graphite',...nextPosition(project),rotation:0,...(kind==='lighting'?{lightType}:{}),...(text?{background:text.background,width:160,height:60}:{}),...(kind==='person'?{width:80,height:80}:{}),...(kind==='table'?{shape:shape||'rectangle',width:120,height:shape==='circle'?120:80}:{}),...(gear?{gearId:gear.id}:{}),...(member?{memberId:member.id}:{})};
  project.layoutObjects.push(item);return item;
 }

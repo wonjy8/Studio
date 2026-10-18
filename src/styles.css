@@ -344,3 +344,6 @@ select:not([multiple]):not([size]){padding:8px var(--control-padding);border:1px
 
 /* Keep rotation drag areas available without visible corner buttons. */
 .layout-rotate,.layout-rotate:hover{color:transparent;background:transparent;border:0;box-shadow:none}
+
+/* Resize selection outlines follow the square handles. */
+.layout-item.is-selected:has(.layout-resize){border-radius:0;corner-shape:round}
