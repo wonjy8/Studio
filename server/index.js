@@ -1,3 +1,7 @@
+import {accountDeletionRoutes} from './account-deletion.js';
+import {configureSiteRoleManagement,siteCapabilities,siteRoleRoutes,claimFirstSiteAdministrator} from './site-roles.js';
+import {adminProjectRoutes} from './admin-projects.js';
+import {prepareSiteRoleSchema} from './site-role-migration.js';
 import {inventoryRoutes} from './inventory.js';
 import {equipmentSharingRoutes} from './equipment-sharing.js';
 import {isAppPath} from '../src/app/routes.js';
@@ -17,13 +21,16 @@ import { randomUUID } from 'node:crypto';
 import { openStore } from './store.js';
 import { digest, token, hashPassword, verifyPassword } from './auth.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
-export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false'}={}) {
+export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false',enableSiteRoleManagement=process.env.STUDIO_SITE_ROLE_MANAGEMENT==='enabled'}={}) {
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
-  const db = openStore(dir);
+  const db = openStore(dir,{siteRoleBootstrap:enableSiteRoleManagement});
   try{await prepareAccountSchema(db,dir);}catch(error){db.close();throw error;}
+  configureSiteRoleManagement(db,enableSiteRoleManagement);
+  try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
+  const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db);
   const handleInventory=inventoryRoutes(db);
   const handleEquipmentSharing=equipmentSharingRoutes(db);
-  const handleAccounts=accountRoutes(db);
+  const handleAccounts=accountRoutes(db),handleAccountDeletion=accountDeletionRoutes(db);
   const dummy = await hashPassword(token());
   const diagnostics=connectionDiagnostics(db);
   const handleInvitations=invitationRoutes(db,origin);
@@ -48,9 +55,11 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         for await (const chunk of req) {size+=chunk.length;if(size>limit) {const e=Error();e.status=413;throw e;} chunks.push(chunk);}
         return Buffer.concat(chunks);
       };
+      let parsedJson,hasParsedJson=false;
       const readJson = async (limit)=>{
+        if(hasParsedJson)return parsedJson;
         if (!req.headers['content-type']?.startsWith('application/json')) {const e=Error();e.status=415;throw e;}
-        try {const data=JSON.parse(await body(limit));if(path==='/oauth/register')diagnosticDetails=diagnostics.metadata(data);if(path==='/mcp'){diagnosticData={method:typeof data?.method==='string'?data.method:''};diagnosticDetails=diagnostics.toolMetadata(data);}return data;} catch(e) {e.status ||=400;throw e;}
+        try {const data=JSON.parse(await body(limit));if(path==='/oauth/register')diagnosticDetails=diagnostics.metadata(data);if(path==='/mcp'){diagnosticData={method:typeof data?.method==='string'?data.method:''};diagnosticDetails=diagnostics.toolMetadata(data);}parsedJson=data;hasParsedJson=true;return data;} catch(e) {e.status ||=400;throw e;}
       };
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
       let session = cookie && db.prepare('SELECT user_id,token FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
@@ -61,9 +70,12 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(path==='/mcp'){await handleMcp({req,res,json,readJson});return;}
       if(await oauth.routes({path,url,req,res,json,body,readJson,session}))return;
       if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
+      if(await handleSiteRoles({path,url,req,session,json,readJson}))return;
+      if(await handleAdminProjects({path,url,req,session,json,readJson}))return;
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;
       if(await handleInventory({path,url,req,session,json,readJson}))return;
+      if(await handleAccountDeletion({path,url,req,session,json,readJson}))return;
       if(await handleAccounts({path,url,req,session,json,readJson}))return;
       if (path==='/api/login' && req.method==='POST') {
         const data = await readJson();
@@ -78,16 +90,23 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         loginInFlight++;
         let valid;try {valid=await verifyPassword(data.password,user?.password||dummy);} finally {loginInFlight--;}
         if(!valid||!user||!accountActive(db,user.id)||db.prepare('SELECT password FROM users WHERE id=?').get(user.id)?.password!==user.password) return json(401,{error:'Login failed'});
-        db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(user.id);
+        const raw=token();db.exec('BEGIN IMMEDIATE');
+        try{
+          // Password verification is asynchronous: recheck the account under the same lock as first-login claiming.
+          if(!accountActive(db,user.id)||db.prepare('SELECT password FROM users WHERE id=?').get(user.id)?.password!==user.password){db.exec('ROLLBACK');return json(401,{error:'Login failed'});}
+          db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(user.id);
+          claimFirstSiteAdministrator(db,user.id);
+          db.prepare('DELETE FROM sessions WHERE expires<=?').run(now);
+          db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),user.id,now+43200000);
+          db.exec('COMMIT');
+        }catch(error){db.exec('ROLLBACK');throw error;}
         attempts.delete(keys[1]);
-        db.prepare('DELETE FROM sessions WHERE expires<=?').run(now);
-        const raw=token();db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),user.id,now+43200000);
         setCookie(raw,43200);return json(200,{ok:true,passwordChangeRequired:passwordChangeRequired(db,user.id)});
       }
       if(path.startsWith('/api/')) {
         if(!session) return json(401,{error:'Login required'});
         const uid=session.user_id;
-        if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true,isAdmin:isAdmin(db,uid),passwordChangeRequired:passwordChangeRequired(db,uid),account:db.prepare("SELECT u.id,u.username,COALESCE(p.name,'') name FROM users u LEFT JOIN account_profiles p ON p.user_id=u.id WHERE u.id=?").get(uid)});
+        if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true,...siteCapabilities(db,uid),passwordChangeRequired:passwordChangeRequired(db,uid),account:db.prepare("SELECT u.id,u.username,COALESCE(p.name,'') name FROM users u LEFT JOIN account_profiles p ON p.user_id=u.id WHERE u.id=?").get(uid)});
         if(path==='/api/logout'&&req.method==='POST') {db.prepare('DELETE FROM sessions WHERE token=?').run(digest(cookie));setCookie('',0);return json(200,{ok:true});}
         if(path==='/api/workspace'&&req.method==='GET') {
           const row=db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(uid);

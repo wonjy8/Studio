@@ -1,0 +1,77 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createApp} from '../server/index.js';
+import {digest} from '../server/auth.js';
+import {setupSiteRoles} from '../server/site-roles.js';
+import {setupAdminProjects,adminProjectRoutes} from '../server/admin-projects.js';
+import {emptyWorkspace} from '../src/domain/workspace.js';
+async function fixture(t,enabled=true){const dir=await mkdtemp(join(tmpdir(),'studio-admin-projects-fictional-')),{server,db}=await createApp({dir,origin:'http://localhost',secure:false,enableSiteRoleManagement:enabled});setupSiteRoles(db);setupAdminProjects(db);t.after(async()=>{await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});});
+ for(const id of ['highest','delegate','ordinary','owner-a','owner-b','legacy']){db.prepare('INSERT INTO users VALUES(?,?,?)').run(id,'fictional-'+id,'unused-fictional-hash');db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(id),id,Date.now()+600000);}
+ db.prepare("INSERT OR REPLACE INTO site_settings VALUES('super_admin_user_id','highest')").run();db.prepare("INSERT OR REPLACE INTO site_settings VALUES('admin_user_id','legacy')").run();db.prepare("INSERT INTO site_role_memberships VALUES('delegate','admin',1)").run();
+ for(const owner of ['owner-a','owner-b']){const state=emptyWorkspace();state.project={...state.project,id:'collision',name:'Fictional '+owner,icon:'camera',color:'blue'};state.settings.privateMarker='PRIVATE_GLOBAL_SENTINEL';state.refs=[{id:'fictional-ref',name:'Fictional Ref',notes:'',images:['/api/files/00000000-0000-4000-8000-000000000001']}];state.contents=[{id:'fictional-shoot',name:'Fictional Shoot',time:'09:00',location:'',status:'check',completed:false,script:true,scriptFile:'00000000-0000-4000-8000-000000000001'}];state.schedule=[['09:00','Fictional Shoot','fictional-shoot']];state.members=[{id:'fictional-member',name:'Fictional Member',role:'Crew',call:''}];state.gear=[{id:'fictional-gear',name:'Fictional Canonical Light',category:'lighting',owner:'Fictional Owner',assignee:'',status:'check',equipmentId:'canonical-'+owner,equipmentSource:'personal'}];const other=emptyWorkspace();other.project.id='untouched';other.project.name='PRIVATE_OTHER_PROJECT_SENTINEL';state.projects=[other];db.prepare('INSERT INTO workspaces VALUES(?,?,?)').run(owner,4,JSON.stringify(state));db.prepare('INSERT INTO equipment_items VALUES(?,?,?,?)').run('canonical-'+owner,owner,'Fictional Canonical Light','lighting');db.prepare('INSERT INTO equipment_links VALUES(?,?,?,?,?,?)').run(owner,'collision','fictional-gear','canonical-'+owner,null,null);}
+ const handler=adminProjectRoutes(db);const call=async(user,path,method='GET',body,beforeRead)=>{let result;const handled=await handler({path,req:{method},session:user?{user_id:user,token:digest(user)}:null,readJson:async()=>{beforeRead?.();return body;},json:(status,body)=>result={status,body}});assert.equal(handled,true);return result;};
+ const ok=async(...args)=>{const result=await call(...args);assert.equal(result.status,200,JSON.stringify(result));return result.body;};const raw=owner=>db.prepare('SELECT * FROM workspaces WHERE user_id=?').get(owner);return {db,server,call,ok,raw};}
+const path='/api/admin/projects/owner-a/collision',patch=commands=>({revision:4,commands,reason:'Fictional review correction'});
+
+test('explicit administrator list/read isolate colliding compound projects and exclude private attachments/settings',async t=>{
+ const {db,call,ok}=await fixture(t);for(const user of ['ordinary','legacy',null])assert.equal((await call(user,'/api/admin/projects')).status,user?403:401);
+ for(const user of ['highest','delegate']){const list=await ok(user,'/api/admin/projects');assert.equal(list.projects.length,4);assert.equal(list.projects.filter(p=>p.projectId==='collision').length,2);const read=await ok(user,path);assert.equal(read.revision,4);assert.equal(read.project.project.name,'Fictional owner-a');assert.equal(read.project.projects,undefined);assert.equal(read.project.settings,undefined);assert.deepEqual(read.project.refs[0].images,[]);assert.equal(read.project.contents[0].scriptFile,undefined);assert.equal(JSON.stringify(read).includes('PRIVATE_'),false);}
+ assert.equal((await call('delegate','/api/admin/projects/missing/collision')).status,404);assert.equal((await call('delegate',path,'DELETE')).status,404);
+ db.prepare("DELETE FROM site_settings WHERE key='super_admin_user_id'").run();assert.equal((await call('legacy',path)).status,403);assert.equal((await call('delegate',path)).status,403);
+});
+
+test('project production commands preserve unrelated projects/settings/files/canonical equipment and sync local assignments',async t=>{
+ const {db,ok,raw}=await fixture(t),before=JSON.parse(raw('owner-a').body),other=raw('owner-b'),catalog=db.prepare('SELECT * FROM equipment_items').all();
+ const result=await ok('delegate',path,'PATCH',patch([{operation:'update_project',values:{name:'Fictional Managed Name'}},{operation:'update_shoot',entityId:'fictional-shoot',values:{time:'11:00'}},{operation:'add_task',values:{name:'Fictional Managed Task',completed:true}},{operation:'update_equipment',entityId:'fictional-gear',values:{assigneeMemberId:'fictional-member'}}]));assert.equal(result.revision,5);assert.equal(result.project.tasks[0].completed,true);
+ const after=JSON.parse(raw('owner-a').body);assert.deepEqual(after.projects,before.projects);assert.deepEqual(after.settings,before.settings);assert.deepEqual(after.refs,before.refs);assert.equal(after.contents[0].scriptFile,'00000000-0000-4000-8000-000000000001');assert.equal(after.gear[0].owner,before.gear[0].owner);assert.equal(after.gear[0].assignee,'Fictional Member');assert.equal(after.schedule[0][0],'11:00');assert.deepEqual(raw('owner-b'),other);assert.deepEqual(db.prepare('SELECT * FROM equipment_items').all(),catalog);assert.equal(db.prepare('SELECT assignee_member_id FROM equipment_links WHERE owner_id=?').get('owner-a').assignee_member_id,'fictional-member');
+ const audit=db.prepare("SELECT * FROM admin_project_audit WHERE operation<>'list' AND operation<>'open'").get();assert.equal(audit.actor_id,'delegate');assert.equal(audit.actor_grade,'admin');assert.equal(audit.owner_id,'owner-a');assert.equal(JSON.stringify(audit).includes('Fictional Managed Name'),false);
+});
+
+test('forged metadata, ownership, inventory creation, files and stale commands fail atomically',async t=>{
+ const {call,raw,db}=await fixture(t),before=raw('owner-a');
+ const forbidden=[{operation:'add_project',values:{name:'Forbidden'}},{operation:'add_equipment',values:{name:'Forbidden'}},{operation:'update_equipment',entityId:'fictional-gear',values:{name:'Forbidden'}},{operation:'update_equipment',entityId:'fictional-gear',values:{ownerMemberId:null}},{operation:'add_camera',values:{name:'Forbidden New Inventory'}},{operation:'update_shoot',entityId:'fictional-shoot',values:{scriptFile:'foreign'}},{operation:'update_project',values:{id:'forged-owner'}},{operation:'add_task',values:{name:'',completed:true}}];
+ for(const command of forbidden){assert.equal((await call('delegate',path,'PATCH',patch([{operation:'update_project',values:{name:'Must Roll Back'}},command]))).status,400);assert.deepEqual(raw('owner-a'),before);}
+ for(const extra of [{ownerId:'owner-b'},{role:'super_admin'},{settings:{}}])assert.equal((await call('delegate',path,'PATCH',{...patch([{operation:'update_project',values:{name:'Forbidden'}}]),...extra})).status,400);
+ assert.equal((await call('delegate',path,'PATCH',{...patch([{operation:'update_project',values:{name:'Stale'}}]),revision:3})).status,409);assert.equal(db.prepare('SELECT COUNT(*) n FROM admin_project_audit').get().n,0);
+});
+
+test('live role/session checks and audit failure roll back writes while target owner suspension does not deny administration',async t=>{
+ const {db,call,ok,raw}=await fixture(t),body=patch([{operation:'update_project',values:{name:'Fictional Admin Update'}},{operation:'update_equipment',entityId:'fictional-gear',values:{assigneeMemberId:'fictional-member'}}]),before=raw('owner-a');
+ assert.equal((await call('delegate',path,'PATCH',body,()=>db.prepare("UPDATE site_role_memberships SET role='user',revision=2 WHERE user_id='delegate'").run())).status,403);assert.deepEqual(raw('owner-a'),before);
+ db.prepare("UPDATE site_role_memberships SET role='admin' WHERE user_id='delegate'").run();db.prepare("INSERT INTO account_status VALUES('owner-a',?,NULL)").run(Date.now()+600000);assert.equal((await ok('delegate',path)).revision,4);
+ db.exec("CREATE TRIGGER fictional_audit_failure BEFORE INSERT ON admin_project_audit BEGIN SELECT RAISE(ABORT,'fixture audit failure');END;");assert.equal((await call('delegate',path,'PATCH',body)).status,500);assert.deepEqual(raw('owner-a'),before);assert.equal(db.prepare('SELECT assignee_member_id FROM equipment_links WHERE owner_id=?').get('owner-a').assignee_member_id,null);db.exec('DROP TRIGGER fictional_audit_failure');
+ db.prepare("INSERT INTO account_status VALUES('delegate',?,NULL)").run(Date.now()+600000);assert.equal((await call('delegate',path)).status,403);db.prepare("DELETE FROM account_status WHERE user_id='delegate'").run();db.prepare("INSERT INTO password_changes VALUES('delegate')").run();assert.equal((await call('delegate',path)).status,403);db.prepare("DELETE FROM password_changes WHERE user_id='delegate'").run();db.prepare("DELETE FROM sessions WHERE user_id='delegate'").run();assert.equal((await call('delegate',path)).status,401);
+});
+
+test('disabled startup capability stays denied even with manually present roles and pinned identity',async t=>{
+ const {db,call}=await fixture(t,false);for(const user of ['highest','delegate','legacy'])assert.equal((await call(user,'/api/admin/projects')).status,403);assert.equal(db.prepare('SELECT COUNT(*) n FROM admin_project_audit').get().n,0);
+});
+
+test('inactive selected project updates preserve root and project-local private settings without projecting unknown fields',async t=>{
+ const {db,ok,raw}=await fixture(t),original=JSON.parse(raw('owner-a').body);original.projects[0].settings.privateMarker='PRIVATE_SELECTED_SETTINGS_SENTINEL';original.projects[0].tasks=[{id:'fictional-projection-task',name:'Fictional visible task',completed:false,privateExtra:'PRIVATE_TASK_SENTINEL'}];original.projects[0].schedule=[['09:00','Fictional row','fictional-row-id','PRIVATE_SCHEDULE_SENTINEL']];db.prepare('UPDATE workspaces SET body=? WHERE user_id=?').run(JSON.stringify(original),'owner-a');
+ const read=await ok('delegate','/api/admin/projects/owner-a/untouched');assert.equal(JSON.stringify(read).includes('PRIVATE_'),true,'project name itself is authorized production metadata');assert.equal(read.project.tasks[0].privateExtra,undefined);assert.equal(read.project.schedule[0].length,3);assert.equal(read.project.settings,undefined);
+ // Restore a valid row before mutation; private task extensions remain preserved.
+ original.projects[0].schedule[0].pop();db.prepare('UPDATE workspaces SET body=? WHERE user_id=?').run(JSON.stringify(original),'owner-a');
+ await ok('delegate','/api/admin/projects/owner-a/untouched','PATCH',patch([{operation:'update_project',values:{name:'Fictional Managed Inactive Project'}}]));const changed=JSON.parse(raw('owner-a').body);for(const key of ['project','contents','schedule','gear','refs','settings'])assert.deepEqual(changed[key],original[key]);assert.deepEqual(changed.projects[0].settings,original.projects[0].settings);assert.equal(changed.projects[0].tasks[0].privateExtra,'PRIVATE_TASK_SENTINEL');
+});
+
+test('HTTP admin project routes keep session/origin protection and compound target context',async t=>{
+ const {server}=await fixture(t);await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
+ const get=await fetch(base+path,{headers:{Cookie:'studio_session=delegate'}});assert.equal(get.status,200);assert.equal((await get.json()).project.project.name,'Fictional owner-a');
+ const denied=await fetch(base+path,{method:'PATCH',headers:{Cookie:'studio_session=delegate',Origin:'https://fictional-wrong.invalid','Content-Type':'application/json'},body:JSON.stringify(patch([{operation:'update_project',values:{name:'Forbidden'}}]))});assert.equal(denied.status,403);
+ const valid=await fetch(base+path,{method:'PATCH',headers:{Cookie:'studio_session=delegate',Origin:'http://localhost','Content-Type':'application/json'},body:JSON.stringify(patch([{operation:'update_project',values:{name:'Fictional HTTP Managed'}}]))});assert.equal(valid.status,200);assert.equal((await valid.json()).project.project.name,'Fictional HTTP Managed');
+});
+
+test('managed teams support multiple memberships with scoped CAS, revocation and full transaction rollback',async t=>{
+ const {db,call,ok,raw}=await fixture(t);db.prepare('INSERT INTO project_teams VALUES(?,?,?,?)').run('fictional-unrelated-team','owner-b','collision','Fictional Other Owner Team');db.prepare('INSERT INTO project_team_members VALUES(?,?)').run('fictional-unrelated-team','fictional-member');
+ const first=await ok('delegate',path,'PATCH',patch([{operation:'add_team',values:{name:'Fictional Camera Team'}},{operation:'add_team',values:{name:'Fictional Lighting Team'}}]));assert.equal(first.revision,5);assert.equal(first.teams.length,2);const ids=first.teams.map(team=>team.id);
+ const body={revision:5,reason:'Fictional multi team assignment',commands:[{operation:'set_member_teams',entityId:'fictional-member',values:{teamIds:ids}}]},second=await ok('delegate',path,'PATCH',body);assert.equal(second.revision,6);assert.ok(second.teams.every(team=>team.memberIds.includes('fictional-member')));assert.deepEqual((await ok('highest',path)).teams,second.teams);
+ const before=raw('owner-a');for(const teamIds of [[...ids,ids[0]],['fictional-unrelated-team'],['fictional-unknown-team']])assert.equal((await call('delegate',path,'PATCH',{...body,revision:6,commands:[{operation:'set_member_teams',entityId:'fictional-member',values:{teamIds}}]})).status,400);assert.deepEqual(raw('owner-a'),before);
+ assert.equal((await call('delegate',path,'PATCH',body)).status,409);
+ const rollback={revision:6,reason:'Fictional rolled back team change',commands:[{operation:'add_team',values:{name:'Fictional Must Roll Back'}},{operation:'set_member_teams',entityId:'fictional-member',values:{teamIds:['fictional-unknown-team']}}]};assert.equal((await call('delegate',path,'PATCH',rollback)).status,400);assert.equal((await ok('delegate',path)).teams.length,2);assert.deepEqual(raw('owner-a'),before);
+ const remove={revision:6,reason:'Fictional remove selected project assignment',commands:[{operation:'set_member_teams',entityId:'fictional-member',values:{teamIds:[]}}]};assert.equal((await call('delegate',path,'PATCH',remove,()=>db.prepare("UPDATE site_role_memberships SET role='user' WHERE user_id='delegate'").run())).status,403);assert.equal(db.prepare('SELECT COUNT(*) n FROM project_team_members WHERE team_id IN (?,?)').get(...ids).n,2);
+ await ok('highest',path,'PATCH',remove);assert.equal(db.prepare('SELECT COUNT(*) n FROM project_team_members WHERE team_id IN (?,?)').get(...ids).n,0);assert.equal(db.prepare('SELECT member_id FROM project_team_members WHERE team_id=?').get('fictional-unrelated-team').member_id,'fictional-member');
+});

@@ -8,7 +8,7 @@ import {equipmentSharingTables,setupEquipmentSharing} from './equipment-sharing.
 export const accountSchemaTables=Object.freeze(['password_changes','account_profiles','account_status','admin_audit','equipment_items','equipment_links','project_accounts','project_teams','project_team_members',...inventoryTables,...equipmentSharingTables]);
 const monthlyNumberSchema=db=>['inventory_sequences','inventory_loan_numbers'].every(name=>{const columns=db.prepare(`PRAGMA table_info(${name})`).all().map(column=>column.name);return columns.includes('period')&&!columns.includes('year');});
 const existingTables=db=>new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row=>row.name));
-async function privateBackup(db,dir){
+export async function privateBackup(db,dir){
  // A SQLite online backup includes committed WAL data. It stays private in the data volume.
  const destination=join(dir,'backups');await mkdir(destination,{recursive:true,mode:0o700});await chmod(destination,0o700);
  const file=join(destination,`before-project-accounts-${Date.now()}-${randomUUID()}.sqlite`);

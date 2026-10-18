@@ -5,6 +5,7 @@ import {randomUUID} from 'node:crypto';
 import {equipmentProjectAccess,equipmentProjectScope,equipmentSource} from './equipment-sharing.js';
 import {orgCanManage} from './inventory-organizations.js';
 import {isAdmin} from './invitations.js';
+import {isProtectedSiteAccount,siteRole} from './site-roles.js';
 import {token,hashPassword,verifyPassword} from './auth.js';
 import {validPassword} from './password-policy.js';
 import {readWorkspace,writeWorkspace} from './workspace-service.js';
@@ -53,17 +54,21 @@ export function accountRoutes(db){
  if(path==='/api/accounts'&&req.method==='GET'){
  const q=(url.searchParams.get('q')||'').trim();if(q.length<2||q.length>64){json(200,{accounts:[]});return true;}
  const escaped=q.replace(/[\\%_]/g,'\\$&');const accounts=db.prepare("SELECT u.id,u.username,COALESCE(p.name,'') AS name FROM users u LEFT JOIN account_profiles p ON p.user_id=u.id LEFT JOIN account_status s ON s.user_id=u.id WHERE s.deleted_at IS NULL AND (s.suspended_until IS NULL OR s.suspended_until<=?) AND (u.username LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\') ORDER BY u.username LIMIT 20").all(Date.now(),`%${escaped}%`,`%${escaped}%`);json(200,{accounts});return true;}
- if(path==='/api/admin/users'&&req.method==='GET'){json(200,{users:db.prepare("SELECT u.id,u.username,COALESCE(p.name,'') name,s.suspended_until,s.deleted_at FROM users u LEFT JOIN account_profiles p ON p.user_id=u.id LEFT JOIN account_status s ON s.user_id=u.id ORDER BY u.username").all()});return true;}
+ if(path==='/api/admin/users'&&req.method==='GET'){json(200,{users:db.prepare("SELECT u.id,u.username,COALESCE(p.name,'') name,s.suspended_until,s.deleted_at FROM users u LEFT JOIN account_profiles p ON p.user_id=u.id LEFT JOIN account_status s ON s.user_id=u.id ORDER BY u.username").all().map(user=>({...user,siteRole:siteRole(db,user.id),protected:isProtectedSiteAccount(db,user.id)}))});return true;}
  if(path==='/api/admin/audit'&&req.method==='GET'){json(200,{events:db.prepare('SELECT * FROM admin_audit ORDER BY created_at DESC LIMIT 100').all()});return true;}
  const admin=path.match(/^\/api\/admin\/users\/([^/]+)\/actions$/);
  if(admin&&req.method==='POST'){
  const data=await readJson(16384),id=admin[1],user=db.prepare('SELECT id,username FROM users WHERE id=?').get(id);
- if(!data||typeof data!=='object')return fail(400,'Invalid input');if(!user)return fail(404,'Account not found');if(id===uid||isAdmin(db,id))return fail(403,'Administrator account protected');
+ if(!data||typeof data!=='object')return fail(400,'Invalid input');if(!user)return fail(404,'Account not found');if(id===uid||isProtectedSiteAccount(db,id))return fail(403,'Administrator account protected');
+ if(data.action==='delete')return fail(400,'Permanent deletion preview required');
  if(data.confirmUsername!==user.username||typeof data.reason!=='string'||!data.reason.trim()||data.reason.length>500)return fail(400,'Confirmation and reason required');
  if(!['reset-password','suspend','restore','delete'].includes(data.action))return fail(400,'Invalid action');
  if(data.action==='suspend'&&data.until!==null&&(!Number.isSafeInteger(data.until)||data.until<=Date.now()||data.until>Date.now()+366*86400000))return fail(400,'Invalid suspension period');
  let temporaryPassword,password;if(data.action==='reset-password'){temporaryPassword=`A!${token()}`;password=await hashPassword(temporaryPassword);}
  db.exec('BEGIN IMMEDIATE');try{
+ if(!accountActive(db,uid)||!isAdmin(db,uid)){db.exec('ROLLBACK');return fail(403,'Administrator required');}
+ if(!session.token||!db.prepare('SELECT token FROM sessions WHERE token=? AND user_id=? AND expires>?').get(session.token,uid,Date.now())){db.exec('ROLLBACK');return fail(401,'Session changed. Sign in again');}
+ if(id===uid||isProtectedSiteAccount(db,id)){db.exec('ROLLBACK');return fail(403,'Administrator account protected');}
  if(password){db.prepare('UPDATE users SET password=? WHERE id=?').run(password,id);db.prepare('INSERT OR IGNORE INTO password_changes VALUES(?)').run(id);}
  else {const until=data.action==='suspend'?(data.until===null?8640000000000000:data.until):null,deleted=data.action==='delete'?Date.now():null;db.prepare('INSERT INTO account_status VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET suspended_until=excluded.suspended_until,deleted_at=excluded.deleted_at').run(id,until,deleted);}
  revoke(id);db.prepare('INSERT INTO admin_audit VALUES(?,?,?,?,?,?)').run(randomUUID(),uid,id,data.action,data.reason.trim(),Date.now());db.exec('COMMIT');

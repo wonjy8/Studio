@@ -1,7 +1,8 @@
 import {randomUUID} from 'node:crypto';
 import {token,digest,hashPassword} from './auth.js';
 import {validPassword} from './password-policy.js';
-export function isAdmin(db,id){return Boolean(id&&db.prepare("SELECT value FROM site_settings WHERE key='admin_user_id'").get()?.value===id);}
+import {isAdmin} from './site-roles.js';
+export {isAdmin} from './site-roles.js';
 export function invitationRoutes(db,origin){
  let active=0;const attempts=[];
  return async({path,req,session,json,readJson})=>{

@@ -1,0 +1,30 @@
+import {request} from '../integrations/api.js';
+import {escapeHtml as esc} from '../design-system/primitives/html.js';
+const blockerLabel=kind=>({self_account:'현재 로그인 계정',protected_account:'보호된 관리자 계정',first_login_identity:'최초 로그인 계정',project_accounts:'공유 프로젝트 멤버',project_teams:'프로젝트 팀',equipment_items:'소유 장비',equipment_links:'연결 장비',equipment_project_scope:'프로젝트 등록 장비',equipment_project_grants:'장비 공유 승인',equipment_claims:'장비 계정 연결',inventory_organizations:'소유 조직',inventory_operators:'조직 운영자',inventory_memberships:'조직 멤버',inventory_invitations:'조직 초대',inventory_site_invitations:'발송한 조직 초대',inventory_project_approvals:'조직 장비 프로젝트 승인',inventory_loans:'대여 이력',inventory_returns:'반납 이력',inventory_sequences:'대여 번호 이력',inventory_loan_numbers:'발급한 대여 번호',inventory_requests:'장비 처리 이력',admin_audit:'계정 관리 기록',site_role_audit:'권한 관리 기록',admin_project_audit:'프로젝트 관리 기록',invitations:'발급한 가입 초대',foreign_workspace_reference:'다른 계정 프로젝트의 연결 자료'})[kind]||'확인이 필요한 연결 자료';
+const bound=new WeakSet();let active=null,opening=false;
+export const accountDeletionDraftPending=()=>Boolean(active?.panel.isConnected&&active.pending());
+export const accountDeletionCanLeave=()=>!active?.panel.isConnected||active.leave();
+export function bindPermanentAccountDeletion(root){
+ if(!root||bound.has(root))return;bound.add(root);
+ root.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-permanent-delete]');if(!button||!root.contains(button)||button.disabled||opening)return;if(active?.panel.isConnected){if(!active.leave())return;active.close();}opening=true;
+  button.disabled=true;const panel=document.createElement('section');panel.className='card';panel.dataset.permanentDeletePanel='';panel.setAttribute('aria-label','계정 영구삭제 확인');button.after(panel);
+  const close=()=>{panel.remove();button.disabled=false;button.focus();};
+  try{
+   const preview=await request(`admin/users/${encodeURIComponent(button.dataset.permanentDelete)}/deletion-preview`);if(!root.isConnected)return;
+   panel.innerHTML=`<h3>@${esc(preview.target.username)} 계정 영구삭제</h3><p class="sub">계정 로그인 정보, 이름, 개인 프로젝트와 첨부파일을 삭제합니다. 앱에서 복구할 수 없습니다. 공유 자료에 연결된 계정은 삭제할 수 없습니다. 보존 중인 백업에는 데이터가 남을 수 있으며 백업은 이 작업에서 삭제하지 않습니다.</p>${preview.allowed?'':`<p role="alert">연결 자료 또는 보호 정책 때문에 삭제할 수 없습니다.</p><ul>${preview.blockers.map(item=>`<li>${esc(blockerLabel(item.kind))}: ${esc(item.count)}</li>`).join('')}</ul>`}<form class="form" data-permanent-delete-form><label class="field">확인: @${esc(preview.target.username)} 입력<input name="confirmUsername" required autocomplete="off"></label><label class="field">삭제 사유<textarea name="reason" required minlength="3" maxlength="500"></textarea></label><label><input type="checkbox" name="irreversible" required> 삭제 범위를 확인했으며 앱에서 복구할 수 없음을 이해합니다.</label><p role="status" data-permanent-delete-message></p><div class="actions"><button class="btn danger" type="submit" ${preview.allowed?'':'disabled'}>계정 영구삭제</button><button class="btn" type="button" data-permanent-delete-cancel>취소</button></div></form>`;
+   panel.querySelector('[data-permanent-delete-cancel]').onclick=close;panel.querySelector('input').focus();
+   let busy=false,uncertain=false;const initial=JSON.stringify([...new FormData(panel.querySelector('form'))]);
+   active={panel,close,pending:()=>busy||uncertain||JSON.stringify([...new FormData(panel.querySelector('form'))])!==initial,leave:()=>{if(busy){panel.querySelector('[data-permanent-delete-message]').textContent='삭제 처리 결과를 기다려 주세요.';return false;}return !active.pending()||confirm('삭제 확인 입력을 버리고 이동할까요?');}};
+   panel.querySelector('form').onsubmit=async e=>{
+    e.preventDefault();if(busy||uncertain||!preview.allowed)return;const form=e.target,message=panel.querySelector('[data-permanent-delete-message]'),values=Object.fromEntries(new FormData(form));
+    if(values.confirmUsername!==preview.target.username||!values.irreversible||!values.reason.trim()){message.textContent='유저네임, 사유와 복구 불가 확인을 모두 입력하세요.';return;}
+    if(!confirm(`@${preview.target.username} 계정과 표시된 개인 자료를 영구삭제할까요? 앱에서 복구할 수 없습니다.`))return;
+    busy=true;panel.querySelectorAll('input,textarea,button').forEach(node=>node.disabled=true);message.textContent='영구삭제 처리 중…';
+    try{await request(`admin/users/${encodeURIComponent(preview.target.id)}/actions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete-permanently',confirmUsername:values.confirmUsername,confirmIrreversible:true,scope:'account-and-private-data',expectedSnapshot:preview.expectedSnapshot,reason:values.reason.trim()})});if(!root.isConnected)return;button.closest('details')?.remove();const status=root.querySelector('[data-admin-message]');if(status)status.textContent='계정과 개인 자료가 영구삭제됐습니다. 앱에서 복구할 수 없습니다.';}
+    catch(error){if(!root.isConnected)return;message.textContent=error.message;uncertain=true;const refresh=document.createElement('button');refresh.type='button';refresh.className='btn';refresh.textContent='현재 상태 다시 확인';refresh.onclick=()=>{close();button.click();};panel.append(refresh);message.textContent+=' 다시 실행하기 전에 현재 상태를 확인하세요.';}
+    finally{busy=false;}
+   };
+  }catch(error){if(!root.isConnected)return;panel.innerHTML=`<p role="alert">${esc(error.message)}</p><button class="btn" type="button">닫기</button>`;panel.querySelector('button').onclick=close;}finally{opening=false;}
+ });
+}

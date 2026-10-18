@@ -1,8 +1,9 @@
 import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync, chmodSync } from 'node:fs';
+import { mkdirSync, chmodSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-export function openStore(dir) {
+export function openStore(dir,{siteRoleBootstrap=false}={}) {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const firstStore=!existsSync(join(dir,'studio.sqlite'));
   const db = new DatabaseSync(join(dir, 'studio.sqlite'));
   chmodSync(join(dir, 'studio.sqlite'), 0o600);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
@@ -13,6 +14,8 @@ export function openStore(dir) {
     CREATE TABLE IF NOT EXISTS workspaces(user_id TEXT PRIMARY KEY REFERENCES users(id), revision INTEGER NOT NULL, body TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS files(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), name TEXT NOT NULL, type TEXT NOT NULL, bytes BLOB NOT NULL);
   `);
+  // A birth marker is evidence of a new empty installation, never inferred from users or row order.
+  if(firstStore)db.prepare("INSERT OR IGNORE INTO site_settings VALUES('site_role_bootstrap_state',?)").run(siteRoleBootstrap?'eligible':'legacy');
   const inviteColumns=db.prepare('PRAGMA table_info(invitations)').all().map(c=>c.name);
   if(!inviteColumns.includes('max_uses')||!inviteColumns.includes('use_count')){
     db.exec('BEGIN IMMEDIATE');
