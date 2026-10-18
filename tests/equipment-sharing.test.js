@@ -42,16 +42,16 @@ test('manual project equipment remains scoped and account claims require explici
  const edited=readWorkspace(db,'producer');edited.state.gear[0].name='Fictional Forbidden Rename';assert.throws(()=>writeWorkspace(db,'producer',edited.state,edited.revision),e=>e.status===403);
 });
 
-test('member personal inventory is opt-in per project, canonical readonly and revocation immediate',async t=>{
+test('member inventory loads automatically, stays canonical readonly and disappears when membership is revoked',async t=>{
  const {db,call,ok,options}=await fixture(t),item=(await ok('member','/api/inventory/items','POST',{name:'Fictional Private Member Light',category:'lighting',model:'Fictional Private Model',storageLocation:'Fictional Private Shelf',trackingMode:'bulk',quantity:2})).item;
- assert.equal((await options()).catalog.some(value=>value.id===item.id),false);assert.equal((await call('producer','/api/projects/fictional-a/equipment-links','POST',{equipmentId:item.id})).status,403);
+ assert.equal((await options()).catalog.some(value=>value.id===item.id),true);assert.ok(readWorkspace(db,'producer').state.gear.some(g=>g.equipmentId===item.id));assert.equal(readWorkspace(db,'producer').state.gear.find(g=>g.equipmentId===item.id).equipmentQuantity,2);
  await ok('member',`/api/equipment/${item.id}/project-approvals`,'POST',{projectOwnerId:'producer',projectId:'fictional-a'});
  const selected=(await options()).catalog.find(value=>value.id===item.id);assert.ok(selected);for(const key of ['model','storageLocation','quantity','available','ownerId'])assert.equal(selected[key],undefined,key);
  const link=await ok('producer','/api/projects/fictional-a/equipment-links','POST',{equipmentId:item.id,assigneeMemberId:'fictional-member'}),duplicate=await ok('producer','/api/projects/fictional-a/equipment-links','POST',{equipmentId:item.id});assert.equal(link.gearId,duplicate.gearId);assert.equal(readWorkspace(db,'producer').state.gear.find(g=>g.id===link.gearId).assigneeMemberId,'fictional-member');
  assert.equal((await call('producer','/api/projects/fictional-b/equipment-links','POST',{equipmentId:item.id})).status,403);
  const snapshot=readWorkspace(db,'producer');assert.equal(snapshot.state.gear[0].canEditEquipment,false);snapshot.state.gear[0].category='audio';assert.throws(()=>writeWorkspace(db,'producer',snapshot.state,snapshot.revision),e=>e.status===403);
  assert.equal((await call('producer',`/api/equipment/${item.id}`,'PUT',{name:'Forbidden',category:'lighting'})).status,404);
- await ok('member',`/api/equipment/${item.id}/project-approvals/producer/fictional-a`,'DELETE');assert.equal((await options()).catalog.some(value=>value.id===item.id),false);
+ await ok('member',`/api/equipment/${item.id}/project-approvals/producer/fictional-a`,'DELETE');assert.equal((await options()).catalog.some(value=>value.id===item.id),true);db.prepare('DELETE FROM project_accounts WHERE owner_id=? AND project_id=? AND user_id=?').run('producer','fictional-a','member');assert.equal((await options()).catalog.some(value=>value.id===item.id),false);
  const after=readWorkspace(db,'producer');assert.equal(after.state.gear[0].equipmentUnavailable,true);after.state.gear[0].name='Forbidden after revoke';assert.throws(()=>writeWorkspace(db,'producer',after.state,after.revision),e=>e.status===403);
  assert.equal((await ok('producer','/api/inventory')).items.some(value=>value.id===item.id),false);assert.equal((await ok('producer','/api/inventory/loans?status=all')).loans.length,0);
 });

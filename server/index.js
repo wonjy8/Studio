@@ -1,3 +1,5 @@
+import {referenceLibraryRoutes,reconcileReferences} from './reference-library.js';
+import {contactRoutes} from './contacts.js';
 import {rentalVendorRoutes} from './rental-vendors.js';
 import {googleSheetsService} from './google-sheets.js';
 import {adminProjectFileRoutes} from './admin-project-files.js';
@@ -5,8 +7,8 @@ import {accountDeletionRoutes} from './account-deletion.js';
 import {configureSiteRoleManagement,siteCapabilities,siteRoleRoutes,claimFirstSiteAdministrator} from './site-roles.js';
 import {adminProjectRoutes} from './admin-projects.js';
 import {prepareSiteRoleSchema} from './site-role-migration.js';
-import {inventoryRoutes} from './inventory.js';
-import {equipmentSharingRoutes} from './equipment-sharing.js';
+import {inventoryRoutes,orgCanRead} from './inventory.js';
+import {equipmentSharingRoutes,equipmentProjectScope} from './equipment-sharing.js';
 import {isAppPath} from '../src/app/routes.js';
 import {prepareAccountSchema} from './account-migration.js';
 import {reconcileEquipment} from './equipment.js';
@@ -31,7 +33,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   configureSiteRoleManagement(db,enableSiteRoleManagement);
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
-  const handleInventory=inventoryRoutes(db),handleRentalVendors=rentalVendorRoutes(db);
+  const handleInventory=inventoryRoutes(db),handleRentalVendors=rentalVendorRoutes(db),handleContacts=contactRoutes(db,{orgCanRead,equipmentProjectScope}),handleReferenceLibrary=referenceLibraryRoutes(db);
   let googleSheets;try{googleSheets=await googleSheetsService(db,{dir,origin,...google});}catch(error){db.close();throw error;}
   const handleEquipmentSharing=equipmentSharingRoutes(db);
   const handleAccounts=accountRoutes(db),handleAccountDeletion=accountDeletionRoutes(db);
@@ -89,6 +91,8 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleAdminProjects({path,url,req,session,json,readJson}))return;
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;
+      if(await handleReferenceLibrary({path,req,session,json,readJson}))return;
+      if(await handleContacts({path,req,session,json,readJson}))return;
       if(await handleRentalVendors({path,req,session,json,readJson}))return;
       if(await googleSheets.routes({path,url,req,res,session,json,readJson}))return;
       if(await handleInventory({path,url,req,session,json,readJson})){if(!['GET','HEAD'].includes(req.method)&&res.statusCode<400)googleSheets.kick();return;}
@@ -136,9 +140,9 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         }
         if(path==='/api/files'&&req.method==='POST') {
           const type=req.headers['content-type'];
-          if(!['application/pdf','image/png','image/jpeg','image/webp'].includes(type)) return json(415,{error:'PDF, PNG, JPEG or WebP required'});
-          const bytes=await body(10*1024*1024);
-          const signature=type==='application/pdf'?bytes.subarray(0,5).toString()==='%PDF-':type==='image/png'?bytes.subarray(0,8).toString('hex')==='89504e470d0a1a0a':type==='image/jpeg'?bytes.subarray(0,3).toString('hex')==='ffd8ff':bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WEBP';
+          if(!['application/pdf','image/png','image/jpeg','image/webp','video/mp4','video/webm'].includes(type)) return json(415,{error:'PDF, PNG, JPEG, WebP, MP4 or WebM required'});
+          const bytes=await body(50*1024*1024);
+          const signature=type==='application/pdf'?bytes.subarray(0,5).toString()==='%PDF-':type==='image/png'?bytes.subarray(0,8).toString('hex')==='89504e470d0a1a0a':type==='image/jpeg'?bytes.subarray(0,3).toString('hex')==='ffd8ff':type==='video/mp4'?bytes.subarray(4,8).toString()==='ftyp':type==='video/webm'?bytes.subarray(0,4).toString('hex')==='1a45dfa3':bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WEBP';
           if(!signature) return json(400,{error:'Invalid file'});
           const usage=db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM files WHERE user_id=?').get(uid).size;
           if(usage+bytes.length>250*1024*1024) return json(413,{error:'Storage quota reached'});
@@ -148,7 +152,9 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         }
         const match=path.match(/^\/api\/files\/([a-f0-9-]{36})$/);
         if(match&&req.method==='GET') {
-          const file=db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(match[1],uid);
+          let file=db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(match[1],uid);
+          if(!file){for(const link of db.prepare('SELECT owner_id,project_id FROM project_accounts WHERE user_id=?').all(uid)){const row=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(link.owner_id);if(!row)continue;const state=reconcileReferences(db,link.owner_id,JSON.parse(row.body)),project=[state,...(state.projects||[])].find(p=>(p.project.id||'project-main')===link.project_id);if(project?.refs.some(ref=>ref.libraryId&&(ref.images.includes('/api/files/'+match[1])||(ref.files||[]).includes(match[1])))){file=db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(match[1],link.owner_id);if(file)break;}}}
+          res.setHeader('Cache-Control','private, no-store');
           if(!file) return json(404,{error:'Not found'});
           res.setHeader('Content-Type',file.type);
           res.setHeader('Content-Disposition',`${new URL(req.url,'http://localhost').searchParams.has('download')?'attachment':'inline'}; filename*=UTF-8''${encodeURIComponent(file.name).replace(/'/g,'%27')}`);
@@ -175,4 +181,4 @@ if(process.argv[1]===fileURLToPath(import.meta.url)) {
   server.listen(Number(process.env.PORT||8080),'0.0.0.0',()=>console.log('Studio listening'));
 }
 
-function pathForError(url){return url.startsWith('/oauth/')||url.startsWith('/api/connections')||url.startsWith('/api/google');}
+function pathForError(url){return url.startsWith('/oauth/')||url.startsWith('/api/connections')||url.startsWith('/api/google')||url.startsWith('/api/contacts')||url.startsWith('/api/reference-library')||url.startsWith('/api/material-equipment')||/^\/api\/projects\/[^/]+\/(contact-selection|reference-library)(?:[/?]|$)/.test(url);}

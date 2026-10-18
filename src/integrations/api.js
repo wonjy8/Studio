@@ -26,4 +26,9 @@ export function createProjectTeam(projectId,name){return revisionMutation(`proje
 export function saveProjectMemberTeams(projectId,memberId,teamIds){return revisionMutation(`projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(memberId)}/teams`,'PUT',{teamIds:[...teamIds]});}
 export async function upload(file){return request('files',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});}
 
-export function addProjectParticipants(projectId,userIds,organizationIds){return revisionMutation(`projects/${encodeURIComponent(projectId)}/member-selection`,'POST',{userIds:[...userIds],organizationIds:[...organizationIds]});}
+export function addProjectParticipants(projectId,userIds,organizationIds,contactIds=[]){return revisionMutation(`projects/${encodeURIComponent(projectId)}/member-selection`,'POST',{userIds:[...userIds],organizationIds:[...organizationIds],contactIds:[...contactIds]});}
+
+export function addProjectContacts(projectId,contactIds){return revisionMutation(`projects/${encodeURIComponent(projectId)}/contact-selection`,'POST',{contactIds:[...contactIds]});}
+
+export function linkProjectReferences(projectId,referenceIds){return revisionMutation(`projects/${encodeURIComponent(projectId)}/reference-library`,'POST',{referenceIds:[...referenceIds]});}
+export function unlinkProjectReference(projectId,referenceId){return revisionMutation(`projects/${encodeURIComponent(projectId)}/reference-library/${encodeURIComponent(referenceId)}`,'DELETE',{});}

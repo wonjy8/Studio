@@ -125,3 +125,5 @@ The workspace icon rail uses a compact 44px desktop / 42px mobile width. Use the
 - List/detail panel corners use the shared surface radius; controls use the shared control radius.
 
 Equipment item and loan lists use the same master/detail selection pattern as admin and Data Space. Operational canvases such as the calendar and camera layout retain their task-specific content inside the common frame.
+
+자료 워크스페이스는 레퍼런스 / 장비 / 인원 / 대여소로 구성한다. 장비에서는 소유 인원·조직별 목록을 조회하고, 별도 장비 관리 화면에서 등록·시트 연결·반출 내역을 관리한다. 인원 기록과 로그인 계정은 구분하며, 계정 연결 시 참여 프로젝트 조회 권한이 부여된다는 확인을 표시한다. 프로젝트 레퍼런스는 ‘자료에서 불러오기’와 ‘연결 해제’를 사용한다. 프로젝트 장비의 수량 보기 왼쪽 분류는 ‘사용 확정 / 미사용 장비 / 전체 장비’로 고정하고, 멤버·조직별 보기의 소유자 목록과 구분한다.

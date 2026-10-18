@@ -1,3 +1,4 @@
+import {addContactsToProject} from './contacts.js';
 import {assertInventoryIdentityChange,getInventoryMetadata,bumpInventoryRevision} from './inventory.js';
 import {applyCommands} from '../src/domain/commands.js';
 import {reconcileEquipment,assertEquipmentCategory} from './equipment.js';
@@ -36,7 +37,7 @@ export function sharedProjectProjection(p){
   schedule:(p.schedule||[]).map(row=>row.filter(value=>typeof value==='string')),
   cameras:(p.cameras||[]).map(camera=>({...pick(camera,['id','name','role','operator','body','lens','x','y','gearId']),refs:[]})),
   layoutObjects:list('layoutObjects',['id','kind','name','x','y','rotation','width','height','shape','memberId','gearId','lightType','color','background']),
-  refs:(p.refs||[]).map(ref=>({...pick(ref,['id','name','notes']),images:[]})),
+  refs:(p.refs||[]).map(ref=>({...pick(ref,['id','name','notes','url','tags','collection']),images:ref.libraryId?[...ref.images]:[],files:ref.libraryId?[...(ref.files||[])]:[]})),
   tasks:list('tasks',['id','name','completed','date','time','flagged'])
  };
 }
@@ -126,19 +127,20 @@ export function accountRoutes(db){
    json(200,{accounts:rows.slice(0,50).map(row=>({id:row.id,username:row.username,name:row.name,connected:Boolean(row.memberId),self:row.id===uid})),hasMore:rows.length>50,nextOffset:offset+50});return true;
   }
   if(section==='member-selection'&&req.method==='POST'){
-   const data=await readJson(32768);if(!data||Object.keys(data).some(k=>!['userIds','organizationIds','revision'].includes(k))||(!Number.isSafeInteger(data.revision)||data.revision<0)||!Array.isArray(data.userIds)||!Array.isArray(data.organizationIds)||data.userIds.length+data.organizationIds.length<1||data.userIds.length+data.organizationIds.length>200||data.userIds.some(id=>typeof id!=='string'||!id.length||id.length>128)||data.organizationIds.some(id=>typeof id!=='string'||!/^[A-Za-z0-9_-]{1,80}$/.test(id))||new Set(data.userIds).size!==data.userIds.length||new Set(data.organizationIds).size!==data.organizationIds.length)return fail(400,'Invalid member selection');
+   const data=await readJson(32768);if(data&&data.contactIds===undefined)data.contactIds=[];if(!data||Object.keys(data).some(k=>!['userIds','organizationIds','contactIds','revision'].includes(k))||(!Number.isSafeInteger(data.revision)||data.revision<0)||!Array.isArray(data.userIds)||!Array.isArray(data.organizationIds)||!Array.isArray(data.contactIds)||data.contactIds.some(id=>typeof id!=='string'||!/^[a-f0-9-]{36}$/.test(id))||new Set(data.contactIds).size!==data.contactIds.length||data.userIds.length+data.organizationIds.length+data.contactIds.length<1||data.userIds.length+data.organizationIds.length+data.contactIds.length>200||data.userIds.some(id=>typeof id!=='string'||!id.length||id.length>128)||data.organizationIds.some(id=>typeof id!=='string'||!/^[A-Za-z0-9_-]{1,80}$/.test(id))||new Set(data.userIds).size!==data.userIds.length||new Set(data.organizationIds).size!==data.organizationIds.length)return fail(400,'Invalid member selection');
    db.exec('BEGIN IMMEDIATE');let response;try{
     const current=readWorkspace(db,uid),project=projects(current.state).find(p=>(p.project.id||'project-main')===pid);if(!project)throw Object.assign(Error('Project not found'),{status:404});
     for(const id of data.userIds)if(!db.prepare('SELECT id FROM users WHERE id=?').get(id)||!accountActive(db,id))throw Object.assign(Error('Account unavailable'),{status:400});
     for(const id of data.organizationIds)if(!orgCanAdmin(db,uid,id))throw Object.assign(Error('Organization administrator required'),{status:403});
+    const addedContacts=addContactsToProject(db,uid,project,data.contactIds);
     const newUsers=data.userIds.filter(id=>!db.prepare('SELECT member_id FROM project_accounts WHERE owner_id=? AND project_id=? AND user_id=?').get(uid,pid,id));
     const newOrgs=data.organizationIds.filter(id=>!db.prepare('SELECT org_id FROM inventory_project_approvals WHERE org_id=? AND project_owner_id=? AND project_id=?').get(id,uid,pid));
-    if((newUsers.length||newOrgs.length)&&current.revision!==data.revision)throw Object.assign(Error('Workspace changed'),{status:409});
+    if((newUsers.length||newOrgs.length||addedContacts)&&current.revision!==data.revision)throw Object.assign(Error('Workspace changed'),{status:409});
     if(project.members.length+newUsers.length>2000)throw Object.assign(Error('Member limit exceeded'),{status:400});
     for(const id of newUsers)db.prepare('INSERT INTO project_accounts VALUES(?,?,?,?,?)').run(uid,pid,id,randomUUID(),Date.now());
     for(const id of newOrgs){db.prepare('INSERT INTO inventory_project_approvals VALUES(?,?,?,?,?,?)').run(id,uid,pid,1,uid,Date.now());db.prepare('UPDATE inventory_org_settings SET revision=revision+1 WHERE org_id=?').run(id);}
-    if(newUsers.length||newOrgs.length){linkedWorkspace(db,uid,current.state);writeWorkspace(db,uid,current.state,current.revision);}
-    const saved=readWorkspace(db,uid);response={revision:saved.revision,state:saved.state,addedMembers:newUsers.length,addedOrganizations:newOrgs.length};db.exec('COMMIT');
+    if(newUsers.length||newOrgs.length||addedContacts){linkedWorkspace(db,uid,current.state);writeWorkspace(db,uid,current.state,current.revision);}
+    const saved=readWorkspace(db,uid);response={revision:saved.revision,state:saved.state,addedMembers:newUsers.length,addedOrganizations:newOrgs.length,addedContacts};db.exec('COMMIT');
    }catch(error){db.exec('ROLLBACK');throw error;}json(200,response);return true;
   }
  }
