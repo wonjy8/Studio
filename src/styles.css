@@ -299,3 +299,11 @@ select:not([multiple]):not([size]){padding:8px var(--control-padding);border:1px
 .invitation-properties>.invite-options{display:grid;gap:0}.invitation-properties>.invite-options>.field{display:grid;grid-template-columns:minmax(100px,160px) minmax(0,1fr);gap:24px;align-items:center;padding:20px 0;border-bottom:1px solid var(--line)}
 .invitation-properties>.invite-options>.field[hidden]{display:none}.invitation-properties>.invite-options input{max-width:none}.invitation-properties>#create-invite{margin-top:20px;float:right}.invitation-properties::after{content:"";display:block;clear:both}
 @media(max-width:520px){.invitation-properties>.invite-options>.field{grid-template-columns:86px minmax(0,1fr);gap:12px;padding:16px 0}.connections-panel .property-value{flex-wrap:wrap}}
+
+/* Placement identity: icon and caption on the left, adjacent unlabeled palette. */
+.placement-appearance{grid-template-columns:64px minmax(0,1fr);gap:16px;align-items:start}
+.placement-appearance .placement-kind-control{grid-template-columns:1fr;justify-items:center;gap:8px;min-width:0;width:64px}
+.placement-appearance .placement-kind-control>.sub{grid-column:1;text-align:center;margin:0;line-height:20px}
+.placement-appearance>.icon-picker{align-self:start}
+.placement-appearance .color-options{min-height:44px;max-width:none;gap:10px;align-items:center}
+@media(max-width:520px){.placement-appearance{gap:12px}.placement-appearance .color-options{max-width:none;gap:8px}}
