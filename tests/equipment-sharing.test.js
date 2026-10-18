@@ -157,9 +157,9 @@ test('assistant shared domain add_equipment and add_camera chain saves project s
  // write boundary; it does not impersonate an OAuth/MCP transport invocation.
  const result=applyCommands(current.state,'fictional-a',[
   {operation:'add_equipment',values:{name:'Fictional Assistant Added Light',category:'lighting',owner:'Fictional Manual Owner'}},
-  {operation:'add_camera',values:{name:'Fictional Assistant Added Camera',body:'Fictional Assistant Camera Body'}}
+  {operation:'add_camera',values:{name:'Fictional Assistant Added Camera',gearId:existing.gearId}}
  ]);assert.deepEqual(current.state,before);
- const newIds=result.state.gear.filter(value=>!before.gear.some(old=>old.id===value.id)).map(value=>value.id);assert.equal(newIds.length,2);assert.ok(newIds.every(id=>result.state.gear.find(value=>value.id===id).equipmentSource==='manual'));
+ const newIds=result.state.gear.filter(value=>!before.gear.some(old=>old.id===value.id)).map(value=>value.id);assert.equal(newIds.length,1);assert.ok(newIds.every(id=>result.state.gear.find(value=>value.id===id).equipmentSource==='manual'));
  await ok('producer','/api/workspace','PUT',{revision:current.revision,state:result.state});const saved=await ok('producer','/api/workspace'),inventory=await ok('producer','/api/inventory');
  for(const id of newIds){const gear=saved.state.gear.find(value=>value.id===id);assert.equal(db.prepare('SELECT project_id FROM equipment_project_scope WHERE equipment_id=?').get(gear.equipmentId).project_id,'fictional-a');assert.equal(inventory.items.some(item=>item.id===gear.equipmentId),false);}
  const canonical=saved.state.gear.find(value=>value.id===existing.gearId);assert.equal(canonical.equipmentId,personal.id);assert.equal(inventory.items.some(item=>item.id===personal.id),true);assert.equal(db.prepare('SELECT equipment_id FROM equipment_project_scope WHERE equipment_id=?').get(personal.id),undefined);

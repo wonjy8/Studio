@@ -2,7 +2,7 @@ import {emptyWorkspace} from './workspace.js';
 import {prepareProjects,allProjects,switchProject,addProject} from './projects.js';
 import {addCamera,addLayoutObject,moveLayoutItem} from './layout.js';
 export const commandOperations=['add_shoot','update_shoot','add_member','update_member','add_equipment','update_equipment','add_reference','update_reference','update_project','add_project','add_camera','add_layout_object','move_layout'];
-const allowed={shoot:['date','name','time','location','status','completed'],member:['name','role','call'],equipment:['name','category','owner','assignee','status','ownerMemberId','assigneeMemberId'],reference:['name','notes'],project:['name','description','date','time','location','icon','color']};
+const allowed={shoot:['date','name','time','location','status','completed'],member:['name','role','call'],equipment:['isRental','name','category','owner','assignee','status','ownerMemberId','assigneeMemberId'],reference:['name','notes'],project:['name','description','date','time','location','icon','color']};
 export function applyCommands(input,projectId,commands,{prepareLayout=true}={}){
  if(!Array.isArray(commands)||commands.length<1||commands.length>20)throw Error('변경은 한 번에 1~20개까지 가능합니다.');
  let state=prepareProjects(structuredClone(input||emptyWorkspace()),{layout:prepareLayout});
@@ -26,6 +26,7 @@ export function applyCommands(input,projectId,commands,{prepareLayout=true}={}){
    item={...defaults,...values,id:type+'-'+crypto.randomUUID()};state[key].push(item);
   }else{item=state[key].find(x=>x.id===entityId);if(!item)throw Error('현재 프로젝트에서 항목을 찾을 수 없습니다.');previousName=item.name;previousItem={...item};Object.assign(item,values);}
   if(typeof item.name!=='string'||!item.name.trim())throw Error('이름이 필요합니다.');
+  if(type==='equipment'&&item.isRental!==undefined&&typeof item.isRental!=='boolean')throw Error('대여 장비 구분을 확인하세요.');
   if(type==='equipment')for(const field of ['owner','assignee']){
    const linkKey=field+'MemberId',memberId=item[linkKey];
    if(memberId!==undefined&&memberId!==null){

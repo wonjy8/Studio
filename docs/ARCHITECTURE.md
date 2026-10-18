@@ -125,7 +125,7 @@ Important cross-feature mutations should calculate impact before commit. Moving 
 The UI and AI layer should present an impact summary and support undo/history for meaningful changes.
 
 ## Scene layout and equipment inventory
-`src/domain/layout.js` owns layout mutations and shared equipment categories. Camera setups reference `gearId` in the project's inventory (category `camera`); new setups may reuse an existing camera or register one. Legacy setups are linked during project preparation, idempotently. The existing camera body field is retained for compatibility.
+`src/domain/layout.js` owns layout mutations and shared equipment categories. Camera setups reference `gearId` in the project's inventory (category `camera`); new setups must select an existing, available camera from project equipment. Creating a setup never creates an inventory item. Legacy setups are linked during project preparation, idempotently. The existing camera body field is retained for compatibility.
 
 Optional `layoutObjects` supports person/table/chair/stage/equipment/other, percentage x/y and rotation. Equipment placements require a valid project-local `gearId`; people may link a project-local `memberId`. Other objects are spatial context, not inventory. Camera, lens, lighting, tripod, SD card, audio and other are inventory categories; uncategorized legacy items remain supported. Server validation checks these references and coordinates for active and inactive projects. Project snapshots retain layout objects. Removing a placement keeps the source inventory/member record. Layouts remain project-level in this version.
 
@@ -142,3 +142,12 @@ Purpose: annotate a project floor plan and adjust object orientation without swi
 Text is a layout object: its name stores the literal multiline content once, with an optional transparent or six-digit hexadecimal background. The shared layout form and appearance controls add/edit it; the canvas escapes markup and clips visible content to its box without discarding the stored text. Pointer cancellation restores exact values and does not save. Keyboard and numeric alternatives remain available. Coordinates keep internal precision while forms show integers.
 
 Workspace validation covers active and inactive projects, text size/content/background and project-local references. No schema migration, account permission change or destructive link propagation is required. Removing a placement keeps its reusable member/equipment source. Regression fixtures are isolated fictional accounts and temporary databases.
+
+
+### List/detail workspaces and rental vendors
+
+Administration uses the same left list / right detail pattern for users, equipment, organizations and projects. Existing form nodes stay mounted while selecting items so switching selection preserves drafts and event handlers. Project members put the directory on the left and team management on the right; project equipment selects an owner or organization on the left and confirms usage on the right.
+
+The Data Space workspace (`/dataspace/rental-vendors`, also account-namespaced) stores rental vendor contacts in `rental_vendors`. Reads and writes are scoped to the authenticated account; updates/deletes require the current revision. Vendor records are private account data in permanent deletion. Project rental equipment stores the chosen vendor name as its historical owner-label snapshot and an `isRental` boolean; deleting or renaming a vendor does not rewrite existing project records.
+
+Layout viewport height (280–1200 px) and zoom (40–300%) are browser preferences keyed by account and project. Both top and bottom handles resize the viewport; wheel/pinch gestures zoom about the pointer. Existing pointer geometry converts screen movement through the stage transform so dragging, resizing and rotation remain correct when zoomed.

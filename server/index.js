@@ -1,3 +1,4 @@
+import {rentalVendorRoutes} from './rental-vendors.js';
 import {googleSheetsService} from './google-sheets.js';
 import {adminProjectFileRoutes} from './admin-project-files.js';
 import {accountDeletionRoutes} from './account-deletion.js';
@@ -30,7 +31,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   configureSiteRoleManagement(db,enableSiteRoleManagement);
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
-  const handleInventory=inventoryRoutes(db);
+  const handleInventory=inventoryRoutes(db),handleRentalVendors=rentalVendorRoutes(db);
   let googleSheets;try{googleSheets=await googleSheetsService(db,{dir,origin,...google});}catch(error){db.close();throw error;}
   const handleEquipmentSharing=equipmentSharingRoutes(db);
   const handleAccounts=accountRoutes(db),handleAccountDeletion=accountDeletionRoutes(db);
@@ -88,6 +89,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleAdminProjects({path,url,req,session,json,readJson}))return;
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;
+      if(await handleRentalVendors({path,req,session,json,readJson}))return;
       if(await googleSheets.routes({path,url,req,res,session,json,readJson}))return;
       if(await handleInventory({path,url,req,session,json,readJson})){if(!['GET','HEAD'].includes(req.method)&&res.statusCode<400)googleSheets.kick();return;}
       if(await handleAccountDeletion({path,url,req,session,json,readJson,clearSessionCookie:()=>setCookie('',0)}))return;

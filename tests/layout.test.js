@@ -12,7 +12,7 @@ test('legacy cameras reuse inventory and preparation is repeatable without data 
 });
 test('camera inventory and linked scene objects survive project switches; removal retains inventory',()=>{
  let state=prepareProjects(emptyWorkspace());
- const camera=addCamera(state,{name:'CAM A',body:'Fictional camera'});
+ state.gear.push({id:'registered-camera',name:'Fictional camera',category:'camera',owner:'',assignee:'',status:'check'});assert.throws(()=>addCamera(state,{name:'Unregistered'}),/등록된 카메라/);const camera=addCamera(state,{name:'CAM A',gearId:'registered-camera'});
  addCamera(state,{name:'CAM B',gearId:camera.gearId});assert.equal(state.gear.length,1);
  for(const category of ['lighting','tripod','sd'])state.gear.push({id:category,name:category,category,owner:'',assignee:'',status:'check'});
  state.members.push({id:'member',name:'Fictional performer',role:'Cast',call:''});
@@ -34,7 +34,7 @@ test('server rejects invalid placement positions, categories and cross-project r
  assert.throws(()=>addLayoutObject(state,{kind:'person',memberId:'foreign'}));
  assert.throws(()=>addCamera(state,{name:'CAM',gearId:'foreign'}));
  assert.throws(()=>moveLayoutItem(state,item.id,NaN,50));
- const camera=addCamera(state,{name:'CAM'});camera.gearId='foreign';assert.equal(validateWorkspace(state),false);
+ state.gear.push({id:'registered-camera',name:'Camera',category:'camera',owner:'',assignee:'',status:'check'});const camera=addCamera(state,{name:'CAM',gearId:'registered-camera'});camera.gearId='foreign';assert.equal(validateWorkspace(state),false);
 });
 test('tables support bounded independent rectangles and circles without changing linked records',async()=>{
  const {resizeLayoutTable}=await import('../src/domain/layout.js');
