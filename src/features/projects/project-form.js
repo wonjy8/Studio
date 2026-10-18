@@ -1,8 +1,7 @@
 import {icon} from '../../design-system/primitives/icons.js';
 import {escapeHtml as esc} from '../../design-system/primitives/html.js';
-import {projectColors} from '../../domain/workspace.js';
+import {colorPicker} from '../../design-system/color-picker.js';
 import {selectableProjectIcons,projectIconCategories,projectIconInfo,findProjectIcons} from '../../design-system/icons/catalog.js';
-const colorNames={violet:'보라',blue:'파랑',orange:'주황',green:'초록',rose:'분홍',graphite:'검정'};
 export const iconPageSize=48;
 export function projectIconPage(query='',category='',page=0){
  const results=findProjectIcons(query,category),pages=Math.max(1,Math.ceil(results.length/iconPageSize));
@@ -31,6 +30,6 @@ export function bindProjectIconPicker(root=document){
 export function projectForm(project,creating=false){
  const prefix=creating?'new-project':'project';
  return `<h2>${creating?'새 프로젝트':'프로젝트 설정'}</h2><form class="form project-form" data-form="${creating?'new-project':'project'}"><div class="field"><label for="${prefix}-name">프로젝트 이름</label><input id="${prefix}-name" name="name" value="${creating?'':esc(project.name)}" placeholder="프로젝트 이름" required maxlength="2000"></div><div class="field"><label for="${prefix}-description">설명</label><textarea id="${prefix}-description" name="description" maxlength="2000">${creating?'':esc(project.description||'')}</textarea></div>
- <div class="project-appearance"><fieldset class="icon-picker"><legend>색상</legend><div class="color-options">${projectColors.map(color=>`<label class="color-choice"><input type="radio" name="color" value="${color}" ${color===(project.color||'violet')?'checked':''}><span class="color-${color}" title="${colorNames[color]}"><span class="sr-only">${colorNames[color]}</span>${icon('check')}</span></label>`).join('')}</div></fieldset>${iconPicker(project.icon||'production',prefix)}</div>
+ <div class="project-appearance">${colorPicker(project.color||'violet')}${iconPicker(project.icon||'production',prefix)}</div>
  <div class="grid two">${[['date','촬영일'],['time','시간'],['location','장소']].map(([key,label])=>`<div class="field"><label for="${prefix}-${key}">${label}</label><input id="${prefix}-${key}" name="${key}" ${key==='date'?'type="date"':''} value="${creating?'':esc(project[key])}" maxlength="2000"></div>`).join('')}</div><button class="btn primary">${creating?'프로젝트 만들기':'변경 사항 저장'}</button></form>`;
 }

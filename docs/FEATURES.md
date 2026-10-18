@@ -94,3 +94,5 @@ The authenticated server stores account-isolated project state and attachments i
 **Why:** search-oriented ChatGPT clients discover `search` and `fetch`, while Studio previously exposed only its named project/mutation tools.
 **Flow:** search/query a signed-in account's projects → fetch one search result → cite its project URL. Empty query or the project-list phrase returns projects; specific queries match production metadata.
 **Reuse/privacy:** the same read grant, private workspace and project snapshots; no external index, OpenAI API key or private attachment byte access. Search/fetch are additions, not evidence that a particular ChatGPT account has activated the tools. Reference: OpenAI's Deep Research MCP cookbook search/fetch example.
+
+배치 색상: 사람·사물 추가 및 위치 편집에서 프로젝트와 동일한 6색을 선택한다. 종류별 원형 선택창은 자체 채움형 벡터를 사용한다. 색상은 항목별로 저장되며 기존 무색상 항목은 검정 계열로 표시한다. 팀 관리는 멤버 탭에서만 제공한다.

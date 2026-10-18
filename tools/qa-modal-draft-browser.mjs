@@ -26,8 +26,9 @@ try{
   page.on('response',response=>{if(response.url()===base+'/api/workspace'&&response.request().method()==='PUT')putStatus=response.status();if(response.url().endsWith('/assignments'))putStatus=response.status();});
   await page.route('**/api/projects/*/members',async route=>{if(route.request().method()!=='POST')return route.continue();const response=await route.fetch();assert.equal(response.status(),201);inviteReady();await new Promise(resolve=>releaseInvite=resolve);await route.fulfill({response});inviteDelivered();});
   await page.goto(base);await page.getByLabel('사용자 이름',{exact:true}).fill(username);await page.getByLabel('비밀번호',{exact:true}).fill(password);await page.locator('#login button[type=submit]').click();
-  await page.locator('[data-view=project-settings]').click();await page.locator('[data-account-search] [name=q]').fill(target);await page.locator('[data-account-search] button').click();await page.locator(`[data-invite-account="${target}"]`).waitFor();
+  await page.locator('[data-view=members]').click();await page.locator('[data-account-search] [name=q]').fill(target);await page.locator('[data-account-search] button').click();await page.locator(`[data-invite-account="${target}"]`).waitFor();
   const ready=new Promise(resolve=>inviteReady=resolve),delivered=new Promise(resolve=>inviteDelivered=resolve);await page.locator(`[data-invite-account="${target}"]`).click();await ready;
+  if(kind==='settings')await page.locator('[data-view=project-settings]').click();
   if(kind!=='settings'){
    await page.locator(`[data-view="${kind==='task'?'tasks':'gear'}"]`).click();
    await page.locator(kind==='task'?'[data-edit-task="fictional-task"]':'[data-edit-equipment="fictional-gear"]').click();
