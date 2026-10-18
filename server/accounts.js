@@ -69,6 +69,7 @@ export function accountRoutes(db){
  db.exec('BEGIN IMMEDIATE');try{
  if(!accountActive(db,uid)||!isAdmin(db,uid)){db.exec('ROLLBACK');return fail(403,'Administrator required');}
  if(!session.token||!db.prepare('SELECT token FROM sessions WHERE token=? AND user_id=? AND expires>?').get(session.token,uid,Date.now())){db.exec('ROLLBACK');return fail(401,'Session changed. Sign in again');}
+ if(passwordChangeRequired(db,uid)){db.exec('ROLLBACK');return fail(403,'Password change required');}
  if(id===uid||isProtectedSiteAccount(db,id)){db.exec('ROLLBACK');return fail(403,'Administrator account protected');}
  if(!db.prepare('SELECT id FROM users WHERE id=?').get(id)){db.exec('ROLLBACK');return fail(404,'Account not found');}
  if(db.prepare('SELECT deleted_at FROM account_status WHERE user_id=?').get(id)?.deleted_at!=null){db.exec('ROLLBACK');return fail(409,'Deleted accounts cannot be restored or modified. Preview permanent deletion.');}
@@ -123,8 +124,28 @@ export function accountRoutes(db){
  const existing=db.prepare('SELECT member_id FROM project_accounts WHERE owner_id=? AND project_id=? AND user_id=?').get(uid,pid,user.id);if(existing){json(200,{memberId:existing.member_id});return true;}
  const id=randomUUID();db.exec('BEGIN IMMEDIATE');try{db.prepare('INSERT INTO project_accounts VALUES(?,?,?,?,?)').run(uid,pid,user.id,id,Date.now());linkedWorkspace(db,uid,current.state);writeWorkspace(db,uid,current.state,current.revision);db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}json(201,{memberId:id});return true;}
  if(section==='teams'&&req.method==='GET'){const teams=db.prepare('SELECT id,name FROM project_teams WHERE owner_id=? AND project_id=?').all(uid,pid).map(t=>({...t,memberIds:db.prepare('SELECT member_id FROM project_team_members WHERE team_id=?').all(t.id).map(m=>m.member_id)}));json(200,{teams});return true;}
- if(section==='teams'&&req.method==='POST'){const data=await readJson(16384);if(!data||typeof data.name!=='string'||!data.name.trim()||data.name.length>80)return fail(400,'Team name required');const id=randomUUID();db.prepare('INSERT INTO project_teams VALUES(?,?,?,?)').run(id,uid,pid,data.name.trim());json(201,{id,name:data.name.trim()});return true;}
- if(memberId&&req.method==='PUT'){const data=await readJson(16384);linkedWorkspace(db,uid,current.state);if(!data||!p.members.some(m=>m.id===memberId)||!Array.isArray(data.teamIds)||data.teamIds.length>100||new Set(data.teamIds).size!==data.teamIds.length||data.teamIds.some(id=>typeof id!=='string'||!db.prepare('SELECT id FROM project_teams WHERE id=? AND owner_id=? AND project_id=?').get(id,uid,pid)))return fail(400,'Invalid team assignment');db.exec('BEGIN IMMEDIATE');try{db.prepare('DELETE FROM project_team_members WHERE member_id=? AND team_id IN (SELECT id FROM project_teams WHERE owner_id=? AND project_id=?)').run(memberId,uid,pid);for(const id of data.teamIds)db.prepare('INSERT INTO project_team_members VALUES(?,?)').run(id,memberId);db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}json(200,{ok:true});return true;}}
+ if((section==='teams'&&req.method==='POST')||(memberId&&req.method==='PUT')){
+ const data=await readJson(16384),reject=(status,message)=>{throw Object.assign(Error(message),{status});};
+ if(!data||(Object.hasOwn(data,'revision')&&!Number.isSafeInteger(data.revision)))return fail(400,'Invalid team revision');
+ const expected=data.revision??current.revision;let result;
+ db.exec('BEGIN IMMEDIATE');try{
+  const row=db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(uid);
+  if(!row||row.revision!==expected)reject(409,'Workspace changed. Reload before editing.');
+  const latest=linkedWorkspace(db,uid,JSON.parse(row.body)),project=projects(latest).find(entry=>(entry.project.id||'project-main')===pid);
+  if(!project)reject(404,'Project not found');
+  if(section==='teams'){
+   if(typeof data.name!=='string'||!data.name.trim()||data.name.length>80)reject(400,'Team name required');
+   const id=randomUUID();db.prepare('INSERT INTO project_teams VALUES(?,?,?,?)').run(id,uid,pid,data.name.trim());result={id,name:data.name.trim()};
+  }else{
+   if(!project.members.some(m=>m.id===memberId)||!Array.isArray(data.teamIds)||data.teamIds.length>100||new Set(data.teamIds).size!==data.teamIds.length||data.teamIds.some(id=>typeof id!=='string'||!db.prepare('SELECT id FROM project_teams WHERE id=? AND owner_id=? AND project_id=?').get(id,uid,pid)))reject(400,'Invalid team assignment');
+   db.prepare('DELETE FROM project_team_members WHERE member_id=? AND team_id IN (SELECT id FROM project_teams WHERE owner_id=? AND project_id=?)').run(memberId,uid,pid);
+   for(const id of data.teamIds)db.prepare('INSERT INTO project_team_members VALUES(?,?)').run(id,memberId);result={ok:true};
+  }
+  if(db.prepare('UPDATE workspaces SET revision=revision+1 WHERE user_id=? AND revision=?').run(uid,expected).changes!==1)reject(409,'Workspace changed. Reload before editing.');
+  db.exec('COMMIT');
+ }catch(error){db.exec('ROLLBACK');throw error;}
+ json(section==='teams'?201:200,{...result,revision:expected+1});return true;
+ }}
  const shared=path.match(/^\/api\/projects\/([A-Za-z0-9_-]{1,80})\/shared$/);if(shared&&req.method==='GET'){const owner=url.searchParams.get('owner');if(!db.prepare('SELECT user_id FROM project_accounts WHERE owner_id=? AND project_id=? AND user_id=?').get(owner,shared[1],uid))return fail(404,'Project not found');const p=projects(readWorkspace(db,owner).state).find(p=>(p.project.id||'project-main')===shared[1]);if(!p)return fail(404,'Project not found');json(200,{project:sharedProjectProjection(p),readOnly:true});return true;}
  return fail(404,'Not found');
  };}

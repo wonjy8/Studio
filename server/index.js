@@ -54,6 +54,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       const body = async (limit=1024*1024)=>{
         const chunks=[];let size=0;
         for await (const chunk of req) {size+=chunk.length;if(size>limit) {const e=Error();e.status=413;throw e;} chunks.push(chunk);}
+        assertLiveMutation();
         return Buffer.concat(chunks);
       };
       let parsedJson,hasParsedJson=false;
@@ -65,6 +66,14 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
       let session = cookie && db.prepare('SELECT user_id,token FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
       if(session&&!accountActive(db,session.user_id))session=undefined;
+      // A request may wait for its body while another request revokes authority.
+      // Cover JSON and binary API bodies; role/ownership checks stay in each
+      // mutation's transaction, after this exact-session/account check.
+      function assertLiveMutation(){
+        if(!session||!path.startsWith('/api/')||['GET','HEAD'].includes(req.method))return;
+        if(!db.prepare('SELECT id FROM users WHERE id=?').get(session.user_id)||!accountActive(db,session.user_id)||!db.prepare('SELECT token FROM sessions WHERE token=? AND user_id=? AND expires>?').get(session.token,session.user_id,Date.now()))throw Object.assign(Error('Session changed. Sign in again'),{status:401});
+        if(path!=='/api/account/password'&&passwordChangeRequired(db,session.user_id))throw Object.assign(Error('PASSWORD_CHANGE_REQUIRED'),{status:403});
+      }
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
       if(session&&passwordChangeRequired(db,session.user_id)&&!['/api/session','/api/logout','/api/account/password'].includes(path)&&path.startsWith('/api/'))return json(403,{error:'PASSWORD_CHANGE_REQUIRED'});
       if(path==='/api/connections/diagnostics'&&req.method==='GET'){if(!session)return json(401,{error:'Login required'});if(!isAdmin(db,session.user_id))return json(403,{error:'Administrator required'});return json(200,{version:'connection-diagnostics-1',toolSchemaVersion,events:diagnostics.list()});}

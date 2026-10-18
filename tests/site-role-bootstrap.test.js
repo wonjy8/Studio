@@ -6,7 +6,8 @@ import {join} from 'node:path';
 import {openStore} from '../server/store.js';
 import {createApp} from '../server/index.js';
 import {hashPassword} from '../server/auth.js';
-import {siteRole,setupSiteRoles,configureSiteRoleManagement,claimFirstSiteAdministrator} from '../server/site-roles.js';
+import {selfDeletionCapability} from '../server/account-deletion.js';
+import {siteRole,isProtectedSiteAccount,setupSiteRoles,configureSiteRoleManagement,claimFirstSiteAdministrator} from '../server/site-roles.js';
 const value=(db,key)=>db.prepare('SELECT value FROM site_settings WHERE key=?').get(key)?.value;
 async function directory(t){const dir=await mkdtemp(join(tmpdir(),'studio-bootstrap-fictional-'));t.after(()=>rm(dir,{recursive:true,force:true}));return dir;}
 async function app(t,dir,enabled){const {server,db}=await createApp({dir,origin:'http://localhost',secure:false,enableSiteRoleManagement:enabled});await new Promise(r=>server.listen(0,'127.0.0.1',r));let closed=false;const close=async()=>{if(closed)return;closed=true;await new Promise(r=>server.close(r));};t.after(close);const base=`http://127.0.0.1:${server.address().port}`;const request=async(path,options={})=>fetch(base+path,{...options,headers:{Origin:'http://localhost',...options.headers}});const login=async username=>{const r=await request('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password:'Fictional-password!1'})});return {status:r.status,body:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0]};};return {db,close,request,login};}
@@ -40,4 +41,18 @@ test('first-login audit failure atomically rolls back highest markers and sessio
  instance.db.exec("CREATE TRIGGER fictional_bootstrap_audit_failure BEFORE INSERT ON site_role_audit BEGIN SELECT RAISE(ABORT,'fictional isolated failure'); END");
  const failed=await instance.login('fictional-first');assert.equal(failed.status,500);assert.equal(failed.cookie,undefined);assert.equal(value(instance.db,'super_admin_user_id'),undefined);assert.equal(value(instance.db,'site_role_first_login_user_id'),undefined);assert.equal(value(instance.db,'site_role_bootstrap_state'),'eligible');assert.equal(instance.db.prepare('SELECT count(*) n FROM sessions').get().n,0);assert.equal(instance.db.prepare('SELECT count(*) n FROM site_role_audit').get().n,0);
  instance.db.exec('DROP TRIGGER fictional_bootstrap_audit_failure');assert.equal((await instance.login('fictional-second')).status,200);assert.equal(value(instance.db,'super_admin_user_id'),'fictional-second');
+});
+
+test('restart before first login never protects the first provisioned account instead of the actual first login',async t=>{
+ const dir=await directory(t);let instance=await app(t,dir,true);await seed(instance.db);await instance.close();instance=await app(t,dir,true);
+ assert.equal(value(instance.db,'admin_user_id'),undefined);assert.equal(isProtectedSiteAccount(instance.db,'fictional-first'),false);
+ const actualFirst=await instance.login('fictional-second');assert.equal(actualFirst.status,200);assert.equal(value(instance.db,'super_admin_user_id'),'fictional-second');assert.equal(value(instance.db,'admin_user_id'),'fictional-second');assert.equal(isProtectedSiteAccount(instance.db,'fictional-first'),false);assert.equal(siteRole(instance.db,'fictional-first'),'user');
+ const ordinary=await instance.login('fictional-first');assert.equal(ordinary.status,200);const session=await (await instance.request('/api/session',{headers:{Cookie:ordinary.cookie}})).json();assert.equal(session.siteRole,'user');assert.equal(selfDeletionCapability(instance.db,'fictional-first'),true);const selfPreview=await instance.request('/api/account/deletion-preview',{headers:{Cookie:ordinary.cookie}});assert.equal(selfPreview.status,200);assert.equal((await selfPreview.json()).allowed,true);
+ await instance.close();instance=await app(t,dir,true);assert.equal(value(instance.db,'admin_user_id'),'fictional-second');assert.equal(isProtectedSiteAccount(instance.db,'fictional-first'),false);
+});
+test('legacy upgrade fallback remains intact while all new-install markers preserve pins without inferring others',async t=>{
+ for(const marker of ['eligible','claimed','held','blocked','fictional-unknown-state']){
+  const dir=await directory(t);let db=openStore(dir,{siteRoleBootstrap:true});await seed(db);db.prepare("UPDATE site_settings SET value=? WHERE key='site_role_bootstrap_state'").run(marker);db.close();db=openStore(dir,{siteRoleBootstrap:true});assert.equal(value(db,'admin_user_id'),undefined,marker);db.prepare("INSERT INTO site_settings VALUES('admin_user_id','fictional-second')").run();db.close();db=openStore(dir);assert.equal(value(db,'admin_user_id'),'fictional-second',marker);db.close();
+ }
+ for(const missing of [false,true]){const dir=await directory(t);let db=openStore(dir);await seed(db);if(missing)db.prepare("DELETE FROM site_settings WHERE key='site_role_bootstrap_state'").run();db.close();db=openStore(dir,{siteRoleBootstrap:true});assert.equal(value(db,'admin_user_id'),'fictional-first');db.close();}
 });

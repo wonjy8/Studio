@@ -25,8 +25,15 @@ export function openStore(dir,{siteRoleBootstrap=false}={}) {
       db.exec('COMMIT');
     }catch(e){db.exec('ROLLBACK');throw e;}
   }
-  // Preserve the owner on upgrade, using the earliest retained login; fall back to the first provisioned account.
-  const owner=db.prepare('SELECT user_id AS id FROM sessions ORDER BY rowid LIMIT 1').get() || db.prepare('SELECT id FROM users ORDER BY rowid LIMIT 1').get();
-  if(owner) db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(owner.id);
+  // Only legacy installations retain the historical upgrade fallback. New
+  // install markers (eligible/claimed/held/blocked) must never turn provision
+  // order into a second protected administrator before or after first login.
+  // Existing explicit admin pins are preserved in every state. Unknown markers
+  // also fail closed instead of inferring a new administrator identity.
+  const birth=db.prepare("SELECT value FROM site_settings WHERE key='site_role_bootstrap_state'").get();
+  if(!birth||birth.value==='legacy'){
+    const owner=db.prepare('SELECT user_id AS id FROM sessions ORDER BY rowid LIMIT 1').get() || db.prepare('SELECT id FROM users ORDER BY rowid LIMIT 1').get();
+    if(owner) db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(owner.id);
+  }
   return db;
 }
