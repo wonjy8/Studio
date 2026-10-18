@@ -52,3 +52,9 @@ test('degenerate canvas cannot mutate stored geometry through resize',()=>{
  const start={kind:'table',shape:'rectangle',width:360,height:48,x:35.123456,y:55.765432};
  for(const [w,h] of [[67,380],[260,67],[0,0]])for(const edge of edges)assert.deepEqual(resizeLayoutGeometry(start,edge,20,-20,w,h),{width:360,height:48,x:start.x,y:start.y});
 });
+
+test('person resize anchors square geometry and preserves source precision',()=>{
+ const start={kind:'person',width:80.1234,height:80.1234,x:35.123456,y:55.765432},before=structuredClone(start),old=bounds(start);
+ for(const edge of edges){const dx=edge.includes('w')?-20:edge.includes('e')?20:0,dy=edge.includes('n')?-20:edge.includes('s')?20:0;const next=resizeLayoutGeometry(start,edge,dx,dy,900,600),now=bounds({...start,...next});close(now.width,100.1234);close(now.height,100.1234);if(edge.includes('w'))close(now.r,old.r);if(edge.includes('e'))close(now.l,old.l);if(edge.includes('n'))close(now.b,old.b);if(edge.includes('s'))close(now.t,old.t);}
+ assert.deepEqual(start,before);assert.equal(resizeLayoutGeometry(start,'e',1000,0,900,600).width,240);
+});

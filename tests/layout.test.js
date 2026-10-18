@@ -53,7 +53,7 @@ test('layout forms show icon choices, whole coordinate values with precise sourc
  const person=addLayoutObject(state,{kind:'person',name:'Fictional cast'});
  const form=placementForm(state,'table');assert.equal((form.match(/type="radio"/g)||[]).length,6);assert.match(form,/name="shape"/);assert.doesNotMatch(form,/<select name="kind"/);
  assert.match(positionForm(table),/data-precise="31.2345" value="31"/);assert.match(positionForm(table),/name="height"[^>]*readonly/);
- const html=layoutStage(state);assert.equal((html.match(/data-resize=/g)||[]).length,8);assert.match(html,/<svg/);assert.match(html,/Fictional cast/);assert.doesNotMatch(html,/<small>사람<\/small>/);
+ const html=layoutStage(state);assert.equal((html.match(/data-resize=/g)||[]).length,16);assert.match(html,/<svg/);assert.match(html,/Fictional cast/);assert.doesNotMatch(html,/<small>사람<\/small>/);
  assert.equal(person.name,'Fictional cast');assert.throws(()=>addLayoutObject(state,{kind:'person'}));
 });
 test('display geometry keeps large tables and resize handles inside desktop/mobile without mutating source coordinates',async()=>{
@@ -77,4 +77,12 @@ test('mobile table fitting respects 48px axes while preserving circle shape and 
   const item={kind:'table',shape:width===height?'circle':'rectangle',width,height,x:31.23456,y:55.6789},before=structuredClone(item);
   const geometry=layoutItemGeometry(item,260,260);assert.equal(geometry.width,expectedWidth);assert.equal(geometry.height,expectedHeight);assert.deepEqual(item,before);
  }
+});
+
+test('people resize within fixed square limits and retain member links through project switches',async()=>{
+ const {resizeLayoutItem}=await import('../src/domain/layout.js');let state=prepareProjects(emptyWorkspace());state.members.push({id:'fictional-member',name:'Fictional Cast',role:'',call:''});const person=addLayoutObject(state,{kind:'person',memberId:'fictional-member'});assert.equal(person.width,80);assert.equal(person.height,80);
+ resizeLayoutItem(state,person.id,123.456,200);assert.equal(person.width,123.456);assert.equal(person.height,123.456);assert.equal(person.memberId,'fictional-member');assert.equal(validateWorkspace(state),true);
+ const source=state.project.id;state=addProject(state,{name:'Fictional Other',icon:'camera',color:'blue'},'fictional-other');state=switchProject(state,source);assert.equal(state.layoutObjects[0].width,123.456);
+ for(const patch of [{width:47,height:47},{width:241,height:241},{width:100,height:80},{shape:'circle'}]){const invalid=structuredClone(state);Object.assign(invalid.layoutObjects[0],patch);assert.equal(validateWorkspace(invalid),false);}
+ resizeLayoutItem(state,person.id,1000,1);assert.equal(state.layoutObjects[0].width,240);resizeLayoutItem(state,person.id,0,1);assert.equal(state.layoutObjects[0].width,48);assert.equal(validateWorkspace(state),true);
 });
