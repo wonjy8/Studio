@@ -1,0 +1,27 @@
+// Isolated visual/interaction smoke test. No production accounts or network calls.
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {createApp} from '../server/index.js';
+import {createServer} from 'node:net';
+import {emptyWorkspace} from '../src/domain/workspace.js';
+import {prepareProjects} from '../src/domain/projects.js';
+import {hashPassword} from '../server/auth.js';
+const {chromium}=await import(process.env.STUDIO_PLAYWRIGHT_MODULE||'playwright');
+const reservation=createServer();await new Promise(r=>reservation.listen(0,'127.0.0.1',r));const port=reservation.address().port;await new Promise(r=>reservation.close(r));const base='http://127.0.0.1:'+port;
+const dir=await mkdtemp('/tmp/studio-appearance-'),app=await createApp({dir,origin:base,secure:false});
+app.db.prepare('INSERT INTO users VALUES(?,?,?)').run('appearance','appearance',await hashPassword('Fictional!Qa2026'));
+const seed=prepareProjects(emptyWorkspace());seed.members.push({id:'split-member',name:'Fictional Crew',role:'Camera',call:'09:00'});app.db.prepare('INSERT INTO workspaces VALUES(?,?,?)').run('appearance',1,JSON.stringify(seed));
+await new Promise(r=>app.server.listen(port,'127.0.0.1',r));
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base);await page.locator('[name=username]').fill('appearance');await page.locator('[name=password]').fill('Fictional!Qa2026');await page.locator('#login button[type=submit]').click();await page.locator('[data-view=project-settings]').click();
+ const identity=page.locator('.project-identity-fields'),shoot=page.locator('.project-shoot-fields');
+ const bounds=async locator=>locator.boundingBox();let left=await bounds(identity),right=await bounds(shoot);assert.ok(left.x+left.width<right.x);assert.ok(Math.abs(left.y-right.y)<2);
+ const name=await bounds(page.locator('#project-name')),appearance=await bounds(page.locator('.project-appearance')),description=await bounds(page.locator('#project-description'));assert.ok(name.y<appearance.y&&appearance.y<description.y);
+ await page.locator('#project-name').fill('Fictional split project');await page.locator('#project-description').fill('Fictional split description');await page.locator('#project-date').fill('2026-10-18');await page.locator('#project-time').fill('09:30');await page.locator('#project-location').fill('Fictional stage');await page.screenshot({path:'/tmp/studio-split-project-desktop.png'});await page.locator('[data-form=project] > button').click();await page.waitForFunction(()=>document.querySelector('.save-indicator')?.textContent==='저장됨');await page.reload();await page.locator('[data-view=project-settings]').click();assert.equal(await page.locator('#project-location').inputValue(),'Fictional stage');assert.equal(await page.locator('#project-description').inputValue(),'Fictional split description');
+ await page.locator('[data-view=members]').click();await page.locator('[data-team-members] fieldset').waitFor();left=await bounds(page.locator('.member-roster-panel'));right=await bounds(page.locator('.member-teams-panel'));assert.ok(left.x+left.width<right.x);assert.ok(Math.abs(left.y-right.y)<2);
+ await page.getByLabel('새 팀 이름',{exact:true}).fill('Fictional split team');await page.locator('[data-team-create] button').click();await page.getByLabel('Fictional split team',{exact:true}).check();await page.waitForFunction(()=>document.querySelector('[data-team-status]')?.textContent==='팀 배정이 저장됐습니다.');await page.screenshot({path:'/tmp/studio-split-members-desktop.png'});await page.reload();await page.locator('[data-view=members]').click();assert.equal(await page.getByLabel('Fictional split team',{exact:true}).isChecked(),true);
+ for(const width of [390,320]){await page.setViewportSize({width,height:844});left=await bounds(page.locator('.member-roster-panel'));right=await bounds(page.locator('.member-teams-panel'));assert.ok(right.y>=left.y+left.height);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:'/tmp/studio-split-members-'+width+'.png'});await page.evaluate(()=>document.querySelector('[data-view=project-settings]').click());left=await bounds(identity);right=await bounds(shoot);assert.ok(right.y>=left.y+left.height);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:'/tmp/studio-split-project-'+width+'.png'});await page.evaluate(()=>document.querySelector('[data-view=members]').click());}
+ assert.deepEqual(errors,[]);console.log('PASS split field order and alignment, saved project values, independent member/team panels and persisted assignment, stacked mobile layouts at 390/320px, no overflow or browser errors');
+}finally{await browser.close();await new Promise(r=>app.server.close(r));await rm(dir,{recursive:true,force:true});}
