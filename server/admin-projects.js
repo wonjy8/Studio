@@ -1,6 +1,8 @@
 import {randomUUID} from 'node:crypto';
+import {managedProjectAttachments} from './admin-project-files.js';
 import {siteRole,siteCapabilities} from './site-roles.js';
 import {applyCommands} from '../src/domain/commands.js';
+import {resizeLayoutItem,updateLayoutText,setLayoutColor} from '../src/domain/layout.js';
 import {validateWorkspace} from '../src/domain/workspace.js';
 export const adminProjectTables=['admin_project_audit'];
 export const adminProjectSchema=`CREATE TABLE IF NOT EXISTS admin_project_audit(id TEXT PRIMARY KEY,actor_id TEXT NOT NULL REFERENCES users(id),actor_grade TEXT NOT NULL,owner_id TEXT,project_id TEXT,operation TEXT NOT NULL,revision INTEGER,reason TEXT NOT NULL,created_at INTEGER NOT NULL);`;
@@ -14,7 +16,8 @@ const fieldMap={
  add_member:['name','role','call'],update_member:['name','role','call'],
  add_reference:['name','notes'],update_reference:['name','notes'],
  update_equipment:['assignee','assigneeMemberId','status'],
- add_camera:['gearId','name','role','operator','lens'],
+ add_camera:['gearId','name','role','operator','lens'],update_camera:['name','role','operator','lens','x','y','refs','gearId'],
+ resize_layout:['width','height'],update_layout_text:['name','background','color'],
  add_layout_object:['kind','name','gearId','memberId','shape','background','color','lightType'],move_layout:['x','y','rotation'],
  add_team:['name'],set_member_teams:['teamIds'],
  add_task:['name','completed','flagged','date','time','location'],update_task:['name','completed','flagged','date','time','location']
@@ -28,12 +31,12 @@ function projection(p){return {
  contents:p.contents.map(value=>pick(value,['id','name','date','time','location','status','completed'])),schedule:(p.schedule||[]).map(row=>Array.isArray(row)?row.slice(0,3).map(value=>typeof value==='string'?value:''):[]),
  members:p.members.map(value=>pick(value,['id','name','role','call'])),
  gear:p.gear.map(value=>pick(value,['id','name','category','owner','assignee','status','ownerMemberId','assigneeMemberId','equipmentId','equipmentSource','equipmentOwnerLabel','equipmentUnavailable'])),
- cameras:p.cameras.map(value=>({...pick(value,['id','name','role','operator','body','lens','gearId','x','y']),refs:[]})),
+ cameras:p.cameras.map(value=>({...pick(value,['id','name','role','operator','body','lens','gearId','x','y']),refs:(Array.isArray(value.refs)?value.refs:[]).filter(id=>typeof id==='string'&&p.refs.some(ref=>ref.id===id))})),
  layoutObjects:(p.layoutObjects||[]).map(value=>pick(value,['id','kind','name','x','y','rotation','width','height','shape','background','color','gearId','memberId','lightType'])),
  refs:p.refs.map(value=>({...pick(value,['id','name','notes']),images:[]})),tasks:(p.tasks||[]).map(value=>pick(value,['id','name','completed','flagged','date','time','location']))
 };}
 function validateCommands(commands){if(!Array.isArray(commands)||!commands.length||commands.length>20)fail(400,'Provide 1–20 project commands');for(const command of commands){if(!command||typeof command!=='object'||Array.isArray(command)||Object.keys(command).some(key=>!['operation','entityId','values'].includes(key))||!Object.hasOwn(fieldMap,command.operation)||!command.values||typeof command.values!=='object'||Array.isArray(command.values)||!Object.keys(command.values).length||Object.keys(command.values).some(key=>!fieldMap[command.operation].includes(key))||(command.entityId!==undefined&&(typeof command.entityId!=='string'||!/^[A-Za-z0-9_-]{1,80}$/.test(command.entityId))))fail(400,'Invalid project command');if(command.operation==='add_camera'&&(typeof command.values.gearId!=='string'||!command.values.gearId))fail(400,'Select existing project camera equipment');}}
-function apply(project,commands){let isolated={...structuredClone(project),projects:[]};for(const command of commands){if(['add_team','set_member_teams'].includes(command.operation))continue;if(command.operation==='add_task'){if((isolated.tasks||[]).length>=2000)fail(400,'Task limit reached');isolated.tasks||=[];isolated.tasks.push({id:'task-'+randomUUID(),name:'',completed:false,...command.values});}else if(command.operation==='update_task'){const task=isolated.tasks?.find(value=>value.id===command.entityId);if(!task)fail(400,'Project task not found');Object.assign(task,command.values);}else {try{isolated=applyCommands(isolated,project.project.id||'project-main',[command]).state;}catch{fail(400,'Invalid project change');}}}
+function apply(project,commands){let isolated={...structuredClone(project),projects:[]};for(const command of commands){if(['add_team','set_member_teams'].includes(command.operation))continue;if(command.operation==='update_camera'){const camera=isolated.cameras.find(value=>value.id===command.entityId),values=command.values;if(!camera)fail(400,'Project camera not found');for(const key of ['name','role','operator','lens'])if(Object.hasOwn(values,key)&&(typeof values[key]!=='string'||values[key].length>2000||(key==='name'&&!values[key].trim())))fail(400,'Invalid camera text');for(const key of ['x','y'])if(Object.hasOwn(values,key)&&(!Number.isFinite(values[key])||values[key]<0||values[key]>100))fail(400,'Invalid camera position');if(Object.hasOwn(values,'refs')&&(!Array.isArray(values.refs)||values.refs.length>100||new Set(values.refs).size!==values.refs.length||values.refs.some(id=>typeof id!=='string'||!isolated.refs.some(ref=>ref.id===id))))fail(400,'Select project reference groups');if(Object.hasOwn(values,'gearId')){const gear=isolated.gear.find(value=>value.id===values.gearId&&value.category==='camera');if(!gear)fail(400,'Select existing project camera equipment');camera.body=gear.name;}Object.assign(camera,values);}else if(command.operation==='resize_layout'||command.operation==='update_layout_text'){try{if(command.operation==='resize_layout'){resizeLayoutItem(isolated,command.entityId,command.values.width,command.values.height);}else{const {color,...text}=command.values;updateLayoutText(isolated,command.entityId,text);if(color!==undefined)setLayoutColor(isolated,command.entityId,color);}}catch{fail(400,'Invalid placement change');}}else if(command.operation==='add_task'){if((isolated.tasks||[]).length>=2000)fail(400,'Task limit reached');isolated.tasks||=[];isolated.tasks.push({id:'task-'+randomUUID(),name:'',completed:false,...command.values});}else if(command.operation==='update_task'){const task=isolated.tasks?.find(value=>value.id===command.entityId);if(!task)fail(400,'Project task not found');Object.assign(task,command.values);}else {try{isolated=applyCommands(isolated,project.project.id||'project-main',[command],{prepareLayout:false}).state;}catch{fail(400,'Invalid project change');}}}
  // Domain preparation may link legacy cameras; an elevated project edit must not
  // silently register or alter canonical inventory as a side effect.
  if(isolated.gear.length!==project.gear.length||isolated.gear.some(value=>{const old=project.gear.find(g=>g.id===value.id);return !old||['name','category','owner','ownerMemberId','equipmentId','equipmentSource'].some(key=>value[key]!==old[key]);})){
@@ -58,7 +61,7 @@ export function adminProjectRoutes(db){return async({path,req,session,json,readJ
     applyTeams(db,owner,pid,selected,data.commands);
     const updated=db.prepare('UPDATE workspaces SET body=?,revision=revision+1 WHERE user_id=? AND revision=?').run(JSON.stringify(candidate),owner,revision);if(!updated.changes)fail(409,'Workspace changed. Reload before editing.');revision++;
    }
-   audit(db,session,grade,owner,pid,req.method==='GET'?'open':data.commands.map(c=>c.operation).join(','),revision,data?.reason.trim()||'');const response={project:projection(next),revision,teams:teams(db,owner,pid)};db.exec('COMMIT');json(200,response);return true;
+   audit(db,session,grade,owner,pid,req.method==='GET'?'open':data.commands.map(c=>c.operation).join(','),revision,data?.reason.trim()||'');const response={project:projection(next),revision,teams:teams(db,owner,pid),attachments:managedProjectAttachments(db,owner,pid,next)};db.exec('COMMIT');json(200,response);return true;
   }catch(error){db.exec('ROLLBACK');throw error;}
  }catch(error){json(error.status||500,{error:error.status?error.message:'Project administration request failed'});return true;}
 };}

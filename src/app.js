@@ -77,9 +77,9 @@ function restoreModalFocus(){if(!modal?.draftFocus)return;const panel=document.q
 async function reloadAfterMutation(){
   const request=++reloadGeneration;
   await pending;
-  if(failed||saving||request!==reloadGeneration||editingDialog()||unsavedProjectSettings()||inventoryDraftPending())return;
+  if(failed||saving||request!==reloadGeneration||editingDialog()||unsavedProjectSettings()||inventoryDraftPending()||adminProjectsDraftPending()||siteRoleManagementDraftPending()||accountDeletionDraftPending())return;
   const generation=saveGeneration;
-  const accept=()=>!failed&&!saving&&generation===saveGeneration&&request===reloadGeneration&&!editingDialog()&&!unsavedProjectSettings()&&!inventoryDraftPending();
+  const accept=()=>!failed&&!saving&&generation===saveGeneration&&request===reloadGeneration&&!editingDialog()&&!unsavedProjectSettings()&&!inventoryDraftPending()&&!adminProjectsDraftPending()&&!siteRoleManagementDraftPending()&&!accountDeletionDraftPending();
   const fresh=await loadWorkspace({accept});
   if(!fresh||!accept())return;
   state=adoptProjectWorkspace(fresh,state.project.id);rememberProjectNames();render();

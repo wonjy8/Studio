@@ -57,7 +57,7 @@ The Studio administrator workspace includes user and equipment pages and an orga
 
 Site roles are Supreme Administrator, Administrator and User, separate from organization roles. The first successful login receives the supreme role on a newly initialized installation with role management enabled. Existing installations require a separate verified transition. The supreme administrator appoints or removes administrators and cannot be deleted.
 
-Both administrator grades can open the All Projects page and edit project details, shoots, members, teams, tasks and reference notes, with a reason recorded for changes. Equipment changes there are limited to project assignments and readiness. Account settings, attachments and equipment ownership remain separately controlled.
+Both administrator grades can open the All Projects page and edit project details, shoots, members, teams, tasks and reference notes, with a reason recorded for changes. The page also edits existing cameras and placement position, size and text, and manages scripts and reference images linked to the selected project. Upload, preview, download or unlink an attachment; unlinking retains its original file and other links. Equipment changes there are limited to project assignments and readiness. Account settings and equipment ownership remain separately controlled.
 
 When site role management is enabled and the highest administrator is established, account deletion requires a separate preview and explicit confirmation. Protected accounts and accounts connected to shared or historical records cannot be deleted. An allowed deletion removes the login and private project/file data and cannot be restored in the app; separately retained backups are unaffected.
 

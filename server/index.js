@@ -1,3 +1,4 @@
+import {adminProjectFileRoutes} from './admin-project-files.js';
 import {accountDeletionRoutes} from './account-deletion.js';
 import {configureSiteRoleManagement,siteCapabilities,siteRoleRoutes,claimFirstSiteAdministrator} from './site-roles.js';
 import {adminProjectRoutes} from './admin-projects.js';
@@ -27,7 +28,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   try{await prepareAccountSchema(db,dir);}catch(error){db.close();throw error;}
   configureSiteRoleManagement(db,enableSiteRoleManagement);
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
-  const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db);
+  const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
   const handleInventory=inventoryRoutes(db);
   const handleEquipmentSharing=equipmentSharingRoutes(db);
   const handleAccounts=accountRoutes(db),handleAccountDeletion=accountDeletionRoutes(db);
@@ -71,6 +72,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await oauth.routes({path,url,req,res,json,body,readJson,session}))return;
       if (!['GET','HEAD'].includes(req.method) && req.headers.origin !== origin) return json(403,{error:'Origin rejected'});
       if(await handleSiteRoles({path,url,req,session,json,readJson}))return;
+      if(await handleAdminProjectFiles({path,url,req,res,session,json,readJson}))return;
       if(await handleAdminProjects({path,url,req,session,json,readJson}))return;
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;

@@ -3,9 +3,9 @@ import {prepareProjects,allProjects,switchProject,addProject} from './projects.j
 import {addCamera,addLayoutObject,moveLayoutItem} from './layout.js';
 export const commandOperations=['add_shoot','update_shoot','add_member','update_member','add_equipment','update_equipment','add_reference','update_reference','update_project','add_project','add_camera','add_layout_object','move_layout'];
 const allowed={shoot:['date','name','time','location','status','completed'],member:['name','role','call'],equipment:['name','category','owner','assignee','status','ownerMemberId','assigneeMemberId'],reference:['name','notes'],project:['name','description','date','time','location','icon','color']};
-export function applyCommands(input,projectId,commands){
+export function applyCommands(input,projectId,commands,{prepareLayout=true}={}){
  if(!Array.isArray(commands)||commands.length<1||commands.length>20)throw Error('변경은 한 번에 1~20개까지 가능합니다.');
- let state=prepareProjects(structuredClone(input||emptyWorkspace()));
+ let state=prepareProjects(structuredClone(input||emptyWorkspace()),{layout:prepareLayout});
  const initial=state.project.id;state=switchProject(state,projectId);
  const impact=[];
  for(const command of commands){

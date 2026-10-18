@@ -51,7 +51,9 @@ function preview(db,actorId,uid){
  }
  // Hash is opaque: private values, credential hashes and file bytes never leave this service.
  for(const entry of [actorId,target,blockers,evidence])hash.update(JSON.stringify(entry,(_key,value)=>value instanceof Uint8Array?{byteLength:value.byteLength,sha256:createHash('sha256').update(value).digest('hex')}:value));
- return {target,allowed:blockers.length===0,blockers,scope,expectedSnapshot:hash.digest('hex'),warning:'Permanent deletion removes this account and its private data. It cannot be restored in the app. Existing backups retain their separate retention policy.'};
+ const privateFiles=rows(db,'files','user_id=?',uid),privateWorkspaces=rows(db,'workspaces','user_id=?',uid);
+ const impact={projects:privateWorkspaces.reduce((count,row)=>{try{const state=JSON.parse(row.body);return count+1+(Array.isArray(state.projects)?state.projects.length:0);}catch{return count;}},0),files:privateFiles.length,fileBytes:privateFiles.reduce((count,row)=>count+row.bytes.byteLength,0),sessions:rows(db,'sessions','user_id=?',uid).length,connections:rows(db,'oauth_grants','user_id=?',uid).length,profile:rows(db,'account_profiles','user_id=?',uid).length>0};
+ return {target,allowed:blockers.length===0,blockers,scope,impact,expectedSnapshot:hash.digest('hex'),warning:'Permanent deletion removes this account and its private data. It cannot be restored in the app. Existing backups retain their separate retention policy.'};
 }
 export function accountDeletionRoutes(db){return async({path,req,session,json,readJson})=>{
  const match=path.match(/^\/api\/admin\/users\/([A-Za-z0-9_-]{1,100})\/(deletion-preview|actions)$/);if(!match)return false;
