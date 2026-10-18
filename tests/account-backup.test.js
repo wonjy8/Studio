@@ -26,6 +26,8 @@ test('failed private backup prevents account schema expansion',async t=>{
 });
 
 import {setupAccounts} from '../server/accounts.js';
+import {equipmentSharingTables,setupEquipmentSharing} from '../server/equipment-sharing.js';
+import {organizationTables} from '../server/inventory-organizations.js';
 import {accountSchemaTables} from '../server/account-migration.js';
 import {inventoryTables,setupInventory,inventorySchema,allocateLoanNumber} from '../server/inventory.js';
 function legacyAccountFixture(db){
@@ -53,7 +55,7 @@ test('existing complete nine-table account database triggers private WAL backup 
  assert.ok((await stat(join(dir,'studio.sqlite-wal'))).size>0,'populated source has committed WAL bytes');
  await prepareAccountSchema(db,dir);
  assert.deepEqual(rowsOf(db,legacyTables),before);for(const row of schemaBefore)assert.equal(db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?").get(row.name).sql,row.sql,'legacy table shape stays positional-insert compatible');
- for(const name of accountSchemaTables)assert.ok(tableNames(db).includes(name));assert.equal(inventoryTables.length,11);for(const name of ['inventory_sequences','inventory_loan_numbers','inventory_serials'])assert.ok(accountSchemaTables.includes(name));
+ for(const name of accountSchemaTables)assert.ok(tableNames(db).includes(name));assert.equal(inventoryTables.length,15);assert.equal(equipmentSharingTables.length,3);for(const name of [...organizationTables,...equipmentSharingTables])assert.ok(accountSchemaTables.includes(name));for(const name of ['inventory_sequences','inventory_loan_numbers','inventory_serials'])assert.ok(accountSchemaTables.includes(name));
  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');
  const backups=await readdir(join(dir,'backups'));assert.equal(backups.length,1);const backupPath=join(dir,'backups',backups[0]);assert.equal((await stat(backupPath)).mode&0o777,0o600);assert.equal((await stat(join(dir,'backups'))).mode&0o777,0o700);
  const restored=new DatabaseSync(backupPath,{readOnly:true});try{assert.deepEqual(rowsOf(restored,legacyTables),before);for(const name of inventoryTables)assert.equal(tableNames(restored).includes(name),false,'backup precedes inventory DDL');assert.equal(restored.prepare('PRAGMA integrity_check').get().integrity_check,'ok');}finally{restored.close();}
@@ -76,9 +78,9 @@ test('partial populated inventory upgrade backs up serial metadata with canonica
  db.prepare('INSERT INTO inventory_sequences VALUES(?,?,?)').run('fictional-owner','2026-10',8);db.prepare('INSERT INTO inventory_loan_numbers VALUES(?,?,?,?,?,?)').run('fictional-loan','fictional-owner','fictional-owner','2026-10',7,'2026-10-007');
  // Simulate an interrupted additive rollout by omitting one table while retaining its committed rows in the other relations.
  db.exec('CREATE TABLE fictional_retained_extension(id TEXT PRIMARY KEY, value BLOB)');db.prepare('INSERT INTO fictional_retained_extension VALUES(?,?)').run('fixture',Buffer.from('Fictional retained extension'));
- db.exec('DROP TABLE password_changes');const tables=tableNames(db),before=rowsOf(db,tables);await prepareAccountSchema(db,dir);assert.deepEqual(rowsOf(db,tables),before);
+ db.exec('DROP TABLE password_changes');const tables=tableNames(db),before=rowsOf(db,tables),unchanged=tables.filter(name=>!['inventory_org_settings','inventory_memberships'].includes(name));await prepareAccountSchema(db,dir);assert.deepEqual(rowsOf(db,unchanged),Object.fromEntries(unchanged.map(name=>[name,before[name]])));assert.deepEqual(db.prepare('SELECT * FROM inventory_org_settings ORDER BY org_id').all().map(row=>({...row})),[{org_id:'fictional-org',description:'',revision:0}]);assert.deepEqual(db.prepare('SELECT * FROM inventory_memberships ORDER BY user_id').all().map(row=>({...row})),[{org_id:'fictional-org',user_id:'fictional-invitee',role:'operator',active:1},{org_id:'fictional-org',user_id:'fictional-owner',role:'owner',active:1}]);
  const backups=await readdir(join(dir,'backups'));assert.equal(backups.length,1);const snapshot=new DatabaseSync(join(dir,'backups',backups[0]),{readOnly:true});try{assert.deepEqual(rowsOf(snapshot,tables),before);for(const name of inventoryTables)assert.ok(tableNames(snapshot).includes(name));assert.equal(snapshot.prepare('SELECT serial_number FROM inventory_serials WHERE equipment_id=?').get('canonical-existing-camera').serial_number,'FICTIONAL-SERIAL-001');assert.equal(snapshot.prepare('SELECT equipment_id FROM equipment_links WHERE gear_id=?').get('legacy-gear-id').equipment_id,'canonical-existing-camera');}finally{snapshot.close();}
- await prepareAccountSchema(db,dir);assert.deepEqual(rowsOf(db,tables),before);assert.equal((await readdir(join(dir,'backups'))).length,1);assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
+ const seeded=rowsOf(db,tableNames(db));await prepareAccountSchema(db,dir);assert.deepEqual(rowsOf(db,tableNames(db)),seeded);assert.equal((await readdir(join(dir,'backups'))).length,1);assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
 });
 test('inventory DDL failure rolls back all new tables and retry preserves canonical links and private backups',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'studio-inventory-rollback-'));const db=openStore(dir);t.after(async()=>{db.close();await rm(dir,{recursive:true,force:true});});legacyAccountFixture(db);
@@ -100,7 +102,7 @@ test('existing eight-table inventory receives additive number and serial tables 
 test('existing annual numbering schema is privately backed up before period rename and issued numbers remain immutable',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'studio-inventory-monthly-upgrade-'));const db=openStore(dir);t.after(async()=>{db.close();await rm(dir,{recursive:true,force:true});});legacyAccountFixture(db);
  // Reconstruct the previous two-table contract, retaining the same canonical loan UUIDs.
- db.exec(inventorySchema.replace(/\bperiod TEXT\b/g,'year INTEGER').replace(/\bperiod\b/g,'year'));
+ db.exec(inventorySchema.replace(/\bperiod TEXT\b/g,'year INTEGER').replace(/\bperiod\b/g,'year'));setupEquipmentSharing(db);
  db.prepare('INSERT INTO inventory_loans VALUES(?,?,?,?,?,?,?,?)').run('issued-annual-loan-uuid','fictional-owner','Fictional Borrower','Fictional Team','Fictional Set','2099-01-01T12:00:00Z','Fictional issued annual number',123);
  db.prepare('INSERT INTO inventory_loan_lines VALUES(?,?,?,?,?)').run('issued-line-uuid','issued-annual-loan-uuid','canonical-existing-camera',1,'{"name":"Fictional issued snapshot"}');
  db.prepare('INSERT INTO inventory_requests VALUES(?,?,?,?)').run('fictional-owner','issued-annual-request','fictional-hash','{"id":"issued-annual-loan-uuid"}');
@@ -115,4 +117,39 @@ test('existing annual numbering schema is privately backed up before period rena
  db.prepare('INSERT INTO inventory_loans VALUES(?,?,?,?,?,?,?,?)').run('new-monthly-loan-uuid','fictional-owner','Fictional Borrower','Fictional Team','Fictional Set','2099-01-01T12:00:00Z','Fictional monthly number',124);
  db.exec('BEGIN IMMEDIATE');try{const issued=allocateLoanNumber(db,'fictional-owner','new-monthly-loan-uuid',Date.parse('2026-10-01T00:00:00+09:00'));assert.equal(issued.displayNumber,'2026-10-001');db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}assert.equal(db.prepare('SELECT display_number FROM inventory_loan_numbers WHERE loan_id=?').get('issued-annual-loan-uuid').display_number,'2026-0007');assert.equal(db.prepare('SELECT next_value FROM inventory_sequences WHERE actor_id=? AND period=?').get('fictional-owner',2026).next_value,8);
  const migrated=rowsOf(db,tables);await prepareAccountSchema(db,dir);assert.deepEqual(rowsOf(db,tables),migrated);assert.equal((await readdir(join(dir,'backups'))).length,1);assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
+});
+test('deployed eleven-table inventory seeds explicit owner/operator roles once and preserves tombstones and sharing on partial retries',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'studio-org-upgrade-'));const db=openStore(dir);t.after(async()=>{db.close();await rm(dir,{recursive:true,force:true});});legacyAccountFixture(db);setupInventory(db);
+ // Recreate the deployed inventory schema before organization roles or project sharing existed.
+ for(const name of [...organizationTables].reverse())db.exec(`DROP TABLE ${name}`);
+ db.prepare('INSERT INTO inventory_organizations VALUES(?,?,?,?)').run('fictional-org','fictional-owner','Fictional Deployed Organization',123);
+ db.prepare('INSERT INTO inventory_operators VALUES(?,?)').run('fictional-org','fictional-invitee');
+ db.prepare('INSERT INTO inventory_serials VALUES(?,?)').run('canonical-existing-camera','FICTIONAL-DEPLOYED-SERIAL');
+ const deployedTables=tableNames(db),deployedRows=rowsOf(db,deployedTables),deployedSchema=db.prepare("SELECT name,sql FROM sqlite_master WHERE type='table' ORDER BY name").all();
+ assert.equal(inventoryTables.filter(name=>deployedTables.includes(name)).length,11);for(const name of equipmentSharingTables)assert.equal(deployedTables.includes(name),false);
+ await prepareAccountSchema(db,dir);assert.deepEqual(rowsOf(db,deployedTables),deployedRows);
+ for(const row of deployedSchema)assert.equal(db.prepare("SELECT sql FROM sqlite_master WHERE name=? AND type='table'").get(row.name).sql,row.sql,'old table shape unchanged');
+ assert.deepEqual(db.prepare('SELECT * FROM inventory_memberships ORDER BY user_id').all().map(row=>({...row})),[{org_id:'fictional-org',user_id:'fictional-invitee',role:'operator',active:1},{org_id:'fictional-org',user_id:'fictional-owner',role:'owner',active:1}]);assert.deepEqual(db.prepare('SELECT * FROM inventory_org_settings').all().map(row=>({...row})),[{org_id:'fictional-org',description:'',revision:0}]);
+ for(const name of ['inventory_invitations','inventory_project_approvals',...equipmentSharingTables])assert.equal(db.prepare(`SELECT count(*) n FROM ${name}`).get().n,0,'upgrade invents no invitations, approvals or claims');
+ const backup1=(await readdir(join(dir,'backups')))[0],restored=new DatabaseSync(join(dir,'backups',backup1),{readOnly:true});try{assert.deepEqual(rowsOf(restored,deployedTables),deployedRows);for(const name of [...organizationTables,...equipmentSharingTables])assert.equal(tableNames(restored).includes(name),false);}finally{restored.close();}
+ // A removed legacy operator must stay removed even though its legacy row still exists.
+ db.prepare("UPDATE inventory_memberships SET role='viewer',active=0 WHERE user_id=?").run('fictional-invitee');db.prepare('UPDATE inventory_org_settings SET description=?,revision=? WHERE org_id=?').run('Fictional retained description',9,'fictional-org');
+ db.prepare('INSERT INTO inventory_invitations VALUES(?,?,?,?,?,?,?,?,?)').run('fictional-invitation','fictional-org','fictional-invitee','fictional-owner','viewer','declined',3,123,456);
+ db.prepare('INSERT INTO inventory_project_approvals VALUES(?,?,?,?,?,?)').run('fictional-org','fictional-owner','fictional-project',7,'fictional-owner',123);
+ db.prepare('INSERT INTO equipment_project_scope VALUES(?,?,?,?,?)').run('canonical-existing-camera','fictional-owner','fictional-project','fictional-member-owner','Fictional Manual Owner');
+ db.prepare('INSERT INTO equipment_claims VALUES(?,?,?,?,?,?,?,?)').run('fictional-claim','canonical-existing-camera','fictional-owner','fictional-project','fictional-invitee','declined',2,123);
+ db.prepare('INSERT INTO equipment_items VALUES(?,?,?,?)').run('canonical-personal-grant','fictional-owner','Fictional Granted Light','lighting');db.prepare('INSERT INTO equipment_project_grants VALUES(?,?,?,?)').run('canonical-personal-grant','fictional-owner','fictional-project',123);
+ db.exec('DROP TABLE password_changes');const retainedTables=tableNames(db),retained=rowsOf(db,retainedTables);await prepareAccountSchema(db,dir);assert.deepEqual(rowsOf(db,retainedTables),retained);
+ assert.deepEqual({...db.prepare('SELECT role,active FROM inventory_memberships WHERE org_id=? AND user_id=?').get('fictional-org','fictional-invitee')},{role:'viewer',active:0});assert.equal(db.prepare('SELECT equipment_id FROM equipment_links WHERE gear_id=?').get('legacy-gear-id').equipment_id,'canonical-existing-camera');
+ const backups=await readdir(join(dir,'backups'));assert.equal(backups.length,2);const backup2=backups.find(name=>name!==backup1),snapshot=new DatabaseSync(join(dir,'backups',backup2),{readOnly:true});try{assert.deepEqual(rowsOf(snapshot,retainedTables),retained);}finally{snapshot.close();}
+ const completed=rowsOf(db,tableNames(db));await prepareAccountSchema(db,dir);assert.deepEqual(rowsOf(db,tableNames(db)),completed);assert.equal((await readdir(join(dir,'backups'))).length,2);assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
+});
+test('sharing DDL failure rolls back new organization role seeds before a safe retry',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'studio-org-seed-rollback-'));const db=openStore(dir);t.after(async()=>{db.close();await rm(dir,{recursive:true,force:true});});legacyAccountFixture(db);setupInventory(db);for(const name of [...organizationTables].reverse())db.exec(`DROP TABLE ${name}`);
+ db.prepare('INSERT INTO inventory_organizations VALUES(?,?,?,?)').run('fictional-org','fictional-owner','Fictional Retained Organization',123);db.prepare('INSERT INTO inventory_operators VALUES(?,?)').run('fictional-org','fictional-invitee');
+ // Organization setup and its seeds run before sharing setup; force failure in the latter.
+ db.exec("CREATE VIEW equipment_claims AS SELECT 'fictional' AS id");const tables=tableNames(db),before=rowsOf(db,tables);await assert.rejects(prepareAccountSchema(db,dir));assert.deepEqual(tableNames(db),tables);assert.deepEqual(rowsOf(db,tables),before);for(const name of [...organizationTables,...equipmentSharingTables])assert.equal(tableNames(db).includes(name),false);
+ db.exec('DROP VIEW equipment_claims');await prepareAccountSchema(db,dir);assert.deepEqual(rowsOf(db,tables),before);assert.deepEqual(db.prepare('SELECT user_id,role,active FROM inventory_memberships ORDER BY user_id').all().map(row=>({...row})),[{user_id:'fictional-invitee',role:'operator',active:1},{user_id:'fictional-owner',role:'owner',active:1}]);
+ const files=await readdir(join(dir,'backups'));assert.equal(files.length,2);assert.equal((await stat(join(dir,'backups'))).mode&0o777,0o700);for(const name of files){const file=join(dir,'backups',name);assert.equal((await stat(file)).mode&0o777,0o600);const saved=new DatabaseSync(file,{readOnly:true});try{assert.deepEqual(rowsOf(saved,tables),before);assert.equal(tableNames(saved).includes('inventory_memberships'),false);}finally{saved.close();}}
+ await prepareAccountSchema(db,dir);assert.equal((await readdir(join(dir,'backups'))).length,2);assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
 });

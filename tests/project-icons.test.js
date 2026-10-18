@@ -58,3 +58,11 @@ test('every selectable icon uses a real filled vector and legacy identities stay
  for(const item of selectableProjectIcons){const svg=icon(item.id,{solid:true});assert.match(svg,/fill="currentColor"/);assert.match(svg,/stroke="none"/);}
  const state=emptyWorkspace();state.project.icon='tabler-device-desktop-search';assert.ok(validateWorkspace(state));
 });
+test('equipment workspace camcorder keeps one filled silhouette across selection variants',()=>{
+ const silhouette=icon('camcorder');
+ assert.equal(silhouette,icon('camcorder',{solid:true}));
+ assert.notEqual(silhouette,icon('gear'));
+ assert.notEqual(silhouette,icon('camera'));
+ assert.match(silhouette,/<g fill="currentColor" stroke="none">/);
+ assert.match(silhouette,/aria-hidden="true" focusable="false"/);
+});
