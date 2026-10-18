@@ -46,6 +46,8 @@ function validateProject(value) {
     ids.add(item.id);
   }
   for(const item of value.layoutObjects||[]){if(!item||!/^[a-zA-Z0-9_-]{1,80}$/.test(item.id)||ids.has(item.id))return false;ids.add(item.id);}
+  if(value.project.placeholder!==undefined&&typeof value.project.placeholder!=='boolean')return false;
+  if(value.project.placeholder&&(value.project.name!=='새 프로젝트'||value.project.date||value.project.time||value.project.location||value.project.description||['contents','schedule','members','gear','cameras','refs','tasks','layoutObjects'].some(key=>value[key]?.length)))return false;
   const status = x => ['ready','check','problem'].includes(x);
   if (!value.contents.every(x => fields(x,['name','time','location']) && (x.date===undefined||x.date===''||validDate(x.date)) && status(x.status) && typeof x.script === 'boolean' && (x.completed === undefined || typeof x.completed === 'boolean') && (!x.scriptFile || /^[a-f0-9-]{36}$/.test(x.scriptFile)))) return false;
   if (!value.members.every(x => fields(x,['name','role','call']) && (x.contactId===undefined||(typeof x.contactId==='string'&&/^[a-f0-9-]{36}$/.test(x.contactId))))) return false;

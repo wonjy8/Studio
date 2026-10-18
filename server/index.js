@@ -1,3 +1,4 @@
+import {syncRepresentatives} from './project-representative.js';
 import {referenceLibraryRoutes,reconcileReferences} from './reference-library.js';
 import {contactRoutes} from './contacts.js';
 import {rentalVendorRoutes} from './rental-vendors.js';
@@ -34,6 +35,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
   const handleInventory=inventoryRoutes(db),handleRentalVendors=rentalVendorRoutes(db),handleContacts=contactRoutes(db,{orgCanRead,equipmentProjectScope}),handleReferenceLibrary=referenceLibraryRoutes(db);
+  syncRepresentatives(db);
   let googleSheets;try{googleSheets=await googleSheetsService(db,{dir,origin,...google});}catch(error){db.close();throw error;}
   const handleEquipmentSharing=equipmentSharingRoutes(db);
   const handleAccounts=accountRoutes(db),handleAccountDeletion=accountDeletionRoutes(db);
@@ -116,7 +118,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           // Password verification is asynchronous: recheck the account under the same lock as first-login claiming.
           if(!accountActive(db,user.id)||db.prepare('SELECT password FROM users WHERE id=?').get(user.id)?.password!==user.password){db.exec('ROLLBACK');return json(401,{error:'Login failed'});}
           db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(user.id);
-          claimFirstSiteAdministrator(db,user.id);
+          claimFirstSiteAdministrator(db,user.id);syncRepresentatives(db);
           db.prepare('DELETE FROM sessions WHERE expires<=?').run(now);
           db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),user.id,now+43200000);
           db.exec('COMMIT');

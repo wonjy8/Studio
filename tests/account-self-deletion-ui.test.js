@@ -9,7 +9,7 @@ test('self deletion starts with explicit preview and no credential form or accou
  assert.equal(selfDeletionDraftPending(),false);assert.equal(selfDeletionCanLeave(),true);
 });
 test('protected roles get human guidance and panel appears only in account settings',()=>{
- assert.match(selfDeletionPanel({siteRole:'super_admin'}),/최고 관리자 계정은 직접 삭제할 수 없습니다/);
+ assert.match(selfDeletionPanel({siteRole:'super_admin'}),/대표 계정은 직접 삭제할 수 없습니다/);
  assert.match(selfDeletionPanel({siteRole:'admin'}),/관리자 권한 해제/);
  assert.match(settingsPage({}, {settingsSection:'account'}),/data-self-deletion-preview/);
  assert.doesNotMatch(settingsPage({}, {settingsSection:'data'}),/data-self-deletion-preview/);

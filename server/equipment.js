@@ -15,6 +15,7 @@ export function reconcileEquipment(db,uid,state,{write=false,previous}={}){
  // Project membership exposes registered inventory; ownership remains unchanged.
  const inventory=db.prepare('SELECT * FROM equipment_items WHERE NOT EXISTS (SELECT 1 FROM equipment_project_scope s WHERE s.equipment_id=equipment_items.id)').all();
  for(const p of projects(state)){
+  if(p.project.placeholder)continue;
   const pid=p.project.id||'project-main';
   for(const item of inventory){if(!equipmentProjectAccess(db,uid,pid,item)||p.gear.some(g=>g.equipmentId===item.id||db.prepare('SELECT 1 FROM equipment_links WHERE owner_id=? AND project_id=? AND gear_id=? AND equipment_id=?').get(uid,pid,g.id,item.id)))continue;if(p.gear.length>=2000)throw Object.assign(Error('Equipment exceeds project equipment limit'),{status:400});const linked=db.prepare('SELECT gear_id FROM equipment_links WHERE owner_id=? AND project_id=? AND equipment_id=?').get(uid,pid,item.id);let id=linked?.gear_id||'auto-'+item.id;for(let n=1;p.gear.some(g=>g.id===id);n++)id='auto-'+item.id+'-'+n;p.gear.push({id,equipmentId:item.id,name:item.name,category:item.category,owner:'',assignee:'',status:'check'});}
  }

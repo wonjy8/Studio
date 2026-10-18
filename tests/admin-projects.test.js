@@ -20,7 +20,7 @@ const path='/api/admin/projects/owner-a/collision',patch=commands=>({revision:4,
 test('explicit administrator list/read isolate colliding compound projects and exclude private attachments/settings',async t=>{
  const {db,call,ok}=await fixture(t);for(const user of ['ordinary','legacy',null])assert.equal((await call(user,'/api/admin/projects')).status,user?403:401);
  for(const user of ['highest','delegate']){const list=await ok(user,'/api/admin/projects');assert.equal(list.projects.length,4);assert.equal(list.projects.filter(p=>p.projectId==='collision').length,2);const read=await ok(user,path);assert.equal(read.revision,4);assert.equal(read.project.project.name,'Fictional owner-a');assert.equal(read.project.projects,undefined);assert.equal(read.project.settings,undefined);assert.deepEqual(read.project.refs[0].images,[]);assert.equal(read.project.contents[0].scriptFile,undefined);assert.equal(JSON.stringify(read).includes('PRIVATE_'),false);}
- assert.equal((await call('delegate','/api/admin/projects/missing/collision')).status,404);assert.equal((await call('delegate',path,'DELETE')).status,404);
+ assert.equal((await call('delegate','/api/admin/projects/missing/collision')).status,404);assert.equal((await call('delegate',path,'DELETE')).status,403);
  db.prepare("DELETE FROM site_settings WHERE key='super_admin_user_id'").run();assert.equal((await call('legacy',path)).status,403);assert.equal((await call('delegate',path)).status,403);
 });
 
