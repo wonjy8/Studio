@@ -1,3 +1,4 @@
+import {parseRoute} from '../src/app/routes.js';
 // Isolated repeated-retry/navigation ordering regression; all records are fictional.
 import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
@@ -28,7 +29,7 @@ try{
   await page.goBack();await page.goBack();assert.equal(await page.evaluate(()=>history.state.projectId),'fictional-a');release();await page.locator('[data-action=retry-save]').waitFor();
   waiting=new Promise(resolve=>ready=resolve);await page.locator('[data-action=retry-save]').click();await waiting;await page.goForward();await page.goForward();assert.equal(await page.evaluate(()=>history.state.projectId),'fictional-b');release();await page.locator('[data-action=retry-save]').waitFor();
   waiting=new Promise(resolve=>ready=resolve);await page.locator('[data-action=retry-save]').click();await waiting;await page.goBack();await page.goBack();assert.equal(await page.evaluate(()=>history.state.projectId),'fictional-a');release();await page.waitForFunction(()=>document.querySelector('.save-indicator')?.textContent==='저장됨');
-  assert.equal(await page.evaluate(()=>new URL(location.href).searchParams.get('project')),'fictional-a');assert.ok((await page.locator('.content').innerText()).includes('Fictional A unchanged'));assert.equal(attempt,3);
+  assert.equal(parseRoute(page.url()).projectId,'fictional-a');assert.ok((await page.locator('.content').innerText()).includes('Fictional A unchanged'));assert.equal(attempt,3);
   const stored=JSON.parse(app.db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(username).body);const projects=[stored,...stored.projects];assert.equal(projects.find(p=>p.project.id==='fictional-a').tasks[0].name,'Fictional A unchanged');const b=projects.find(p=>p.project.id==='fictional-b');assert.equal(kind==='gear'?b.gear[0].owner:b.tasks[0].name,typed);
   if(kind==='gear')for(const req of requests)assert.equal(req.values.owner,typed);else for(const req of requests)assert.equal([req.state,...req.state.projects].find(p=>p.project.id==='fictional-b').tasks[0].name,typed);
   console.log(`PASS ${kind} B save: pending Back A, failed retry Forward B, second failure, successful retry Back A preserves B intent and A context/data`);await page.close();

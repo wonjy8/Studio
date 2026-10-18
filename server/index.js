@@ -1,3 +1,4 @@
+import {isAppPath} from '../src/app/routes.js';
 import {prepareAccountSchema} from './account-migration.js';
 import {reconcileEquipment} from './equipment.js';
 import {validateWorkspace} from '../src/domain/workspace.js';
@@ -116,8 +117,8 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       }
       // Explicit static allowlist prevents serving runtime DBs, server code or repository files.
       if(req.method!=='GET'&&req.method!=='HEAD') return json(405,{error:'Method not allowed'});
-      if(!(/^\/src\/[a-zA-Z0-9_/-]+\.(js|css)$/.test(path)||path==='/'||path==='/index.html')) return json(404,{error:'Not found'});
-      const file=path==='/'?'index.html':path.slice(1);
+      if(!(/^\/src\/[a-zA-Z0-9_/-]+\.(js|css)$/.test(path)||path==='/'||path==='/index.html'||isAppPath(path))) return json(404,{error:'Not found'});
+      const file=path==='/'||isAppPath(path)?'index.html':path.slice(1);
       const bytes=await readFile(root+file);
       res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');
       res.end(req.method==='HEAD'?undefined:bytes);

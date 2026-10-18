@@ -1,9 +1,11 @@
+import {safeLoginReturn} from './routes.js';
 import {request} from '../integrations/api.js';
 import {loginPage} from '../pages/login.js';
 import {loginFailureMessage} from '../features/login-errors.js';
 export let sessionInfo={isAdmin:false};
 export async function requireLogin() {
   try {sessionInfo=await request('session');return;}catch{}
+  const returnTo=safeLoginReturn(location.pathname+location.search+location.hash);if(location.pathname!=='/login'){history.replaceState(null,'',returnTo&&returnTo!=='/'?'/login?returnTo='+encodeURIComponent(returnTo):'/login');}
   await new Promise(resolve=>{
     const root=document.querySelector('#app');
     root.innerHTML=loginPage();
