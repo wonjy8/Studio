@@ -1,8 +1,9 @@
 import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync, chmodSync } from 'node:fs';
+import { mkdirSync, chmodSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-export function openStore(dir) {
+export function openStore(dir,{siteRoleBootstrap=false}={}) {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const firstStore=!existsSync(join(dir,'studio.sqlite'));
   const db = new DatabaseSync(join(dir, 'studio.sqlite'));
   chmodSync(join(dir, 'studio.sqlite'), 0o600);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
@@ -13,6 +14,8 @@ export function openStore(dir) {
     CREATE TABLE IF NOT EXISTS workspaces(user_id TEXT PRIMARY KEY REFERENCES users(id), revision INTEGER NOT NULL, body TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS files(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), name TEXT NOT NULL, type TEXT NOT NULL, bytes BLOB NOT NULL);
   `);
+  // A birth marker is evidence of a new empty installation, never inferred from users or row order.
+  if(firstStore)db.prepare("INSERT OR IGNORE INTO site_settings VALUES('site_role_bootstrap_state',?)").run(siteRoleBootstrap?'eligible':'legacy');
   const inviteColumns=db.prepare('PRAGMA table_info(invitations)').all().map(c=>c.name);
   if(!inviteColumns.includes('max_uses')||!inviteColumns.includes('use_count')){
     db.exec('BEGIN IMMEDIATE');
@@ -22,8 +25,15 @@ export function openStore(dir) {
       db.exec('COMMIT');
     }catch(e){db.exec('ROLLBACK');throw e;}
   }
-  // Preserve the owner on upgrade, using the earliest retained login; fall back to the first provisioned account.
-  const owner=db.prepare('SELECT user_id AS id FROM sessions ORDER BY rowid LIMIT 1').get() || db.prepare('SELECT id FROM users ORDER BY rowid LIMIT 1').get();
-  if(owner) db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(owner.id);
+  // Only legacy installations retain the historical upgrade fallback. New
+  // install markers (eligible/claimed/held/blocked) must never turn provision
+  // order into a second protected administrator before or after first login.
+  // Existing explicit admin pins are preserved in every state. Unknown markers
+  // also fail closed instead of inferring a new administrator identity.
+  const birth=db.prepare("SELECT value FROM site_settings WHERE key='site_role_bootstrap_state'").get();
+  if(!birth||birth.value==='legacy'){
+    const owner=db.prepare('SELECT user_id AS id FROM sessions ORDER BY rowid LIMIT 1').get() || db.prepare('SELECT id FROM users ORDER BY rowid LIMIT 1').get();
+    if(owner) db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(owner.id);
+  }
   return db;
 }

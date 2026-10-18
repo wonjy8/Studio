@@ -1,0 +1,67 @@
+import {randomUUID} from 'node:crypto';
+import {managedProjectAttachments} from './admin-project-files.js';
+import {siteRole,siteCapabilities} from './site-roles.js';
+import {applyCommands} from '../src/domain/commands.js';
+import {resizeLayoutItem,updateLayoutText,setLayoutColor} from '../src/domain/layout.js';
+import {validateWorkspace} from '../src/domain/workspace.js';
+export const adminProjectTables=['admin_project_audit'];
+export const adminProjectSchema=`CREATE TABLE IF NOT EXISTS admin_project_audit(id TEXT PRIMARY KEY,actor_id TEXT NOT NULL REFERENCES users(id),actor_grade TEXT NOT NULL,owner_id TEXT,project_id TEXT,operation TEXT NOT NULL,revision INTEGER,reason TEXT NOT NULL,created_at INTEGER NOT NULL);`;
+export function setupAdminProjects(db){db.exec(adminProjectSchema);}
+const fail=(status,message)=>{throw Object.assign(Error(message),{status});};
+const projects=state=>[state,...(state.projects||[])];
+const keys=['project','contents','schedule','members','gear','cameras','layoutObjects','refs','tasks'];
+const fieldMap={
+ update_project:['name','description','date','time','location','icon','color'],
+ add_shoot:['name','date','time','location','status','completed'],update_shoot:['name','date','time','location','status','completed'],
+ add_member:['name','role','call'],update_member:['name','role','call'],
+ add_reference:['name','notes'],update_reference:['name','notes'],
+ update_equipment:['assignee','assigneeMemberId','status'],
+ add_camera:['gearId','name','role','operator','lens'],update_camera:['name','role','operator','lens','x','y','refs','gearId'],
+ resize_layout:['width','height'],update_layout_text:['name','background','color'],
+ add_layout_object:['kind','name','gearId','memberId','shape','background','color','lightType'],move_layout:['x','y','rotation'],
+ add_team:['name'],set_member_teams:['teamIds'],
+ add_task:['name','completed','flagged','date','time','location'],update_task:['name','completed','flagged','date','time','location']
+};
+function actor(db,session){const uid=session?.user_id;if(!uid)fail(401,'Login required');if(!siteCapabilities(db,uid).canManageProjects)fail(403,'Project administration required');if(!session.token||!db.prepare('SELECT token FROM sessions WHERE token=? AND user_id=? AND expires>?').get(session.token,uid,Date.now()))fail(401,'Session changed. Sign in again');if(db.prepare('SELECT user_id FROM password_changes WHERE user_id=?').get(uid))fail(403,'Password change required');return siteRole(db,uid);}
+function audit(db,session,grade,owner,pid,operation,revision,reason=''){db.prepare('INSERT INTO admin_project_audit VALUES(?,?,?,?,?,?,?,?,?)').run(randomUUID(),session.user_id,grade,owner,pid,operation,revision,reason,Date.now());}
+function target(db,owner,pid){const row=db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(owner);if(!row)fail(404,'Project not found');const state=JSON.parse(row.body),project=projects(state).find(p=>(p.project.id||'project-main')===pid);if(!project)fail(404,'Project not found');return {...row,state,project};}
+const pick=(object,fields)=>Object.fromEntries(fields.filter(key=>['string','number','boolean'].includes(typeof object?.[key])).map(key=>[key,object[key]]));
+function projection(p){return {
+ project:pick(p.project,['id','name','description','date','time','location','icon','color','order']),
+ contents:p.contents.map(value=>pick(value,['id','name','date','time','location','status','completed'])),schedule:(p.schedule||[]).map(row=>Array.isArray(row)?row.slice(0,3).map(value=>typeof value==='string'?value:''):[]),
+ members:p.members.map(value=>pick(value,['id','name','role','call'])),
+ gear:p.gear.map(value=>pick(value,['id','name','category','owner','assignee','status','ownerMemberId','assigneeMemberId','equipmentId','equipmentSource','equipmentOwnerLabel','equipmentUnavailable'])),
+ cameras:p.cameras.map(value=>({...pick(value,['id','name','role','operator','body','lens','gearId','x','y']),refs:(Array.isArray(value.refs)?value.refs:[]).filter(id=>typeof id==='string'&&p.refs.some(ref=>ref.id===id))})),
+ layoutObjects:(p.layoutObjects||[]).map(value=>pick(value,['id','kind','name','x','y','rotation','width','height','shape','background','color','gearId','memberId','lightType'])),
+ refs:p.refs.map(value=>({...pick(value,['id','name','notes']),images:[]})),tasks:(p.tasks||[]).map(value=>pick(value,['id','name','completed','flagged','date','time','location']))
+};}
+function validateCommands(commands){if(!Array.isArray(commands)||!commands.length||commands.length>20)fail(400,'Provide 1–20 project commands');for(const command of commands){if(!command||typeof command!=='object'||Array.isArray(command)||Object.keys(command).some(key=>!['operation','entityId','values'].includes(key))||!Object.hasOwn(fieldMap,command.operation)||!command.values||typeof command.values!=='object'||Array.isArray(command.values)||!Object.keys(command.values).length||Object.keys(command.values).some(key=>!fieldMap[command.operation].includes(key))||(command.entityId!==undefined&&(typeof command.entityId!=='string'||!/^[A-Za-z0-9_-]{1,80}$/.test(command.entityId))))fail(400,'Invalid project command');if(command.operation==='add_camera'&&(typeof command.values.gearId!=='string'||!command.values.gearId))fail(400,'Select existing project camera equipment');}}
+function apply(project,commands){let isolated={...structuredClone(project),projects:[]};for(const command of commands){if(['add_team','set_member_teams'].includes(command.operation))continue;if(command.operation==='update_camera'){const camera=isolated.cameras.find(value=>value.id===command.entityId),values=command.values;if(!camera)fail(400,'Project camera not found');for(const key of ['name','role','operator','lens'])if(Object.hasOwn(values,key)&&(typeof values[key]!=='string'||values[key].length>2000||(key==='name'&&!values[key].trim())))fail(400,'Invalid camera text');for(const key of ['x','y'])if(Object.hasOwn(values,key)&&(!Number.isFinite(values[key])||values[key]<0||values[key]>100))fail(400,'Invalid camera position');if(Object.hasOwn(values,'refs')&&(!Array.isArray(values.refs)||values.refs.length>100||new Set(values.refs).size!==values.refs.length||values.refs.some(id=>typeof id!=='string'||!isolated.refs.some(ref=>ref.id===id))))fail(400,'Select project reference groups');if(Object.hasOwn(values,'gearId')){const gear=isolated.gear.find(value=>value.id===values.gearId&&value.category==='camera');if(!gear)fail(400,'Select existing project camera equipment');camera.body=gear.name;}Object.assign(camera,values);}else if(command.operation==='resize_layout'||command.operation==='update_layout_text'){try{if(command.operation==='resize_layout'){resizeLayoutItem(isolated,command.entityId,command.values.width,command.values.height);}else{const {color,...text}=command.values;updateLayoutText(isolated,command.entityId,text);if(color!==undefined)setLayoutColor(isolated,command.entityId,color);}}catch{fail(400,'Invalid placement change');}}else if(command.operation==='add_task'){if((isolated.tasks||[]).length>=2000)fail(400,'Task limit reached');isolated.tasks||=[];isolated.tasks.push({id:'task-'+randomUUID(),name:'',completed:false,...command.values});}else if(command.operation==='update_task'){const task=isolated.tasks?.find(value=>value.id===command.entityId);if(!task)fail(400,'Project task not found');Object.assign(task,command.values);}else {try{isolated=applyCommands(isolated,project.project.id||'project-main',[command],{prepareLayout:false}).state;}catch{fail(400,'Invalid project change');}}}
+ // Domain preparation may link legacy cameras; an elevated project edit must not
+ // silently register or alter canonical inventory as a side effect.
+ if(isolated.gear.length!==project.gear.length||isolated.gear.some(value=>{const old=project.gear.find(g=>g.id===value.id);return !old||['name','category','owner','ownerMemberId','equipmentId','equipmentSource'].some(key=>value[key]!==old[key]);})){
+ // A linked member rename can change the display owner label, but never identity.
+ const allowed=isolated.gear.length===project.gear.length&&isolated.gear.every(value=>{const old=project.gear.find(g=>g.id===value.id);return old&&['name','category','ownerMemberId','equipmentId','equipmentSource'].every(key=>value[key]===old[key])&&(value.owner===old.owner||(old.ownerMemberId&&isolated.members.some(m=>m.id===old.ownerMemberId&&m.name===value.owner)));});if(!allowed)fail(400,'Canonical equipment changes require equipment authority');
+ }
+ return isolated;
+}
+function teams(db,owner,pid){return db.prepare('SELECT id,name FROM project_teams WHERE owner_id=? AND project_id=? ORDER BY name,id').all(owner,pid).map(team=>({...team,memberIds:db.prepare('SELECT member_id FROM project_team_members WHERE team_id=? ORDER BY member_id').all(team.id).map(row=>row.member_id)}));}
+function applyTeams(db,owner,pid,project,commands){for(const command of commands){if(command.operation==='add_team'){const name=command.values.name;if(typeof name!=='string'||!name.trim()||name.length>100)fail(400,'Team name required');if(db.prepare('SELECT COUNT(*) n FROM project_teams WHERE owner_id=? AND project_id=?').get(owner,pid).n>=2000)fail(400,'Team limit reached');if(db.prepare('SELECT id FROM project_teams WHERE owner_id=? AND project_id=? AND name=? COLLATE NOCASE').get(owner,pid,name.trim()))fail(409,'Team already exists');db.prepare('INSERT INTO project_teams VALUES(?,?,?,?)').run(randomUUID(),owner,pid,name.trim());}
+ else if(command.operation==='set_member_teams'){const ids=command.values.teamIds;if(!project.members.some(member=>member.id===command.entityId)||!Array.isArray(ids)||ids.length>2000||new Set(ids).size!==ids.length||ids.some(id=>typeof id!=='string'||!/^[A-Za-z0-9_-]{1,80}$/.test(id)||!db.prepare('SELECT id FROM project_teams WHERE id=? AND owner_id=? AND project_id=?').get(id,owner,pid)))fail(400,'Select project member and teams');db.prepare('DELETE FROM project_team_members WHERE member_id=? AND team_id IN (SELECT id FROM project_teams WHERE owner_id=? AND project_id=?)').run(command.entityId,owner,pid);for(const id of ids)db.prepare('INSERT INTO project_team_members VALUES(?,?)').run(id,command.entityId);}
+}}
+export function adminProjectRoutes(db){return async({path,req,session,json,readJson})=>{
+ if(path!=='/api/admin/projects'&&!path.startsWith('/api/admin/projects/'))return false;
+ try{actor(db,session);
+  if(path==='/api/admin/projects'&&req.method==='GET'){db.exec('BEGIN IMMEDIATE');try{const grade=actor(db,session),list=db.prepare('SELECT w.user_id,u.username,w.body FROM workspaces w JOIN users u ON u.id=w.user_id ORDER BY u.username,w.user_id').all().flatMap(row=>projects(JSON.parse(row.body)).map(p=>({ownerId:row.user_id,projectId:p.project.id||'project-main',name:p.project.name,ownerUsername:row.username,...pick(p.project,['icon','color'])})));audit(db,session,grade,null,null,'list',null);db.exec('COMMIT');json(200,{projects:list});return true;}catch(error){db.exec('ROLLBACK');throw error;}}
+  const route=path.match(/^\/api\/admin\/projects\/([A-Za-z0-9_-]{1,100})\/([A-Za-z0-9_-]{1,80})$/);if(!route||!['GET','PATCH'].includes(req.method))fail(404,'Not found');const [,owner,pid]=route;
+  let data;if(req.method==='PATCH'){data=await readJson(65536);if(!data||typeof data!=='object'||Array.isArray(data)||Object.keys(data).some(key=>!['revision','commands','reason'].includes(key))||!Number.isSafeInteger(data.revision)||data.revision<0||typeof data.reason!=='string'||!data.reason.trim()||data.reason.length>500||/[\u0000-\u001f\u007f]/.test(data.reason))fail(400,'Revision, commands and reason required');validateCommands(data.commands);}
+  db.exec('BEGIN IMMEDIATE');try{const grade=actor(db,session),current=target(db,owner,pid);let next=current.project,revision=current.revision;
+   if(req.method==='PATCH'){if(data.revision!==revision)fail(409,'Workspace changed. Reload before editing.');next=apply(current.project,data.commands);const candidate=structuredClone(current.state),selected=projects(candidate).find(p=>(p.project.id||'project-main')===pid);for(const key of keys)selected[key]=structuredClone(next[key]??[]);if(!validateWorkspace(candidate))fail(400,'Invalid project change');
+    for(const gear of selected.gear){const old=current.project.gear.find(value=>value.id===gear.id);if(old.assigneeMemberId!==gear.assigneeMemberId)db.prepare('UPDATE equipment_links SET assignee_member_id=? WHERE owner_id=? AND project_id=? AND gear_id=?').run(gear.assigneeMemberId??null,owner,pid,gear.id);}
+    applyTeams(db,owner,pid,selected,data.commands);
+    const updated=db.prepare('UPDATE workspaces SET body=?,revision=revision+1 WHERE user_id=? AND revision=?').run(JSON.stringify(candidate),owner,revision);if(!updated.changes)fail(409,'Workspace changed. Reload before editing.');revision++;
+   }
+   audit(db,session,grade,owner,pid,req.method==='GET'?'open':data.commands.map(c=>c.operation).join(','),revision,data?.reason.trim()||'');const response={project:projection(next),revision,teams:teams(db,owner,pid),attachments:managedProjectAttachments(db,owner,pid,next)};db.exec('COMMIT');json(200,response);return true;
+  }catch(error){db.exec('ROLLBACK');throw error;}
+ }catch(error){json(error.status||500,{error:error.status?error.message:'Project administration request failed'});return true;}
+};}

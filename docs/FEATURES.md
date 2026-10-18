@@ -53,6 +53,16 @@ Organization invitations require acceptance. Members can leave, but the last ava
 
 The Studio administrator workspace includes user and equipment pages and an organization invitation page. Its organization page lists organizations and can invite another account as administrator, operator or viewer, or cancel a pending invitation sent from that page. This invitation action does not transfer ownership or give the Studio administrator additional organization equipment or borrowing access.
 
+## Site roles and project management
+
+Site roles are Supreme Administrator, Administrator and User, separate from organization roles. The first successful login receives the supreme role on a newly initialized installation with role management enabled. Existing installations require a separate verified transition. The supreme administrator appoints or removes administrators and cannot be deleted.
+
+Both administrator grades can open the All Projects page and edit project details, shoots, members, teams, tasks and reference notes, with a reason recorded for changes. The page also edits existing cameras and placement position, size and text, and manages scripts and reference images linked to the selected project. Upload, preview, download or unlink an attachment; unlinking retains its original file and other links. Equipment changes there are limited to project assignments and readiness. Account settings and equipment ownership remain separately controlled.
+
+When site role management is enabled and the highest administrator is established, account deletion requires a separate preview and explicit confirmation. Protected accounts and accounts connected to shared or historical records cannot be deleted. An allowed deletion removes the login and private project/file data and cannot be restored in the app; separately retained backups and eligible historical deletion audit records are unaffected. Previously deleted accounts are not restored or automatically purged. Administrators can delete ordinary users; only the supreme administrator can review deleting another administrator, subject to the same dependency checks. The supreme administrator cannot be deleted.
+
+Account settings also offer permanent account deletion with a fresh password check and explicit confirmation. Administrator accounts must first have their administrator role removed by the supreme administrator. Shared ownership and retained history can block deletion and require separate review; no shared records are removed automatically.
+
 ## External apps
 
 External app connections are optional. Connect an app from settings, review the requested access and disconnect it when no longer needed. Connected assistants can help find project information and prepare supported changes within the access you allow.
