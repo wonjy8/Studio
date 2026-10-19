@@ -1,3 +1,4 @@
+import {emptyShootConfiguration} from './shoots.js';
 import {emptyWorkspace} from './workspace.js';
 import {prepareProjects,allProjects,switchProject,addProject} from './projects.js';
 import {addCamera,addLayoutObject,moveLayoutItem} from './layout.js';
@@ -22,7 +23,7 @@ export function applyCommands(input,projectId,commands,{prepareLayout=true}={}){
   let item,previousName,previousItem;
   if(operation.startsWith('add_')){
    if(state[key].length>=2000)throw Error('항목 개수 제한에 도달했습니다.');
-   const defaults={shoot:{name:'',time:'',location:'',status:'check',script:false},member:{name:'',role:'',call:''},equipment:{name:'',owner:'',assignee:'',category:'other',status:'check',equipmentSource:'manual'},reference:{name:'',notes:'',images:[]}}[type];
+   const defaults={shoot:{name:'',time:'',location:'',status:'check',script:false,configuration:emptyShootConfiguration()},member:{name:'',role:'',call:''},equipment:{name:'',owner:'',assignee:'',category:'other',status:'check',equipmentSource:'manual'},reference:{name:'',notes:'',images:[]}}[type];
    item={...defaults,...values,id:type+'-'+crypto.randomUUID()};state[key].push(item);
   }else{item=state[key].find(x=>x.id===entityId);if(!item)throw Error('현재 프로젝트에서 항목을 찾을 수 없습니다.');previousName=item.name;previousItem={...item};Object.assign(item,values);}
   if(typeof item.name!=='string'||!item.name.trim())throw Error('이름이 필요합니다.');

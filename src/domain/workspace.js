@@ -31,7 +31,7 @@ function validateProject(value) {
   const fields = (o, names) => o && names.every(k => text(o[k]));
   if (!fields(value.project,['name','date','time','location'])) return false;
   if(value.project.description!==undefined&&!text(value.project.description))return false;
-  if(value.tasks!==undefined&&(!Array.isArray(value.tasks)||value.tasks.length>2000||!value.tasks.every(x=>x&&/^[a-zA-Z0-9_-]{1,80}$/.test(x.id)&&text(x.name)&&x.name.trim()&&typeof x.completed==='boolean'&&(x.flagged===undefined||typeof x.flagged==='boolean')&&validSchedule(x))||new Set(value.tasks.map(x=>x.id)).size!==value.tasks.length))return false;
+  if(value.tasks!==undefined&&(!Array.isArray(value.tasks)||value.tasks.length>2000||!value.tasks.every(x=>x&&/^[a-zA-Z0-9_-]{1,80}$/.test(x.id)&&text(x.name)&&x.name.trim()&&typeof x.completed==='boolean'&&(x.shootId===undefined||(Array.isArray(value.contents)&&value.contents.some(shoot=>shoot&&shoot.id===x.shootId)))&&(x.flagged===undefined||typeof x.flagged==='boolean')&&validSchedule(x))||new Set(value.tasks.map(x=>x.id)).size!==value.tasks.length))return false;
   if(value.project.id!==undefined&&!/^[a-zA-Z0-9_-]{1,80}$/.test(value.project.id))return false;
   if(value.project.order!==undefined&&(!Number.isSafeInteger(value.project.order)||value.project.order<0))return false;
   if(value.project.icon!==undefined&&!projectIcons.includes(value.project.icon))return false;
@@ -50,6 +50,14 @@ function validateProject(value) {
   if(value.project.placeholder&&(value.project.name!=='새 프로젝트'||value.project.date||value.project.time||value.project.location||value.project.description||['contents','schedule','members','gear','cameras','refs','tasks','layoutObjects'].some(key=>value[key]?.length)))return false;
   const status = x => ['ready','check','problem'].includes(x);
   if (!value.contents.every(x => fields(x,['name','time','location']) && (x.date===undefined||x.date===''||validDate(x.date)) && status(x.status) && typeof x.script === 'boolean' && (x.completed === undefined || typeof x.completed === 'boolean') && (!x.scriptFile || /^[a-f0-9-]{36}$/.test(x.scriptFile)))) return false;
+  for(const shoot of value.contents){
+    if(shoot.configuration===undefined)continue;
+    const c=shoot.configuration,idList=(list,items)=>Array.isArray(list)&&list.length<=2000&&new Set(list).size===list.length&&list.every(id=>typeof id==='string'&&items.some(item=>item.id===id));
+    if(!c||typeof c!=='object'||Array.isArray(c)||Object.keys(c).some(key=>!['memberIds','gearIds','rentals','cameras','layoutObjects'].includes(key))||!idList(c.memberIds,value.members)||!idList(c.gearIds,value.gear)||!Array.isArray(c.rentals)||c.rentals.length>2000||!Array.isArray(c.cameras)||!Array.isArray(c.layoutObjects))return false;
+    if(!c.rentals.every(g=>g&&g.isRental===true&&Object.keys(g).every(key=>['id','name','category','owner','assignee','status','isRental','quantity','catalogModelId','catalogModel'].includes(key))&&Number.isSafeInteger(g.quantity)&&g.quantity>=1&&g.quantity<=100000&&!value.gear.some(common=>common.id===g.id)))return false;
+    const scope={...emptyWorkspace(),project:value.project,members:value.members.filter(m=>c.memberIds.includes(m.id)),gear:[...value.gear.filter(g=>c.gearIds.includes(g.id)),...c.rentals],cameras:c.cameras,layoutObjects:c.layoutObjects,refs:value.refs};
+    if(!validateProject(scope))return false;
+  }
   if (!value.members.every(x => fields(x,['name','role','call']) && (x.contactId===undefined||(typeof x.contactId==='string'&&/^[a-f0-9-]{36}$/.test(x.contactId))))) return false;
   if (!value.gear.every(x => fields(x,['name','owner','assignee']) && (x.catalogModelId===undefined||x.catalogModelId===null||(typeof x.catalogModelId==='string'&&/^[a-f0-9-]{36}$/.test(x.catalogModelId))) && (x.contactEquipmentId===undefined||(typeof x.contactEquipmentId==='string'&&/^[a-f0-9-]{36}$/.test(x.contactEquipmentId))) && (x.isRental===undefined||typeof x.isRental==='boolean') && status(x.status) && (x.category===undefined||Object.hasOwn(gearCategories,x.category)))) return false;
   if (!value.cameras.every(x => fields(x,['name','role','operator','body','lens']) && [x.x,x.y].every(n=>Number.isFinite(n)&&n>=0&&n<=100) && (x.gearId===undefined||value.gear.some(g=>g.id===x.gearId&&g.category==='camera')) && Array.isArray(x.refs) && x.refs.every(id=>value.refs.some(r=>r.id===id)))) return false;
