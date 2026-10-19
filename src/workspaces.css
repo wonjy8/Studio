@@ -201,3 +201,5 @@
 :is(.catalog-photo-empty,.equipment-list-photo.catalog-photo-empty){display:grid;place-items:center;color:var(--muted)}.catalog-photo-empty>.icon{width:36%;height:36%;max-width:56px;max-height:56px}.equipment-list-photo.catalog-photo-empty>.icon,.model-thumb.catalog-photo-empty>.icon{width:24px;height:24px}
 
 .production-app .equipment-kind{display:grid;width:40px;height:40px;flex:0 0 40px}
+
+img:is(.catalog-photo,.model-thumb,.equipment-model-photo,.equipment-list-photo){background:#fff}
