@@ -1,0 +1,30 @@
+// Fictional local projects only: project assignments never become personal contact details.
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {createServer} from 'node:net';
+import {createApp} from '../server/index.js';
+import {hashPassword} from '../server/auth.js';
+import {emptyWorkspace} from '../src/domain/workspace.js';
+import {prepareProjects} from '../src/domain/projects.js';
+import {writeWorkspace} from '../server/workspace-service.js';
+import {routePath} from '../src/app/routes.js';
+const {chromium}=await import(process.env.STUDIO_PLAYWRIGHT_MODULE||'playwright');
+const reserve=createServer();await new Promise(resolve=>reserve.listen(0,'127.0.0.1',resolve));const port=reserve.address().port;await new Promise(resolve=>reserve.close(resolve));const origin='http://127.0.0.1:'+port;
+const dir=await mkdtemp('/tmp/studio-member-roles-'),app=await createApp({dir,origin,secure:false});
+app.db.prepare('INSERT INTO users VALUES(?,?,?)').run('owner','fictional-owner',await hashPassword('Fictional!Qa2026'));
+const state=prepareProjects(emptyWorkspace());state.project.id='p';const q=prepareProjects(emptyWorkspace());q.project.id='q';delete q.projects;state.projects=[q];writeWorkspace(app.db,'owner',state,0);
+await new Promise(resolve=>app.server.listen(port,'127.0.0.1',resolve));
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',error=>errors.push(error.message));page.setDefaultTimeout(12000);
+ await page.goto(origin);await page.locator('[name=username]').fill('fictional-owner');await page.locator('[name=password]').fill('Fictional!Qa2026');await page.locator('#login [type=submit]').click();await page.locator('.production-app').waitFor();
+ const api=(path,body)=>page.evaluate(async({path,body})=>{const response=await fetch('/api/'+path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const data=await response.json();if(!response.ok)throw Error(JSON.stringify(data));return data;},{path,body});
+ const contact=(await api('contacts',{name:'Fictional collaborator',role:'집사',phone:'010-0000-0000',email:'fictional@example.com'})).contact;
+ for(const pid of ['p','q']){const workspace=await api('workspace');await api('projects/'+pid+'/contact-selection',{contactIds:[contact.id],revision:workspace.revision});}
+ const membersUrl=pid=>origin+routePath({username:'fictional-owner',project:{id:pid},view:'members'});
+ await page.goto(membersUrl('p'));await page.locator('[data-action="edit-member-contact-'+contact.id+'"]').click();await page.locator('[data-form=member-edit]').waitFor();assert.equal(await page.getByLabel('프로젝트 역할',{exact:true}).inputValue(),'');assert.equal(await page.getByLabel('콜타임',{exact:true}).inputValue(),'');await page.getByLabel('프로젝트 역할',{exact:true}).fill('감독, 촬영');await page.getByLabel('콜타임',{exact:true}).fill('08:00');await page.locator('[data-form=member-edit] [type=submit]').click();await page.locator('[data-form=member-edit]').waitFor({state:'detached'});await page.getByText('콜타임 08:00',{exact:true}).waitFor();assert.deepEqual(await page.locator('.project-member-roles .member-chip').allTextContents(),['감독','촬영']);
+ await page.goto(membersUrl('q'));assert.equal(await page.locator('.project-member-roles .member-chip').count(),0);await page.locator('[data-action="edit-member-contact-'+contact.id+'"]').click();await page.getByLabel('프로젝트 역할',{exact:true}).fill('음향');await page.getByLabel('콜타임',{exact:true}).fill('10:30');await page.locator('[data-form=member-edit] [type=submit]').click();await page.getByText('콜타임 10:30',{exact:true}).waitFor();
+ await page.goto(membersUrl('p'));await page.getByText('콜타임 08:00',{exact:true}).waitFor();assert.deepEqual(await page.locator('.project-member-roles .member-chip').allTextContents(),['감독','촬영']);const saved=(await api('contacts')).contacts.find(item=>item.id===contact.id);assert.equal(saved.role,'집사');assert.equal(saved.phone,'010-0000-0000');assert.equal(saved.email,'fictional@example.com');await page.screenshot({path:'/tmp/studio-project-member-roles-desktop.png'});
+ const camera=(await api('contacts/'+contact.id+'/equipment',{name:'Fictional camera',category:'camera',quantity:1})).equipment;await api('contacts/'+contact.id+'/equipment',{name:'Fictional panel',category:'lighting',quantity:2});await page.reload();await page.locator('[data-view=gear]').click();await page.locator('[data-equipment-owner]').filter({hasText:'Fictional collaborator'}).click();assert.deepEqual(await page.locator('[data-equipment-category-group]').evaluateAll(nodes=>nodes.map(node=>node.dataset.equipmentCategoryGroup)),['camera','lighting']);const cameraButton=page.locator('[data-toggle-gear="cg-'+camera.id+'"]');assert.equal(await cameraButton.innerText(),'사용하기');await cameraButton.click();await page.locator('[data-toggle-gear="cg-'+camera.id+'"]',{hasText:'✓ 사용 확정'}).waitFor();await page.locator('[data-equipment-view=counts]').click();await page.locator('[data-equipment-owner=ready]').click();assert.deepEqual(await page.locator('[data-equipment-category-group]').evaluateAll(nodes=>nodes.map(node=>node.dataset.equipmentCategoryGroup)),['camera']);await page.screenshot({path:'/tmp/studio-project-equipment-categories.png'});await page.locator('[data-view=members]').click();
+ await page.locator('[data-action="edit-member-contact-'+contact.id+'"]').click();await page.reload();await page.locator('[data-form=member-edit]').waitFor();assert.equal(await page.getByLabel('프로젝트 역할',{exact:true}).inputValue(),'감독, 촬영');await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);console.log('PASS project role chips, editing, independent call times, unchanged contact title/phone/email, dialog reload and mobile width');
+}finally{await browser.close();await new Promise(resolve=>app.server.close(resolve));await rm(dir,{recursive:true,force:true});}

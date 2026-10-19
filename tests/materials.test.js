@@ -33,3 +33,12 @@ test('equipment catalog separates organization stock and preserves each register
  assert.equal(catalog.find(g=>g.id===descriptive.id).contactId,contact.id);assert.equal(catalog.find(g=>g.id===descriptive.id).ownership,'personal');
  assert.equal((await call('material-equipment','GET',null,'c')).body.items.length,0);
 });
+test('contact titles and contact details stay separate from each project role and call time',async t=>{
+ const {db,call}=await fixture(t);
+ const contact=(await call('contacts','POST',{name:'Fictional collaborator',role:'집사',phone:'010-0000-0000',email:'fictional@example.com'})).body.contact;
+ for(const id of ['p','q']){const current=readWorkspace(db,'a');assert.equal((await call('projects/'+id+'/contact-selection','POST',{contactIds:[contact.id],revision:current.revision})).status,200);}
+ let current=readWorkspace(db,'a');for(const project of [current.state,...current.state.projects]){const member=project.members.find(m=>m.contactId===contact.id);assert.equal(member.role,'');assert.equal(member.call,'');}
+ const p=current.state.members.find(m=>m.contactId===contact.id),q=current.state.projects[0].members.find(m=>m.contactId===contact.id);p.role='감독, 촬영';p.call='08:00';q.role='음향';q.call='10:30';writeWorkspace(db,'a',current.state,current.revision);
+ assert.equal((await call('contacts/'+contact.id,'PUT',{name:contact.name,role:'장로',phone:'010-1111-1111',email:contact.email,revision:contact.revision})).status,200);
+ current=readWorkspace(db,'a');assert.equal(current.state.members.find(m=>m.contactId===contact.id).role,'감독, 촬영');assert.equal(current.state.members.find(m=>m.contactId===contact.id).call,'08:00');assert.equal(current.state.projects[0].members.find(m=>m.contactId===contact.id).role,'음향');assert.equal(current.state.projects[0].members.find(m=>m.contactId===contact.id).call,'10:30');const profile=(await call('contacts')).body.contacts.find(c=>c.id===contact.id);assert.equal(profile.role,'장로');assert.equal(profile.phone,'010-1111-1111');assert.equal(profile.email,'fictional@example.com');
+});
