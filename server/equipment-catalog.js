@@ -1,3 +1,5 @@
+import {seedEquipmentCatalog} from './equipment-catalog-seeds.js';
+import {studioEquipmentModels} from './studio-equipment-models.js';
 import {randomUUID} from 'node:crypto';
 import {isAdmin} from './invitations.js';
 import {gearCategories} from '../src/domain/layout.js';
@@ -20,6 +22,7 @@ export function equipmentCatalogRoutes(db){
  CREATE UNIQUE INDEX IF NOT EXISTS equipment_catalog_identity ON equipment_catalog(manufacturer COLLATE NOCASE,name COLLATE NOCASE);
  CREATE TABLE IF NOT EXISTS equipment_model_links(equipment_id TEXT PRIMARY KEY REFERENCES equipment_items(id) ON DELETE CASCADE,model_id TEXT NOT NULL REFERENCES equipment_catalog(id));`);
  if(!db.prepare('SELECT 1 FROM equipment_catalog LIMIT 1').get())for(const [manufacturer,name,nickname,category]of [['Sony','ILME-FX3','FX3','camera'],['Sony','ILME-FX30','FX30','camera'],['Sony','ILME-FX6','FX6','camera'],['Sony','ILCE-7SM3','A7S III','camera'],['Canon','EOS R5','R5','camera'],['Canon','EOS C70','C70','camera'],['Panasonic','LUMIX DC-GH6','GH6','camera'],['Blackmagic Design','Pocket Cinema Camera 6K Pro','BMPCC 6K Pro','camera'],['Sony','FE 24-70mm F2.8 GM II','24-70 GM II','lens'],['Aputure','LS 600d Pro','600d Pro','lighting'],['amaran','200x S','200x S','lighting'],['RØDE','Wireless GO II','Wireless GO II','audio']])db.prepare('INSERT INTO equipment_catalog VALUES(?,?,?,?,?,NULL,NULL,1,0)').run(randomUUID(),manufacturer,name,nickname,category);
+ seedEquipmentCatalog(db,studioEquipmentModels);
  return async({path,url,req,res,session,json,readJson})=>{
  if(!path.startsWith('/api/equipment-catalog'))return false;if(!session){json(401,{error:'Login required'});return true;}
  const match=path.match(/^\/api\/equipment-catalog\/([a-f0-9-]{36})(\/photo)?$/);if(path!=='/api/equipment-catalog'&&!match){json(404,{error:'Not found'});return true;}
