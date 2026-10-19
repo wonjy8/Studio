@@ -1,3 +1,4 @@
+import {icon} from '../design-system/primitives/icons.js';
 import {request} from '../integrations/api.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
 import {gearCategories} from '../domain/layout.js';
@@ -5,7 +6,7 @@ const catalogCategories={all:'전체',...gearCategories,sd:'메모리',other:'�
 let active;
 export const equipmentCatalogCanLeave=()=>!active?.root.isConnected||active.leave();
 export const equipmentCatalogDraftPending=()=>Boolean(active?.root.isConnected&&active.dirty());
-export const modelPhoto=(model,cls='catalog-photo')=>model?.photoUrl?`<img class="${cls}" src="${esc(model.photoUrl)}" alt="${esc(model.nickname||model.name)}" loading="lazy">`:`<span class="${cls} catalog-photo-empty" aria-label="사진 미등록">사진 없음</span>`;
+export const modelPhoto=(model,cls='catalog-photo')=>model?.photoUrl?`<img class="${cls}" src="${esc(model.photoUrl)}" alt="${esc(model.nickname||model.name)}" loading="lazy">`:`<span class="${cls} catalog-photo-empty" role="img" aria-label="${esc(gearCategories[model?.category]||'기타 장비')} 아이콘">${icon(Object.hasOwn(gearCategories,model?.category)&&model.category!=='other'?model.category:'gear')}</span>`;
 export const equipmentCatalogPage=()=>`<section class="equipment-catalog browse-workspace" data-equipment-catalog><nav class="workspace-browse-tabs" aria-label="장비 도감 메뉴">${Object.entries(catalogCategories).map(([key,label])=>`<button class="project-tab ${key==='all'?'active':''}" ${key==='all'?'aria-current="page"':''} type="button" data-catalog-category="${key}">${label}</button>`).join('')}</nav><div class="browse-toolbar"><label class="field browse-search">장비 검색<input type="search" data-catalog-search placeholder="제조사·모델·별명"></label><button class="btn primary" type="button" data-catalog-new hidden>+ 모델</button></div><p role="status" data-catalog-message>불러오는 중…</p><section data-catalog-editor></section><div class="catalog-manufacturers" data-catalog-list></div></section>`;
 const snapshot=form=>JSON.stringify([...new FormData(form)].map(([key,value])=>[key,typeof value==='string'?value:{name:value.name,size:value.size,lastModified:value.lastModified}]));
 export async function bindEquipmentCatalog(){

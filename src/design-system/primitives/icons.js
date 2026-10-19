@@ -2,6 +2,12 @@ import {solidProjectIconPaths} from '../icons/solid-paths.js';
 import {projectIconPaths} from '../icons/paths.js';
 // Original vector artwork, shared across navigation and project identity.
 const paths={
+ lens:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 4 14 4 14 0V6M5 11c0 4 14 4 14 0M5 15c0 4 14 4 14 0"/>',
+ lighting:'<rect x="3" y="3" width="18" height="12" rx="2"/><path d="M7 7h10M7 11h10M12 15v4m-5 3 5-3 5 3"/>',
+ sd:'<path d="M8 3h10a2 2 0 0 1 2 2v16H4V7Z"/><path d="M9 4v5m4-5v5m4-5v5M8 14h8v4H8Z"/>',
+ tripod:'<path d="M8 3h8v5H8ZM12 8v5m-3-3-5 12m11-12 5 12m-8-9v9M7 17h10"/>',
+ audio:'<rect x="8" y="2" width="8" height="13" rx="4"/><path d="M5 10v2a7 7 0 0 0 14 0v-2m-7 9v3m-4 0h8"/>',
+
  // Fixed filled camcorder silhouette for the equipment workspace rail.
  camcorder:'<g fill="currentColor" stroke="none"><rect x="2" y="8" width="14" height="12" rx="2"/><path d="M17 11 22 8v12l-5-3ZM6 3h6a2 2 0 0 1 2 2v1h-2V5H6v1H4V5a2 2 0 0 1 2-2Z"/></g>',
  shield:'<path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6Z"/><path d="m8 12 3 3 5-6"/>',

@@ -195,3 +195,9 @@
 @media(max-width:600px){.catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.catalog-card{padding:10px}.catalog-photo{height:110px}.catalog-edit-form{grid-template-columns:minmax(0,1fr)}}
 
 .catalog-manufacturers{display:grid;gap:28px}.catalog-manufacturer{min-width:0}.catalog-manufacturer>h2{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:15px;font-weight:500}
+
+.production-app .master-choice-with-photo{display:flex;align-items:center;gap:10px;overflow-wrap:anywhere}.equipment-list-photo{width:44px;height:44px;flex:0 0 44px;object-fit:contain;border-radius:6px;background:var(--surface-2)}.equipment-count-title{display:flex;align-items:center;gap:10px;min-width:0}.equipment-count-title h2{overflow-wrap:anywhere}
+
+:is(.catalog-photo-empty,.equipment-list-photo.catalog-photo-empty){display:grid;place-items:center;color:var(--muted)}.catalog-photo-empty>.icon{width:36%;height:36%;max-width:56px;max-height:56px}.equipment-list-photo.catalog-photo-empty>.icon,.model-thumb.catalog-photo-empty>.icon{width:24px;height:24px}
+
+.production-app .equipment-kind{display:grid;width:40px;height:40px;flex:0 0 40px}
