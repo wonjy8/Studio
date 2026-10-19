@@ -1,3 +1,4 @@
+import {equipmentCatalogRoutes} from './equipment-catalog.js';
 import {syncRepresentatives} from './project-representative.js';
 import {referenceLibraryRoutes,reconcileReferences} from './reference-library.js';
 import {contactRoutes} from './contacts.js';
@@ -34,6 +35,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   configureSiteRoleManagement(db,enableSiteRoleManagement);
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
+  const handleEquipmentCatalog=equipmentCatalogRoutes(db);
   const handleInventory=inventoryRoutes(db),handleRentalVendors=rentalVendorRoutes(db),handleContacts=contactRoutes(db,{orgCanRead,equipmentProjectScope}),handleReferenceLibrary=referenceLibraryRoutes(db);
   syncRepresentatives(db);
   let googleSheets;try{googleSheets=await googleSheetsService(db,{dir,origin,...google});}catch(error){db.close();throw error;}
@@ -97,6 +99,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleContacts({path,req,session,json,readJson}))return;
       if(await handleRentalVendors({path,req,session,json,readJson}))return;
       if(await googleSheets.routes({path,url,req,res,session,json,readJson}))return;
+      if(await handleEquipmentCatalog({path,url,req,res,session,json,readJson}))return;
       if(await handleInventory({path,url,req,session,json,readJson})){if(!['GET','HEAD'].includes(req.method)&&res.statusCode<400)googleSheets.kick();return;}
       if(await handleAccountDeletion({path,url,req,session,json,readJson,clearSessionCookie:()=>setCookie('',0)}))return;
       if(await handleAccounts({path,url,req,session,json,readJson}))return;

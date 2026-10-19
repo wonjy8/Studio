@@ -1,3 +1,4 @@
+import {setEquipmentModelLink,reconcileCatalogModels} from './equipment-catalog.js';
 import {reconcileContactEquipment} from './contacts.js';
 import {assertInventoryIdentityChange,bumpInventoryRevision} from './inventory.js';
 import {randomUUID} from 'node:crypto';
@@ -51,7 +52,7 @@ export function reconcileEquipment(db,uid,state,{write=false,previous}={}){
   const ownerExplicit=Object.hasOwn(g,'ownerMemberId'),assigneeExplicit=Object.hasOwn(g,'assigneeMemberId');
   const owner=ownerExplicit?g.ownerMemberId:(link?.owner_member_id??null),assignee=assigneeExplicit?g.assigneeMemberId:(link?.assignee_member_id??null);
   if([owner,assignee].some(id=>id!==null&&id!==undefined&&!p.members.some(m=>m.id===id)))fail();
-  if(!item&&write){item={id:randomUUID(),owner_id:uid,name:g.name,category:g.category||'other'};db.prepare('INSERT INTO equipment_items VALUES(?,?,?,?)').run(item.id,uid,item.name,item.category);db.prepare('INSERT INTO equipment_project_scope VALUES(?,?,?,?,?)').run(item.id,uid,pid,owner??null,p.members.find(m=>m.id===owner)?.name||g.owner||'');}
+  if(!item&&write){item={id:randomUUID(),owner_id:uid,name:g.name,category:g.category||'other'};db.prepare('INSERT INTO equipment_items VALUES(?,?,?,?)').run(item.id,uid,item.name,item.category);if(g.catalogModelId)setEquipmentModelLink(db,item.id,g.catalogModelId,{category:g.category});db.prepare('INSERT INTO equipment_project_scope VALUES(?,?,?,?,?)').run(item.id,uid,pid,owner??null,p.members.find(m=>m.id===owner)?.name||g.owner||'');}
   if(!item)continue;
   if(write&&!seen.has(item.id)){const previousItem=item;item={...item,...edits.get(item.id)};assertEquipmentCategory(db,uid,item.id,item.category,state);db.prepare('UPDATE equipment_items SET name=?,category=? WHERE id=?').run(item.name,item.category,item.id);if(item.name!==previousItem.name||item.category!==previousItem.category)bumpInventoryRevision(db,item.id);}
   item=seen.get(item.id)||item;seen.set(item.id,item);const oldName=g.name;const source=equipmentSource(db,uid,pid,item);g.equipmentSource=source.source;g.equipmentOwnerLabel=source.ownerLabel;g.equipmentOwnerKey=source.organizationId||item.owner_id;const stock=['organization','personal','member'].includes(source.source)?db.prepare('SELECT quantity FROM inventory_metadata WHERE equipment_id=?').get(item.id):null;g.equipmentQuantity=stock?.quantity??1;g.equipmentUnavailable=false;const inventory=db.prepare('SELECT ownership,organization_id FROM inventory_metadata WHERE equipment_id=?').get(item.id);g.canEditEquipment=source.source==='manual'||(inventory?.ownership==='organization'?orgCanManage(db,uid,inventory.organization_id):item.owner_id===uid);g.equipmentId=item.id;g.name=item.name;g.category=item.category;g.equipmentBaseName=item.name;g.equipmentBaseCategory=item.category;for(const camera of p.cameras)if(camera.gearId===g.id)camera.body=g.name;for(const object of p.layoutObjects||[])if(object.gearId===g.id&&object.name===oldName)object.name=g.name;
@@ -62,5 +63,5 @@ export function reconcileEquipment(db,uid,state,{write=false,previous}={}){
   if(write&&source.source==='manual'){const scope=equipmentProjectScope(db,item.id);if(scope.owner_name!==(g.owner||'')||scope.owner_member_id!==(owner??null))db.prepare("UPDATE equipment_claims SET status='revoked',revision=revision+1 WHERE equipment_id=? AND status='pending'").run(item.id);db.prepare('UPDATE equipment_project_scope SET owner_member_id=?,owner_name=? WHERE equipment_id=?').run(owner??null,g.owner||'',item.id);}
   if(assignee){g.assigneeMemberId=assignee;g.assignee=p.members.find(m=>m.id===assignee).name;}else if(assigneeExplicit){g.assigneeMemberId=null;if(wasLinkedLabel('assignee',link?.assignee_member_id))g.assignee='';}
  }
- return state;
+ return reconcileCatalogModels(db,state);
 }

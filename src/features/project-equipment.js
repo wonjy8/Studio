@@ -1,3 +1,4 @@
+import {modelPhoto} from './equipment-catalog.js';
 import {groupEquipmentByCategory} from './equipment-categories.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
 import {icon} from '../design-system/primitives/icons.js';
@@ -12,7 +13,7 @@ export function equipmentGroups(items,mode){
 export const equipmentQuantity=item=>Number.isSafeInteger(item.equipmentQuantity)&&item.equipmentQuantity>0?item.equipmentQuantity:1;
 const total=items=>items.reduce((sum,item)=>sum+equipmentQuantity(item),0);
 const ready=item=>item.status==='ready'&&!item.equipmentUnavailable;
-function row(item){return `<div class="gear-row equipment-item"><span class="equipment-kind" aria-hidden="true">${item.category==='lighting'?layoutIcon('lighting'):icon(item.category==='camera'?'camera':'gear')}</span><div class="equipment-item-label"><strong>${esc(item.name)}${equipmentQuantity(item)>1?` <span class="sub">× ${equipmentQuantity(item)}</span>`:''}</strong><span class="sub">${[gearCategories[item.category]||'기타',item.isRental?'대여처 '+item.owner:item.owner,item.equipmentUnavailable?'연결 해제됨':''].filter(Boolean).map(esc).join(' · ')}</span></div><button type="button" class="btn equipment-select ${ready(item)?'is-selected':''}" data-toggle-gear="${esc(item.id)}" aria-label="${esc(item.name)} ${ready(item)?'사용 취소':'사용하기'}" aria-pressed="${ready(item)}" ${item.equipmentUnavailable?'disabled':''}>${ready(item)?'✓ 사용 확정':'사용하기'}</button></div>`;}
+function row(item){return `<div class="gear-row equipment-item"><span class="equipment-kind" aria-hidden="true">${item.catalogModel?.photoUrl?modelPhoto(item.catalogModel,'model-thumb'):item.category==='lighting'?layoutIcon('lighting'):icon(item.category==='camera'?'camera':'gear')}</span><div class="equipment-item-label"><strong>${esc(item.name)}${equipmentQuantity(item)>1?` <span class="sub">× ${equipmentQuantity(item)}</span>`:''}</strong><span class="sub">${[gearCategories[item.category]||'기타',item.isRental?'대여처 '+item.owner:item.owner,item.equipmentUnavailable?'연결 해제됨':''].filter(Boolean).map(esc).join(' · ')}</span></div><button type="button" class="btn equipment-select ${ready(item)?'is-selected':''}" data-toggle-gear="${esc(item.id)}" aria-label="${esc(item.name)} ${ready(item)?'사용 취소':'사용하기'}" aria-pressed="${ready(item)}" ${item.equipmentUnavailable?'disabled':''}>${ready(item)?'✓ 사용 확정':'사용하기'}</button></div>`;}
 export function projectEquipmentView(items,mode='owners',selection='',members=[],organizations=[]){
  mode=mode==='counts'?'counts':'owners';const groups=equipmentGroups(items,'owners');
  for(const org of organizations.filter(org=>org.connected))if(!groups.some(g=>g.items.some(item=>item.equipmentOwnerKey===org.id)))groups.unshift({key:'org:'+org.id,name:org.name,items:[]});
