@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {createApp} from '../server/index.js';
 import {digest} from '../server/auth.js';
+import {newDocument} from '../src/domain/documents.js';
+import {emptyWorkspace} from '../src/domain/workspace.js';
+import {routePath,parseRoute} from '../src/app/routes.js';
+import {projectNavigation} from '../src/patterns/navigation.js';
 
 async function fixture(t){
  const dir=await mkdtemp('/tmp/studio-material-library-'),origin='http://localhost',app=await createApp({dir,origin,secure:false});
@@ -39,4 +43,17 @@ test('file originals cannot be deleted while a reference still uses them',async 
  const reference=await call('reference-library','POST',{name:'Fictional board',images:[uploaded.url]});assert.equal(reference.status,201);
  const deleted=await call('materials/'+item.id,'DELETE');assert.equal(deleted.status,422);
  assert.equal((await call('materials')).body.items.some(entry=>entry.id===item.id),true);
+});
+
+test('new personal documents receive a creation date in All Materials and legacy document URLs stay valid',async t=>{
+ const {call}=await fixture(t),doc=newDocument('Fictional document');
+ const saved=await call('document-library','PUT',{documents:[doc],revision:0});assert.equal(saved.status,200);
+ const library=await call('materials');assert.ok(library.body.documentDates['account:'+doc.id]>0);
+ assert.equal(parseRoute('/documents?document='+doc.id).view,'document-workspace');
+ assert.equal(parseRoute(routePath({view:'materials',username:'fictional'})).view,'materials');
+ assert.match(routePath({view:'materials',username:'fictional'}),/\\/dataspace\\/materials$/);
+});
+test('Materials navigation groups documents under All Materials and keeps references separate',()=>{
+ const html=projectNavigation(emptyWorkspace(),'materials',false,{});
+ assert.match(html,/모든 자료/);assert.match(html,/레퍼런스/);assert.doesNotMatch(html,/data-view="document-workspace"/);
 });
