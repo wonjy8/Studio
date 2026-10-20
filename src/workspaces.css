@@ -534,3 +534,15 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 @media(max-width:760px){.home-command-brand{padding:16px 0 20px}.home-command .home-workspace-panel{padding:16px}.home-command .home-workspace-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.home-command .home-qt-panel{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:16px}.home-destinations{grid-template-columns:1fr}.home-project-progress{width:64px}.home-command .home-workspace-columns{gap:16px}}
 
 .project-list>.sidebar-group-divider{height:1px;background:var(--line);margin:8px 10px;pointer-events:none}
+
+/* Fixed workspace navigation; only project lists can be reordered. */
+.workspace-rail-divider{width:24px;min-height:1px;background:var(--line);flex:none;margin:0 auto}
+@media(min-width:901px){
+ :root{--rail:56px}
+ .workspace-sidebar{background:var(--surface-2)}
+ .production-app .workspace-rail{padding-left:10px;padding-right:10px;border-right:0;background:var(--surface-2)}
+ .production-app .project-sidebar{border-top-left-radius:var(--r-panel);border-bottom-left-radius:var(--r-panel)}
+ .production-app.sidebar-collapsed{background:var(--surface-2)}
+ .sidebar-collapsed>.main{background:var(--bg);border-top-left-radius:var(--r-panel);border-bottom-left-radius:var(--r-panel);overflow:clip}
+}
+@media(max-width:900px){.workspace-rail-divider{width:1px;min-height:28px;margin:8px 4px;align-self:center}}
