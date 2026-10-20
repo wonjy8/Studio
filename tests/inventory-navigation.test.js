@@ -38,7 +38,7 @@ test('scripture navigation uses a thumbs-up for gratitude and keeps paired icon 
  assert.ok(selected?.includes(ionIconPaths['thumbs-up'].filled));
  assert.ok(inactive?.includes(ionIconPaths['prayer-hands'].outline));
  const rail=gratitude.match(/<button class="rail-button active" data-view="scripture"[\s\S]*?<\/button>/)?.[0];
- assert.ok(rail?.includes(ionIconPaths.book.filled));
+ assert.ok(rail?.includes(ionIconPaths.cross.filled));
  const home=gratitude.match(/<button class="rail-button " data-view="workspace-home"[\s\S]*?<\/button>/)?.[0];
  assert.ok(home?.includes(ionIconPaths['workspace-home'].outline));
 });
