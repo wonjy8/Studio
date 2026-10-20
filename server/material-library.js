@@ -52,6 +52,20 @@ async function previewFor(input){
  }
  return {};
 }
+async function imageFor(input){
+ let url=normalizedLink(input);if(!url)return null;
+ for(let redirects=0;redirects<=3;redirects++){
+  if(url.protocol!=='https:'||!(await publicLink(url)))return null;
+  let response;try{response=await fetch(url,{redirect:'manual',signal:AbortSignal.timeout(3500),headers:{'Accept':'image/jpeg,image/png,image/webp,image/gif','User-Agent':'StudioPreview/1.0'}});}catch{return null;}
+  if(response.status>=300&&response.status<400){const location=response.headers.get('location');if(!location)return null;try{url=normalizedLink(new URL(location,url).href);}catch{return null;}if(!url)return null;continue;}
+  const type=(response.headers.get('content-type')||'').split(';')[0].toLowerCase();if(!response.ok||!['image/jpeg','image/png','image/webp','image/gif'].includes(type))return null;
+  const length=Number(response.headers.get('content-length')||0);if(length>4*1024*1024)return null;
+  const reader=response.body?.getReader();if(!reader)return null;const chunks=[];let size=0;
+  while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>4*1024*1024){await reader.cancel();return null;}chunks.push(Buffer.from(value));}
+  return {bytes:Buffer.concat(chunks),type};
+ }
+ return null;
+}
 const parseTags=value=>{
  const tags=Array.isArray(value)?value:typeof value==='string'?value.split(','):[];
  const clean=[...new Set(tags.map(tag=>String(tag).trim().replace(/^#/,'')).filter(Boolean))];
@@ -69,10 +83,16 @@ export function materialLibraryRoutes(db){
  db.exec("CREATE TABLE IF NOT EXISTS materials(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind TEXT NOT NULL CHECK(kind IN ('file','link')),file_id TEXT REFERENCES files(id) ON DELETE CASCADE,url TEXT,title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',category TEXT NOT NULL DEFAULT '',tags TEXT NOT NULL DEFAULT '[]',preview_title TEXT NOT NULL DEFAULT '',preview_description TEXT NOT NULL DEFAULT '',preview_image TEXT NOT NULL DEFAULT '',uploaded_at INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(user_id,file_id),CHECK((kind='file' AND file_id IS NOT NULL AND url IS NULL) OR (kind='link' AND file_id IS NULL AND url IS NOT NULL)))");
  db.prepare("INSERT OR IGNORE INTO materials(id,user_id,kind,file_id,url,title,description,category,tags,uploaded_at,created_at,updated_at) SELECT id,user_id,'file',id,NULL,name,'','','[]',NULL,0,0 FROM files").run();
  const query=userId=>db.prepare("SELECT m.*,f.name file_name,f.type mime_type,length(f.bytes) size FROM materials m LEFT JOIN files f ON f.id=m.file_id AND f.user_id=m.user_id WHERE m.user_id=? ORDER BY COALESCE(m.uploaded_at,m.created_at) DESC,m.rowid DESC").all(userId).map(serialize);
- return async({path,req,session,json,readJson})=>{
+ return async({path,req,res,session,json,readJson})=>{
   if(!path.startsWith('/api/materials'))return false;
   if(!session){json(401,{error:'Login required'});return true;}
-  const uid=session.user_id,match=path.match(/^\/api\/materials(?:\/([a-f0-9-]{36}))?$/),fail=(status,message)=>{throw Object.assign(Error(message),{status});};
+  const uid=session.user_id,imageMatch=path.match(/^\/api\/materials\/([a-f0-9-]{36})\/preview-image$/),match=path.match(/^\/api\/materials(?:\/([a-f0-9-]{36}))?$/),fail=(status,message)=>{throw Object.assign(Error(message),{status});};
+  if(imageMatch&&req.method==='GET'){
+   const row=db.prepare("SELECT preview_image FROM materials WHERE id=? AND user_id=? AND kind='link'").get(imageMatch[1],uid);
+   if(!row?.preview_image){json(404,{error:'Not found'});return true;}
+   const image=await imageFor(row.preview_image);if(!image){json(404,{error:'Preview unavailable'});return true;}
+   res.setHeader('Content-Type',image.type);res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','private, max-age=3600');res.setHeader('Content-Security-Policy',"default-src 'none'; sandbox");res.end(image.bytes);return true;
+  }
   if(!match){json(404,{error:'Not found'});return true;}
   if(!match[1]&&req.method==='GET'){json(200,{items:query(uid)});return true;}
   if(!match[1]&&req.method==='POST'){
