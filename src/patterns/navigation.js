@@ -6,8 +6,8 @@ export function projectNavigation(state,view,open,session={}){
  const homeWorkspace=view==='workspace-home';
  const scripture=['scripture','scripture-qt','scripture-bible','scripture-gratitude','scripture-prayers'].includes(view);
  const documents=false;
- const productionWorkspace=!homeWorkspace&&!scripture&&!documents&&!equipment&&!materials&&!adminWorkspace&&!settings;
  const equipment=['equipment-catalog','material-equipment','member-equipment','inventory','inventory-outstanding','inventory-history','inventory-checkout','inventory-settings','admin-equipment','dataspace'].includes(view),materials=['materials','library','document-workspace'].includes(view),adminWorkspace=Boolean(session.isAdmin&&['admin','contacts','admin-invitations','admin-organizations','admin-projects'].includes(view)),settings=view==='settings';
+ const productionWorkspace=!homeWorkspace&&!scripture&&!documents&&!equipment&&!materials&&!adminWorkspace&&!settings;
  const sections=[['account','계정 설정','people'],['connections','외부 앱 연결','settings'],['data','데이터','folder']],section=sections.some(([key])=>key===session.settingsSection)?session.settingsSection:'account';
  const menu=(entries,label)=>`<nav class="project-list" aria-label="${label}">${entries.map(([key,name,glyph])=>{const active=view===key||(key==='inventory'&&inventory)||(key==='member-equipment'&&['material-equipment','admin-equipment'].includes(view))||(key==='admin'&&['contacts','admin-organizations'].includes(view));return `<button class="project-item ${active?'active':''}" data-view="${key}" ${active?'aria-current="page"':''}>${icon(glyph,{solid:active})}<span>${name}</span></button>`;}).join('')}</nav>`;
  const inventory=['inventory','inventory-outstanding','inventory-history','inventory-checkout','inventory-settings'].includes(view);
