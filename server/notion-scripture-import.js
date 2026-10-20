@@ -30,9 +30,25 @@ export function notionScriptureNotes(files){
  if(!items.length)throw fail('ZIP에서 Markdown 또는 CSV 말씀 노트를 찾지 못했습니다.');if(items.length>2000)throw fail('한 번에 최대 2000개 노트를 가져올 수 있습니다.');return items;
 }
 
+// These NIV references intentionally have no main-text verse in the supplied source.
+// Omit only those empty rows; never synthesize text or renumber the surrounding verses.
+const nivOmissions=new Set(['마태복음:17:21','마태복음:18:11','마태복음:23:14','마가복음:7:16','마가복음:9:44','마가복음:9:46','마가복음:11:26','마가복음:15:28','누가복음:17:36','누가복음:23:17','요한복음:5:4','사도행전:8:37','사도행전:15:34','사도행전:24:7','사도행전:28:29','로마서:16:24']);
 export function notionBibleVerses(files){
  const candidates=[...files].filter(([name])=>/\.csv$/i.test(name)),preferred=candidates.filter(([name])=>!/_all\.csv$/i.test(name));
- for(const [name,text]of preferred.length?preferred:candidates){const rows=parseNotionCsv(text);if(!rows.length||!['구절','구약·신약','본문','성경','장','절'].every(k=>k in rows[0]))continue;const seen=new Map();for(const row of rows){const book=row['성경'],chapter=Number(row['장']),verse=Number(row['절']),body=row['본문'];if(!bibleBooks.includes(book)||!Number.isSafeInteger(chapter)||chapter<1||chapter>150||!Number.isSafeInteger(verse)||verse<1||verse>200||!body||body.length>8000||!['구약','신약'].includes(row['구약·신약']))throw fail('성경 CSV의 책·장·절·본문을 확인하세요.');const key=book+':'+chapter+':'+verse;if(seen.has(key)&&seen.get(key).text!==body)throw fail('같은 성경 구절에 서로 다른 본문이 있습니다. ('+book+' '+chapter+':'+verse+')');seen.set(key,{book,chapter,verse,text:body,testament:row['구약·신약'],order:bibleBooks.indexOf(book)});}if(seen.size>40000)throw fail('성경 구절은 40000개까지 가져올 수 있습니다.');return {name,verses:[...seen.values()].sort((a,b)=>a.order-b.order||a.chapter-b.chapter||a.verse-b.verse)};
- }return null;
+ for(const [name,text]of preferred.length?preferred:candidates){
+  const rows=parseNotionCsv(text);if(!rows.length||!['구절','구약·신약','본문','성경','장','절'].every(k=>k in rows[0]))continue;
+  const niv=/(?:^|[^A-Za-z])NIV(?:$|[^A-Za-z])|New International Version/i.test(name.normalize('NFKC')),seen=new Map();
+  for(const [index,row]of rows.entries()){
+   const book=row['성경'],chapter=Number(row['장']),verse=Number(row['절']),body=row['본문'],key=book+':'+chapter+':'+verse;
+   const validReference=bibleBooks.includes(book)&&Number.isSafeInteger(chapter)&&chapter>=1&&chapter<=150&&Number.isSafeInteger(verse)&&verse>=1&&verse<=200&&['구약','신약'].includes(row['구약·신약']);
+   if(!validReference||body.length>8000||(!body&&!(niv&&nivOmissions.has(key))))throw fail('성경 CSV의 책·장·절·본문을 확인하세요. (항목 '+(index+1)+': '+String(book).slice(0,80)+' '+chapter+':'+verse+')');
+   if(seen.has(key)&&seen.get(key).text!==body)throw fail('같은 성경 구절에 서로 다른 본문이 있습니다. ('+book+' '+chapter+':'+verse+')');
+   seen.set(key,{book,chapter,verse,text:body,testament:row['구약·신약'],order:bibleBooks.indexOf(book)});
+  }
+  if(seen.size>40000)throw fail('성경 구절은 40000개까지 가져올 수 있습니다.');
+  const verses=[...seen.values()].filter(verse=>verse.text).sort((a,b)=>a.order-b.order||a.chapter-b.chapter||a.verse-b.verse);
+  if(!verses.length)throw fail('성경 CSV에 가져올 본문이 없습니다.');
+  return {name,verses};
+ }
+ return null;
 }
-

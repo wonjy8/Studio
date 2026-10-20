@@ -52,3 +52,14 @@ test('QT journals retain stable gratitude and prayer entries and verse annotatio
  app.db.prepare('DELETE FROM scripture_verses WHERE user_id=?').run('owner');assert.equal((await call('qt?date=2026-10-20')).verses.length,2);
  app.db.exec('BEGIN IMMEDIATE');try{purgeCompleteAccount(app.db,'other','owner');app.db.exec('COMMIT');}catch(error){app.db.exec('ROLLBACK');throw error;}assert.equal(app.db.prepare('SELECT count(*) n FROM scripture_annotations WHERE user_id=?').get('owner').n,0);
 });
+
+test('NIV intentional omissions do not reject a translation or shift verse references',()=>{
+ const rows='구절,구약·신약,본문,성경,장,절\n마태복음 17:20,신약,Fictional before,마태복음,17,20\n마태복음 17:21,신약,,마태복음,17,21\n마태복음 17:22,신약,Fictional after,마태복음,17,22\n';
+ const result=notionBibleVerses(new Map([['NIV성경 DB.csv',rows]]));
+ assert.deepEqual(result.verses.map(v=>[v.verse,v.text]),[[20,'Fictional before'],[22,'Fictional after']]);
+ assert.throws(()=>notionBibleVerses(new Map([['NASB.csv',rows]])),/마태복음 17:21/);
+ assert.throws(()=>notionBibleVerses(new Map([['NIV.csv',rows.replace('17:21,신약,,마태복음,17,21','17:21,신약,,마태복음,17,19')]])),/마태복음 17:19/);
+ assert.throws(()=>notionBibleVerses(new Map([['NIV.csv',rows+'마태복음 17:21,신약,Fictional conflicting body,마태복음,17,21\n']])),/서로 다른/);
+ assert.throws(()=>notionBibleVerses(new Map([['NIV.csv',rows.replace('17:21,신약,,마태복음','17:21,invalid,,마태복음')]])),/책·장·절·본문/);
+ assert.throws(()=>notionBibleVerses(new Map([['NIV.csv','구절,구약·신약,본문,성경,장,절\n마태복음 17:21,신약,,마태복음,17,21\n']])),/가져올 본문/);
+});
