@@ -12,6 +12,7 @@ test('home workspace summarizes projects and offers personal document access',()
  const html=homeWorkspacePage({state,account:{name:'종유'}});
  assert.match(html,/Project One/);assert.match(html,/Project Two/);assert.match(html,/Prepare camera/);
  assert.match(html,/data-view="document-workspace"/);assert.match(html,/data-project="p1"/);
+ assert.doesNotMatch(html,/안녕하세요|프로젝트 현황을 살펴보고 개인 문서를 이어서 작업하세요/);
 });
 test('home workspace is the first rail item and owns its own sidebar',()=>{
  const html=projectNavigation(emptyWorkspace(),'workspace-home',false,{});
