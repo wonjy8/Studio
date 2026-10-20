@@ -1,3 +1,4 @@
+import {validColorSummary} from '../src/domain/material-colors.js';
 // Deterministic metadata only: no inference, decoder, GPS/camera-text extraction or network.
 const pngSignature=Buffer.from([137,80,78,71,13,10,26,10]);
 const frameMarkers=new Set([0xc0,0xc1,0xc2,0xc3,0xc5,0xc6,0xc7,0xc9,0xca,0xcb,0xcd,0xce,0xcf]);
@@ -28,4 +29,6 @@ export function materialMetadata({name='',type='',bytes}={}){
 export {materialSearchTerms} from '../src/domain/material-index.js';
 export function initializeMaterialIndex(db){db.exec('CREATE TABLE IF NOT EXISTS material_file_metadata(file_id TEXT PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,body TEXT NOT NULL)');}
 // Called only from the authenticated NEW upload transaction, never list/import.
-export function indexNewMaterialUpload(db,userId,file){if(!(file.bytes instanceof Uint8Array)||!db.prepare('SELECT id FROM files WHERE id=? AND user_id=?').get(file.id,userId))throw Error('New upload owner required');db.prepare('INSERT INTO material_file_metadata VALUES(?,?,?)').run(file.id,userId,JSON.stringify(materialMetadata(file)));}
+export function indexNewMaterialUpload(db,userId,file){if(!(file.bytes instanceof Uint8Array)||!db.prepare('SELECT id FROM files WHERE id=? AND user_id=?').get(file.id,userId))throw Error('New upload owner required');db.prepare('INSERT INTO material_file_metadata VALUES(?,?,?)').run(file.id,userId,JSON.stringify({...materialMetadata(file),...validatedUploadColors(file)}));}
+
+function validatedUploadColors(file){try{if(file.bytes.length>8*1024*1024||typeof file.colors!=='string'||file.colors.length>256)return {};const dimensions=imageDimensions(file.bytes,file.type);if(!dimensions||dimensions.width>8192||dimensions.height>8192||dimensions.width*dimensions.height>8000000)return {};const summary=JSON.parse(file.colors);return validColorSummary(summary)?{pixelSummary:summary}:{};}catch{return {};}}
