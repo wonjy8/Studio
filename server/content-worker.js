@@ -20,6 +20,7 @@ import {materialLibraryRoutes} from './material-library.js';
 import {readWorkspace,writeWorkspace} from './workspace-service.js';
 import {newDocument,newBlock,validDocuments} from '../src/domain/documents.js';
 import {newScriptureNote} from '../src/domain/scripture.js';
+import {journalForQt} from '../src/domain/qt-journal.js';
 import {resourceSpec,resourceManifest} from './content-resources.js';
 const connection=new DatabaseSync(workerData.file);connection.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000');
 // Route services already own their nested transactions. Savepoints compose those
@@ -60,7 +61,7 @@ async function snapshot(uid,args){
  if(spec.detail&&!id&&args.resource==='catalog')return invoke(spec.service,uid,spec.collection+'?'+new URLSearchParams({q:args.query||'',offset:String(args.offset||0),limit:String(args.limit||25)}));
  if(spec.project){const current=readWorkspace(db,uid),project=[current.state,...current.state.projects||[]].find(p=>p.project.id===args.projectId);if(!project)throw Error('Project not found');return {documents:project.documents||[],revision:current.revision};}
  if(spec.annotation){if(!args.book||!Number.isSafeInteger(args.chapter)||args.chapter<1)throw Error('Book and chapter are required');return invoke(spec.service,uid,spec.collection+'?'+new URLSearchParams({book:args.book,chapter:String(args.chapter)}));}
- if(spec.entry&&args.noteId){const {note}=await invoke(spec.service,uid,'/api/scripture/notes/'+identity(args.noteId));return {entries:(note.qtJournal?.[spec.entry]||[]).map(item=>({...item,noteId:args.noteId}))};}
+ if(spec.entry&&args.noteId){const {note}=await invoke(spec.service,uid,'/api/scripture/notes/'+identity(args.noteId));return {revision:note.revision,entries:(note.qtJournal?.[spec.entry]||[]).map(item=>({...item,noteId:args.noteId}))};}
  if(spec.entry)return invoke(spec.service,uid,spec.collection+'?'+new URLSearchParams({kind:spec.entry,limit:String(args.limit||25),offset:String(args.offset||0),q:args.query||''}));
  if(spec.detail&&id)return invoke(spec.service,uid,base(spec,args)+'/'+identity(id));
  if(spec.detail&&args.resource==='boards')throw Error('Read a reference ID first');
@@ -106,7 +107,7 @@ async function mutate(uid,args,values,before,requestId){
  }
  if(spec.entry){
   if(!args.noteId)throw Error('Choose a QT note ID');const result=await invoke(spec.service,uid,'/api/scripture/notes/'+identity(args.noteId)),note=result.note;
-  if(note.kind!=='qt')throw Error('Choose a QT note');const items=note.qtJournal?.[spec.entry]||[];
+  if(note.kind!=='qt')throw Error('Choose a QT note');note.qtJournal=journalForQt(note);const items=note.qtJournal[spec.entry]||[];
   if(id&&!items.some(item=>item.id===id))throw Error('Entry not found in this QT');
   const item={...(id?items.find(item=>item.id===id):{id:'entry-'+randomUUID(),text:'',...(spec.returns?{}:spec.entry==='prayers'?{target:'self',recipient:''}:{})}),...values};
   if(Object.hasOwn(values,'text')&&!Object.hasOwn(values,'content'))delete item.content;
@@ -117,7 +118,7 @@ async function mutate(uid,args,values,before,requestId){
  if(spec.annotation){const stored=(before.annotations||[]).find(item=>item.verse===args.verse),{revision=0,...prior}=stored||{};return invoke(spec.service,uid,spec.collection,'PUT',{revision,annotation:{color:'',background:'',memo:'',...prior,...values,book:args.book,chapter:args.chapter,verse:args.verse}});}
  if(args.resource==='notes'||args.resource==='qt'){
   const prior=id?before.note:null;if(id&&(!prior||(spec.kind&&prior.kind!==spec.kind)))throw Error('Note not found');const {revision,createdAt,updatedAt,externalId,automaticQt,...body}=prior||{};
-  const note={...(prior?body:newScriptureNote(spec.kind||values.kind||'sermon',values.date)),...values};if(prior&&values.document)note.document={...prior.document,...values.document};if(prior&&values.qtJournal){note.qtJournal={...prior.qtJournal,...values.qtJournal};for(const field of ['word','application'])if(Object.hasOwn(values.qtJournal,field)&&!Object.hasOwn(values.qtJournal,field+'Content'))delete note.qtJournal[field+'Content'];}
+  const baseNote=prior?body:newScriptureNote(spec.kind||values.kind||'sermon',values.date),note={...baseNote,...values};if(values.document)note.document={...baseNote.document,...values.document};if(values.qtJournal){note.qtJournal={...journalForQt(baseNote),...values.qtJournal};for(const field of ['word','application'])if(Object.hasOwn(values.qtJournal,field)&&!Object.hasOwn(values.qtJournal,field+'Content'))delete note.qtJournal[field+'Content'];}
   return invoke(spec.service,uid,spec.collection+(id?'/'+identity(id):''),id?'PUT':'POST',id?{revision,note}:note);
  }
  if(spec.returns){if(!id)throw Error('Read a loan ID first');return invoke(spec.service,uid,spec.collection+'/'+identity(id)+'/returns','POST',{...values,requestId});}
