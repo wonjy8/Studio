@@ -79,12 +79,13 @@ Studio의 UI 원칙은 **Glanceable · Calm · Contextual · Connected · Shoot-
 
 ## 4. Icons and visual assets
 
-아이콘은 현재 24×24 viewBox의 자체 SVG 렌더러를 통해 제공한다. 일반 UI 아이콘은 대체로 22px, 레일 아이콘은 20px, 프로젝트 탭 아이콘은 15px로 표시한다. 기본 아이콘은 1.7px 둥근 선과 선 끝을 사용하고, 선택 상태나 프로젝트 식별처럼 면이 더 잘 읽히는 맥락에는 채움형 아이콘을 쓴다. 장면 배치도 오브젝트는 공통 24px 채움형 도형과 광학적 무게를 사용한다.
+공통 UI와 내비게이션 아이콘은 Ionicons 8.0.13의 `outline`과 `filled` SVG 쌍을 공통 렌더러로 제공한다. Ionicons 원본의 512×512 viewBox를 유지하며 일반 UI 아이콘은 대체로 22px, 레일 아이콘은 20px, 프로젝트 탭 아이콘은 15px로 표시한다. `sharp` 변형은 사용하지 않는다. 장면 배치도 오브젝트는 기존 공통 도형과 광학적 무게를 사용한다.
 
 프로젝트 선택기는 617개의 채움형 아이콘을 제공한다. 검색, 분류, 한 번에 48개 결과 보기, 키보드 탐색을 지원한다. 저장된 기존 아이콘 ID는 호환성을 유지한다. 프로젝트/배치 팔레트와 아이콘은 선택 창 안에서 고르고, 검색 중에도 기존 선택 값은 보존한다. 색상 선택에는 보조기기용 이름이 있다.
 
 아이콘 및 시각 리소스의 원본:
-- src/design-system/primitives/icons.js: 일반 내비게이션·조작 아이콘과 SVG 렌더러
+- src/design-system/primitives/icons.js 및 src/design-system/icons/ionicons.js: Ionicons 8.0.13 내비게이션·일반 UI 아이콘의 outline/filled 쌍과 SVG 렌더러
+- src/design-system/icons/IONICONS-LICENSE.txt: Ionicons MIT 라이선스
 - src/design-system/primitives/layout-icons.js: 배치도 오브젝트 및 조명 도형
 - src/design-system/icons/catalog.js, paths.js, solid-paths.js: 프로젝트 아이콘 이름·분류·선/채움 경로
 - src/design-system/icons/editor-paths.js: 같은 Tabler 3.34.1 아이콘팩의 문서 편집용 선형 아이콘 추가분; 공통 렌더러에서 사용
