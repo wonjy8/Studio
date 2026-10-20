@@ -1,6 +1,6 @@
 # Google Calendar integration
 
-Each person connects their own Google account explicitly from Home → 내 일정 → Google Calendar 연결. Calendar credentials/states are separate from Sheets and encrypted using the existing Google credential codec/key. Existing Sheets grants and MCP consent are not expanded. This change does not create or provision production credentials, connect a real Google account, or post to a real calendar.
+Each person connects their own Google account explicitly from Settings → 연결 → Google Calendar → Google Calendar 연결. Calendar credentials/states are separate from Sheets and encrypted using the existing Google credential codec/key. Existing Sheets grants and MCP consent are not expanded. This change does not create or provision production credentials, connect a real Google account, or post to a real calendar.
 
 ## Google Cloud/user setup
 
@@ -10,7 +10,7 @@ These scopes are required to list the user's existing calendars and publish to a
 
 ## Explicit project publication
 
-In Home → 내 일정 → 프로젝트 일정 게시, select an existing writable calendar and a publication start date for each owned Studio project, then choose “선택한 범위 동기화 시작”. The UI warns that viewers of that Google calendar may see the project name, event title and location. Configuration alone makes no immediate API writes; the explicit UI action starts sync, and enabled project links subsequently poll approximately every minute. Dates before the chosen start are not bulk-published. Undated/invalid-time source items are reported as skipped. Source project schedules include shoots and dated tasks using the existing calendar model.
+In Settings → 연결 → Google Calendar → 프로젝트 일정 게시, select an existing writable calendar and a publication start date for each owned Studio project, then choose “선택한 범위 동기화 시작”. The UI warns that viewers of that Google calendar may see the project name, event title and location. Configuration alone makes no immediate API writes; the explicit UI action starts sync, and enabled project links subsequently poll approximately every minute. Dates before the chosen start are not bulk-published. Undated/invalid-time source items are reported as skipped. Source project schedules include shoots and dated tasks using the existing calendar model.
 
 Calendar list roles and actual API authorization are checked by the server. A project link is personal to the connecting Studio user; a shared-project viewer cannot publish another owner's project. Google events are not copied into shared workspace data.
 
@@ -29,3 +29,5 @@ Disconnect clears only Calendar credentials/states/project links/cache and abort
 `node --test tests/google-calendar.test.js` uses fictional accounts and a mock Google API, not operational calendars. It covers explicit OAuth scopes/session binding/replay, encrypted independent credentials, calendar ACLs and cross-account isolation, selected date bounds, idempotency, uncertain insert retry, target changes, external deletion, scope loss, disconnect/expiry, all-day/overnight/DST conversion and private recurring reads. Run `npm test` and `npm run check` as well. Deployment/CI success is distinct from real Google Cloud setup, consent and successful live synchronization.
 
 Official contract: [Calendar OAuth scopes](https://developers.google.com/workspace/calendar/api/auth), [event insertion and stable IDs](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert), [recurring event list expansion](https://developers.google.com/workspace/calendar/api/v3/reference/events/list).
+
+Connection and publication controls live only in Settings → 연결. Home retains private calendar range/content and a link to connection settings. OAuth completion/cancellation returns to `/settings/connections`.
