@@ -65,7 +65,7 @@ const filled={
  close:'<path d="m7 4 5 5 5-5 3 3-5 5 5 5-3 3-5-5-5 5-3-3 5-5-5-5z"/>'
 };
 export function icon(name,{solid=false,outline=false}={}){
- if(name==='camcorder'&&!outline){const silhouette=filled.camcorder||projectIconPaths.camcorder||paths.camcorder;return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${silhouette}</svg>`;}
+ if(name==='camcorder'&&!outline){const silhouette=paths.camcorder||projectIconPaths.camcorder||filled.camcorder;return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${silhouette}</svg>`;}
  const filledCustom=!outline&&solid&&!filled[name]&&solidProjectIconPaths[name];
  if(filledCustom)return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor" stroke="none">${filledCustom}</svg>`;
  const custom=projectIconPaths[name]||editorIconPaths[name];
