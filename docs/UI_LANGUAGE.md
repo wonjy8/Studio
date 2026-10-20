@@ -86,7 +86,7 @@ Studio의 UI 원칙은 **Glanceable · Calm · Contextual · Connected · Shoot-
 아이콘 및 시각 리소스의 원본:
 - src/design-system/primitives/icons.js 및 src/design-system/icons/ionicons.js: Ionicons 8.0.13 내비게이션·일반 UI 아이콘의 outline/filled 쌍과 SVG 렌더러
 - src/design-system/icons/IONICONS-LICENSE.txt: Ionicons MIT 라이선스
-- src/design-system/primitives/layout-icons.js: 배치도 오브젝트 및 조명 도형
+- src/design-system/primitives/layout-icons.js: 배치도 오브젝트·조명 이름과 Ionicons 변형 연결
 - src/design-system/icons/catalog.js, paths.js, solid-paths.js: 프로젝트 아이콘 이름·분류·선/채움 경로
 - src/design-system/icons/editor-paths.js: 같은 Tabler 3.34.1 아이콘팩의 문서 편집용 선형 아이콘 추가분; 공통 렌더러에서 사용
 - src/design-system/icons/TABLER-LICENSE.txt: Tabler 라이선스
