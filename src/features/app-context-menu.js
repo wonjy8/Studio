@@ -4,7 +4,10 @@ let activeMenu=null;
 const edge=8;
 
 function editableTarget(target){
-  return target?.closest('input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),textarea,[contenteditable="true"]')||null;
+  const field=target?.closest('textarea,input,[contenteditable="true"]')||null;
+  if(!field||field.disabled||field.readOnly)return null;
+  if(field instanceof HTMLInputElement&&!['text','search','url','tel','email','password'].includes(field.type))return null;
+  return field;
 }
 function selectedText(target){
   if(target instanceof HTMLInputElement&&target.type==='password')return '';
@@ -118,7 +121,9 @@ function openMenu(event,target,items){
 }
 function handleContextMenu(event){
   const target=event.target instanceof Element?event.target:null;
-  if(!target?.closest('.production-app'))return;
+  if(!target)return;
+  if(target.closest('.app-context-menu,.document-menu,.document-selection-menu')){event.preventDefault();return;}
+  if(!target.closest('#app'))return;
   if(event.defaultPrevented&&target.closest('[data-block]')&&document.querySelector('.document-menu'))return;
   const editable=editableTarget(target),text=selectedText(target),items=[];
   if(editable&&text)items.push({label:'잘라내기',icon:'tabler-scissors',action:'cut'});
@@ -138,7 +143,7 @@ function handleContextMenu(event){
 export function bindAppContextMenu(){
   document.addEventListener('contextmenu',handleContextMenu);
   document.addEventListener('pointerdown',event=>{if(activeMenu&&!activeMenu.element.contains(event.target))closeMenu();});
-  document.addEventListener('keydown',event=>{if(!activeMenu&&event.key==='ContextMenu'){const target=document.activeElement;if(target instanceof Element&&target.closest('.production-app')){event.preventDefault();const rect=target.getBoundingClientRect();handleContextMenu({defaultPrevented:false,target,clientX:rect.left+24,clientY:rect.top+24,preventDefault(){}});}}});
+  document.addEventListener('keydown',event=>{if(!activeMenu&&event.key==='ContextMenu'){const target=document.activeElement;if(target instanceof Element&&target.closest('#app')){event.preventDefault();const rect=target.getBoundingClientRect();handleContextMenu({defaultPrevented:false,target,clientX:rect.left+24,clientY:rect.top+24,preventDefault(){}});}}});
   window.addEventListener('resize',()=>closeMenu());
   window.addEventListener('scroll',()=>closeMenu(),true);
 }
