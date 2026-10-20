@@ -30,9 +30,9 @@ export const contentResources=Object.freeze({
  inventory:spec('handleInventory','/api/inventory','items',['name','category','inventoryCode','serialNumber','model','trackingMode','quantity','storageLocation','condition','custodian','ownership','organizationId','catalogModelId']),
  loans:spec('handleInventory','/api/inventory/loans','loans',['borrower','team','destination','dueAt','note','lines'],{loan:true}),
  returns:spec('handleInventory','/api/inventory/loans','loans',['note','lines'],{returns:true}),
- catalog:spec('handleEquipmentCatalog','/api/equipment-catalog','models',[],{readOnly:true,detail:true}),
+ catalog:spec('handleEquipmentCatalog','/api/equipment-catalog','models',['manufacturer','name','nickname','category','photo'],{catalog:true,detail:true}),
  vendors:spec('handleRentalVendors','/api/rental-vendors','vendors',['name','contact','phone','email','website','address','notes'])
 });
 export function resourceSpec(name){if(!Object.hasOwn(contentResources,name))throw Error('Unsupported content resource');return contentResources[name];}
 export const contentResourceNames=Object.keys(contentResources);
-export function resourceManifest(){return contentResourceNames.map(id=>({id,service:contentResources[id].service,fields:contentResources[id].fields,readOnly:!!contentResources[id].readOnly,requiresParent:contentResources[id].member?'memberId':(contentResources[id].project||contentResources[id].shoot||contentResources[id].projectCollection)?'projectId':undefined}));}
+export function resourceManifest({canManageCatalog}={}){return contentResourceNames.map(id=>({id,service:contentResources[id].service,fields:contentResources[id].fields,readOnly:!!contentResources[id].readOnly||(!!contentResources[id].catalog&&canManageCatalog===false),...(contentResources[id].catalog?{operations:['create','update'],shared:true,writeRequires:'existing-catalog-manager-permission',...(canManageCatalog!==undefined?{canWrite:canManageCatalog}:{}),photo:{types:['image/png','image/jpeg','image/webp'],input:'photo:{type,base64}; null removes photo; omission preserves existing photo; no remote URLs',maxValuesJsonBytes:65536}}:{}),requiresParent:contentResources[id].member?'memberId':(contentResources[id].project||contentResources[id].shoot||contentResources[id].projectCollection)?'projectId':undefined}));}

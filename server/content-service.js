@@ -1,3 +1,4 @@
+import {siteRoleManagementEnabled} from './site-roles.js';
 import {Worker} from 'node:worker_threads';
 import {randomUUID} from 'node:crypto';
 import {resourceSpec,resourceManifest} from './content-resources.js';
@@ -9,7 +10,7 @@ export function contentService(db){
  const close=()=>{for(const entry of pending.values())entry.reject(Error('Content service closed'));pending.clear();if(worker)worker.terminate();worker=null;};
  async function execute(grant,kind,args,extra={}){
   if(!db.prepare('SELECT grant_id FROM integration_content_consents WHERE grant_id=? AND user_id=? AND version=1').get(grant.id,grant.user_id))throw Error('Full content consent is required in Studio connections settings');
-  if(!worker){const file=db.prepare('PRAGMA database_list').all().find(item=>item.name==='main').file;worker=new Worker(new URL('./content-worker.js',import.meta.url),{workerData:{file}});worker.unref();worker.on('message',({request,value,error,status})=>{const entry=pending.get(request);if(!entry)return;pending.delete(request);if(!pending.size)worker.unref();if(error)entry.reject(Object.assign(Error(error),{status}));else entry.resolve(value);});worker.on('error',error=>{for(const entry of pending.values())entry.reject(error);pending.clear();worker=null;});}
+  if(!worker){const file=db.prepare('PRAGMA database_list').all().find(item=>item.name==='main').file;worker=new Worker(new URL('./content-worker.js',import.meta.url),{workerData:{file,siteRoleManagementEnabled:siteRoleManagementEnabled(db)}});worker.unref();worker.on('message',({request,value,error,status})=>{const entry=pending.get(request);if(!entry)return;pending.delete(request);if(!pending.size)worker.unref();if(error)entry.reject(Object.assign(Error(error),{status}));else entry.resolve(value);});worker.on('error',error=>{for(const entry of pending.values())entry.reject(error);pending.clear();worker=null;});}
   const request=randomUUID();worker.ref();return new Promise((resolve,reject)=>{pending.set(request,{resolve,reject});worker.postMessage({request,uid:grant.user_id,grantId:grant.id,kind,args,...extra});});
  }
  function argumentsFor(args){const spec=resourceSpec(args.resource);
@@ -23,7 +24,7 @@ const permitted=['resource','id','field','blockId','ownerId','memberId','project
    const id=randomUUID(),preview=await execute(grant,'preview',args,{values,baseline:revision,proposalId:id}),expires=Date.now()+600000;
    // Keep the exact request and baseline, not a preview copy with transient generated IDs.
    db.prepare('INSERT INTO integration_content_proposals VALUES(?,?,?,?,?)').run(id,grant.id,grant.user_id,JSON.stringify({args,values,revision}),expires);
-   return {proposalId:id,requiresConfirmation:true,expires,impact:{resource:args.resource,id:args.id||null,operation:args.id?'update':'add',fields:Object.keys(values),values,previewIdsAreTemporary:true,preview:preview.preview},warning:'No changes applied. Read/write permissions and content revision are checked again on confirmation.'};
+   return {proposalId:id,requiresConfirmation:true,expires,impact:{resource:args.resource,...(args.resource==='catalog'?{shared:true,visibility:'Shared equipment catalog metadata is visible to other Studio accounts.'}:{}),id:args.id||null,operation:args.id?'update':'add',fields:Object.keys(values),values,previewIdsAreTemporary:true,preview:preview.preview},warning:'No changes applied. Read/write permissions and content revision are checked again on confirmation.'};
   },
   async apply(grant,id){const row=db.prepare('SELECT body FROM integration_content_proposals WHERE id=? AND user_id=? AND grant_id=? AND expires>?').get(id,grant.user_id,grant.id,Date.now());if(!row)throw Error('Proposal unavailable or expired');const {args,values,revision}=JSON.parse(row.body);return execute(grant,'apply',args,{values,baseline:revision,proposalId:id});},
   owns: (grant,id)=>typeof id==='string'&&Boolean(db.prepare('SELECT id FROM integration_content_proposals WHERE id=? AND user_id=? AND grant_id=?').get(id,grant.user_id,grant.id)),

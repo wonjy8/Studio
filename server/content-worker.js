@@ -1,3 +1,5 @@
+import {configureSiteRoleManagement} from './site-roles.js';
+import {isAdmin} from './invitations.js';
 import {applyCommands} from '../src/domain/commands.js';
 import {requireContentAccess} from './content-contract.js';
 import {sharedProjectProjection} from './accounts.js';
@@ -32,6 +34,7 @@ const db={prepare:sql=>connection.prepare(sql),exec:sql=>{
  if(/^ROLLBACK$/i.test(sql)){connection.exec('ROLLBACK TO content_nested_'+nested+'; RELEASE content_nested_'+nested--);return;}
  connection.exec(sql);
 }};
+configureSiteRoleManagement(db,workerData.siteRoleManagementEnabled);
 const options={initialize:false};
 const handlers={handleScripture:scriptureRoutes(db,{...options,githubToken:''}),handleDocumentLibrary:documentLibraryRoutes(db,options),handleReferenceLibrary:referenceLibraryRoutes(db,options),handleReferenceBoards:referenceBoardRoutes(db,options),handleRentalVendors:rentalVendorRoutes(db,options),handleContacts:contactRoutes(db,{...options,orgCanRead,equipmentProjectScope}),handleEquipmentCatalog:equipmentCatalogRoutes(db,options),handleInventory:inventoryRoutes(db,options),handleMaterials:materialLibraryRoutes(db,{...options,preview:false})};
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -82,7 +85,7 @@ function selected(spec,value,args){
 }
 function cleanFields(spec,value){return Object.fromEntries(Object.entries(value).filter(([key])=>spec.fields.includes(key)));}
 async function mutate(uid,args,values,before,requestId){
- const spec=resourceSpec(args.resource);if(spec.readOnly)throw Error('Read-only content; manage catalog/translation administration in Studio');
+ const spec=resourceSpec(args.resource);if(spec.readOnly)throw Error('Read-only content; use Studio for read-only content');
  if(!values||typeof values!=='object'||Array.isArray(values)||Object.keys(values).some(key=>!spec.fields.includes(key)))throw Error('Unsupported content fields');
  const id=args.id,old=id?selected(spec,before,args):null;
  if(spec.commandType){const current=readWorkspace(db,uid),change=applyCommands(current.state,args.projectId,[{operation:(id?'update_':'add_')+spec.commandType,...(id?{entityId:id}:{}),values}]);if(!validateWorkspace(change.state))throw Error('Invalid project content');const saved=writeWorkspace(db,uid,change.state,current.revision),project=[change.state,...change.state.projects||[]].find(p=>p.project.id===args.projectId),item=id?project[spec.projectCollection].find(item=>item.id===id):project[spec.projectCollection].find(item=>!before.items.some(prior=>prior.id===item.id));return {revision:saved.revision,item};}
@@ -155,7 +158,7 @@ async function run(message){
    else if(args.id&&['notes','qt'].includes(args.resource)){const {document,qtJournal,qtVerses,...metadata}=value;value={...metadata,document:{id:document.id,title:document.title,blockCount:document.blocks.length},...(qtJournal?{journalFields:['word','application','gratitude','prayers','memos']}:{}),verseCount:qtVerses?.length||0};}
    if(spec.entry&&!args.noteId&&!args.id)value={items:before.entries,nextOffset:before.nextOffset};else if(args.resource==='catalog'&&!args.id)value={items:before.models,total:before.total,nextOffset:(args.offset||0)+(args.limit||25)<before.total?(args.offset||0)+(args.limit||25):null};else if((!args.id||args.field||spec.blocks&&!args.blockId)&&Array.isArray(value)){if(args.query)value=value.filter(item=>JSON.stringify(item).toLocaleLowerCase().includes(String(args.query).toLocaleLowerCase()));const offset=args.offset||0,limit=args.limit||25;const total=value.length;let count=limit;while(count>1&&Buffer.byteLength(JSON.stringify(value.slice(offset,offset+count)))>100000)count=Math.max(1,Math.floor(count/2));value={items:value.slice(offset,offset+count),total,nextOffset:offset+count<total?offset+count:null};}
    if(Buffer.byteLength(JSON.stringify(value))>131072)throw Error('Content response too large. Read a specific field or block with a smaller limit.');
-   connection.exec('ROLLBACK');return {value,revision:stamp,manifest:resourceManifest()};
+   connection.exec('ROLLBACK');return {value,revision:stamp,manifest:resourceManifest({canManageCatalog:isAdmin(db,uid)&&grant.scope.split(' ').includes('studio:write')})};
   }
   if(baseline&&baseline!==stamp)throw Object.assign(Error('Content changed. Read, propose and confirm again.'),{status:409});
   if(kind==='apply'){
