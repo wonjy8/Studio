@@ -12,7 +12,7 @@ export function homeWorkspacePage({state,account}={}){
   .sort((a,b)=>(a.task.date||'9999').localeCompare(b.task.date||'9999')||a.project.name.localeCompare(b.project.name,'ko'));
  const name=account?.name||account?.username||'';
  return `<section class="home-workspace">
-  <header class="home-workspace-heading"><div><p class="eyebrow">${new Intl.DateTimeFormat('ko-KR',{dateStyle:'full'}).format(new Date())}</p><h2>${name?`안녕하세요, ${esc(name)}님`:'홈'}</h2><p class="sub">프로젝트 현황을 살펴보고 개인 문서를 이어서 작업하세요.</p></div><div class="home-workspace-actions"><button class="btn" data-view="document-workspace">${icon('tabler-file-text')} 내 문서</button><button class="btn primary" data-action="add-project">${icon('plus')} 프로젝트 추가</button></div></header>
+  <header class="home-workspace-heading"><div class="home-workspace-actions"><button class="btn" data-view="document-workspace">${icon('tabler-file-text')} 내 문서</button><button class="btn primary" data-action="add-project">${icon('plus')} 프로젝트 추가</button></div></header>
   <div class="home-workspace-metrics" aria-label="작업 요약">
    <article class="home-workspace-metric"><span>프로젝트</span><strong>${projects.length}</strong></article>
    <article class="home-workspace-metric"><span>앞으로 7일 촬영</span><strong>${shoots.length}</strong></article>
