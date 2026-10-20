@@ -400,3 +400,8 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .scripture-list-item>.document-browse-row{flex:1;min-width:0}
 .scripture-list-delete{flex-shrink:0;color:var(--bad)}
 @media(max-width:760px){.home-qt-panel{width:100%}}
+.scripture-format-grid{grid-template-columns:repeat(4,1fr)}
+.qt-scripture-toggle{margin-left:auto;flex:none}
+.qt-split.is-scripture-hidden{grid-template-columns:minmax(0,1fr)}
+.qt-split.is-scripture-hidden .qt-journal{border-right:0;padding-right:0;width:100%;max-width:880px;margin-inline:auto}
+.qt-split>.qt-scripture[hidden]{display:none!important}

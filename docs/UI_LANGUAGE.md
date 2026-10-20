@@ -172,17 +172,17 @@ src/workspaces.css는 기능별 스타일 뒤에 로드되며 공통 워크스�
 
 QT 첫 화면은 지난 기록을 날짜 내림차순 목록으로 표시하고 맨 위에 같은 행 패턴의 ‘오늘 QT 만들기 / 이어쓰기’를 둔다. 매일성경 조회는 만들기를 누를 때 수행하며 목록 조회와 기존 기록 열기는 공급자 접속 없이 동작한다. 한국 시간(Asia/Seoul)으로 날짜를 정하고, 목록에서 날짜를 바꾸어 다른 날을 기록할 수 있다.
 
-QT 작성은 왼쪽 기록 / 오른쪽 성경의 두 열이며 900px 이하에서는 같은 순서로 한 열이 된다. 왼쪽에는 편집 가능한 제목을 --text-page로 두고 날짜·원문·저장 상태는 보조 상단 행으로 분리한다. 감사 / 나에게 주는 말씀 / 나의 적용 / 기도제목은 --text-section 제목 아래 테두리 없는 문서형 contenteditable 영역으로 배치한다. 빈 영역은 보조색 자리표시자를 보여주고 포커스를 표시한다. 감사·기도제목은 번호 항목을 늘리거나 지울 수 있고 Enter로 다음 항목, Shift+Enter로 줄바꿈한다. ‘기존 QT 기록’ 등 원문 펼치기는 노출하지 않으며 데이터 자체는 보존한다.
+QT 작성은 왼쪽 기록 / 오른쪽 성경의 두 열이며 900px 이하에서는 같은 순서로 한 열이 된다. 왼쪽에는 편집 가능한 제목을 --text-page로 두고 날짜·원문·저장 상태는 보조 상단 행으로 분리한다. 같은 상단 행의 오른쪽 끝에 성경 본문 숨기기/보이기 아이콘 버튼을 두고 aria-expanded·aria-controls·접근 가능한 이름과 툴팁을 제공한다. 성경을 숨기면 작성 영역을 한 열로 표시하며 입력·주석 데이터는 유지한다. 감사 / 나에게 주는 말씀 / 나의 적용 / 기도제목은 --text-section 제목 아래 테두리 없는 문서형 contenteditable 영역으로 배치한다. 빈 영역은 보조색 자리표시자를 보여주고 포커스를 표시한다. 감사·기도제목은 번호 항목을 늘리거나 지울 수 있고 Enter로 다음 항목, Shift+Enter로 줄바꿈한다. ‘기존 QT 기록’ 등 원문 펼치기는 노출하지 않으며 데이터 자체는 보존한다.
 
 기도제목 구역의 ‘오늘 기도 / 기존 기도’ 버튼은 동일한 위치에서 내용을 전환하고 aria-pressed와 선택 배경을 함께 표시한다. 오늘 기도는 나의 기도 / 다른 사람을 위한 기도와 대상 이름을 둔다. 기존 기도는 날짜·대상·내용과 간결한 오늘 추가 버튼을 제공하고 서버 검색·대상 필터·페이지 조회를 사용한다. 기존 항목을 오늘에 추가할 때 원본을 수정하지 않는 참조 복사로 연결한다.
 
 오른쪽 맨 위 성경 구절 제목을 직접 편집하며 별도의 ‘성경 본문’ 라벨·입력란을 중복 배치하지 않는다. 쉼표로 여러 본문을 구분하고 범위를 확인한 뒤 본문을 표시한다. 구절 변경에 실패하면 이전 본문을 보존하고 오류와 Escape 취소를 제공한다. 성경은 기존 장별 읽기의 서체·행간을 사용한다.
 
-성경 텍스트 선택과 우클릭은 기존 document-selection-menu 표면·아이콘·크기와 색상 격자를 공유한다. 기본 서식·글자색·하이라이트·링크와 ‘메모’를 제공하며, 하이라이트와 서식은 해당 QT에만 표시한다. 성경 화면에는 강조 색상을 보이지 않는다. 메모는 사용자/책/장/절/문자 범위를 기준으로 공유하고 노란색 점선 밑줄, 마우스 오버·포커스 오버레이로 표시한다. 범위 텍스트가 바뀐 경우 잘못된 위치에 표시하지 않는다. 메모 오버레이는 --surface/--line/--r-surface/--shadow를 사용하고 편집 창에는 메모·취소·저장을 둔다. 임의 HTML 입력은 허용하지 않으며 키보드 Escape로 메뉴·메모를 닫는다.
+성경 텍스트 선택과 우클릭은 기존 document-selection-menu 표면·아이콘·크기와 색상 격자를 공유한다. 상단 첫 행은 아이콘과 ‘복사’ 동작을 표시하고, 색상·굵게·기울임·밑줄의 4열 한 행과 하단 ‘메모’를 제공한다. 서식 지우기·더 보기·링크·취소선·코드는 표시하지 않는다. 같은 메뉴를 왼쪽 문서형 작성 영역에도 사용하고, 왼쪽 메모는 해당 QT의 필드·문자 범위에 저장한다. 하이라이트와 서식은 해당 QT에만 표시한다. 성경 화면에는 강조 색상을 보이지 않는다. 메모는 사용자/책/장/절/문자 범위를 기준으로 공유하고 노란색 점선 밑줄, 마우스 오버·포커스 오버레이로 표시한다. 범위 텍스트가 바뀐 경우 잘못된 위치에 표시하지 않는다. 메모 오버레이는 --surface/--line/--r-surface/--shadow를 사용하고 편집 창에는 메모·취소·저장을 둔다. 임의 HTML 입력은 허용하지 않으며 키보드 Escape로 메뉴·메모를 닫는다.
 
 QT 본문은 생성 시 스냅샷으로 저장하고 기존 기록을 외부 재조회로 덮어쓰지 않는다. 만들기 실패 시 실제 오류와 재시도·직접 기록을 제공하며 임의 본문은 생성하지 않는다. 자동 저장 실패·버전 충돌 시 입력을 유지하고 화면 이동 전에 저장·재시도를 수행한다. 실제 공급자 접속 검증과 합성 응답 테스트를 구분한다.
 
-구현은 src/features/scripture-workspace.js, src/domain/scripture.js 및 bible.js, server/scripture.js, server/notion-scripture-import.js, server/daily-qt.js를 사용한다. QT 양식은 src/features/qt-editor.js, 안정적인 항목·구절 식별은 src/domain/qt-journal.js, 공용 구절 주석은 src/features/bible-annotations.js와 src/domain/verse-annotations.js, 선택·우클릭 메뉴는 src/features/scripture-selection-menu.js, 저장 대기·재시도·이탈 보호는 src/features/scripture-drafts.js에서 구현한다.
+구현은 src/features/scripture-workspace.js, src/domain/scripture.js 및 bible.js, server/scripture.js, server/notion-scripture-import.js, server/daily-qt.js를 사용한다. QT 양식은 src/features/qt-editor.js, 안정적인 항목·구절 식별은 src/domain/qt-journal.js, 공용 구절 주석은 src/features/bible-annotations.js와 src/domain/verse-annotations.js, 선택·우클릭 메뉴는 src/features/scripture-selection-menu.js, 왼쪽 작성 서식·메모는 src/features/qt-writing-menu.js, 저장 대기·재시도·이탈 보호는 src/features/scripture-drafts.js에서 구현한다.
 
 ### Document editing menus
 

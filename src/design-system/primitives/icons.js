@@ -3,6 +3,8 @@ import {solidProjectIconPaths} from '../icons/solid-paths.js';
 import {projectIconPaths} from '../icons/paths.js';
 // Original vector artwork, shared across navigation and project identity.
 const paths={
+ panelRightHide:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18m-6-12 3 3-3 3"/>',
+ panelRightShow:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18m-4-12-3 3 3 3"/>',
  lens:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 4 14 4 14 0V6M5 11c0 4 14 4 14 0M5 15c0 4 14 4 14 0"/>',
  lighting:'<rect x="3" y="3" width="18" height="12" rx="2"/><path d="M7 7h10M7 11h10M12 15v4m-5 3 5-3 5 3"/>',
  sd:'<path d="M8 3h10a2 2 0 0 1 2 2v16H4V7Z"/><path d="M9 4v5m4-5v5m4-5v5M8 14h8v4H8Z"/>',
