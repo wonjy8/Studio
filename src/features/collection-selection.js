@@ -1,0 +1,8 @@
+import {escapeHtml as esc} from '../design-system/primitives/html.js';
+export const selectionToolbar=prefix=>`<div class="collection-selection" data-${prefix}-selection aria-label="자료 선택"></div>`;
+export const selectionControl=(prefix,item,selected)=>`<label class="collection-select"><input type="checkbox" data-${prefix}-select="${esc(item.id)}" ${selected.has(item.id)?'checked':''}><span class="sr-only">${esc(item.title||item.name||'자료')} 선택</span></label>`;
+export function bindSelection({root,prefix,items,selected,draw,onDelete,busy=false,label='선택 삭제'}){
+ const bar=root.querySelector(`[data-${prefix}-selection]`);bar.innerHTML=`<span role="status">${selected.size}개 선택</span><button class="btn" type="button" data-select-visible ${!items.length||busy?'disabled':''}>현재 목록 전체 선택</button><button class="btn" type="button" data-select-clear ${!selected.size||busy?'disabled':''}>선택 해제</button><button class="btn danger" type="button" data-select-delete ${!selected.size||busy?'disabled':''}>${label}</button>`;
+ bar.querySelector('[data-select-visible]').onclick=()=>{selected.clear();items.forEach(item=>selected.set(item.id,structuredClone(item)));draw();};bar.querySelector('[data-select-clear]').onclick=()=>{selected.clear();draw();};bar.querySelector('[data-select-delete]').onclick=()=>void onDelete();
+ root.querySelectorAll(`[data-${prefix}-select]`).forEach(input=>{input.disabled=busy;input.onchange=()=>{const id=input.dataset[prefix+'Select'],item=items.find(item=>item.id===id);if(input.checked&&item)selected.set(id,structuredClone(item));else selected.delete(id);draw();root.querySelector(`[data-${prefix}-select="${CSS.escape(id)}"]`)?.focus();};});
+}

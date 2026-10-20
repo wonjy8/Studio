@@ -73,7 +73,7 @@ const parseTags=value=>{
  return clean;
 };
 function serialize(row){
- return {id:row.id,kind:row.kind,fileId:row.file_id||null,fileName:row.file_name||null,mimeType:row.mime_type||null,size:row.size??null,url:row.url||'',title:row.title,description:row.description||'',category:row.category||'',tags:JSON.parse(row.tags||'[]'),previewTitle:row.preview_title||'',previewDescription:row.preview_description||'',previewImage:row.preview_image||'',uploadedAt:row.uploaded_at||null};
+ return {id:row.id,updatedAt:row.updated_at,kind:row.kind,fileId:row.file_id||null,fileName:row.file_name||null,mimeType:row.mime_type||null,size:row.size??null,url:row.url||'',title:row.title,description:row.description||'',category:row.category||'',tags:JSON.parse(row.tags||'[]'),previewTitle:row.preview_title||'',previewDescription:row.preview_description||'',previewImage:row.preview_image||'',uploadedAt:row.uploaded_at||null};
 }
 export function registerMaterialFile(db,userId,file){
  const now=Date.now();
@@ -133,10 +133,12 @@ export function materialLibraryRoutes(db,{initialize=true,preview=true}={}){
   if(req.method==='PUT'){
    const data=await readJson(8192),tags=parseTags(data?.tags);
    if(!data||typeof data.title!=='string'||!data.title.trim()||data.title.length>300||typeof (data.category||'')!=='string'||(data.category||'').length>80||typeof (data.description||'')!=='string'||(data.description||'').length>1000||!tags){json(400,{error:'자료 정보를 확인해 주세요.'});return true;}
-   db.prepare('UPDATE materials SET title=?,description=?,category=?,tags=?,updated_at=? WHERE id=? AND user_id=?').run(data.title.trim(),data.description.trim(),(data.category||'').trim(),JSON.stringify(tags),Date.now(),old.id,uid);
+   db.prepare('UPDATE materials SET title=?,description=?,category=?,tags=?,updated_at=? WHERE id=? AND user_id=?').run(data.title.trim(),data.description.trim(),(data.category||'').trim(),JSON.stringify(tags),Math.max(Date.now(),old.updated_at+1),old.id,uid);
    json(200,{item:query(uid).find(item=>item.id===old.id)});return true;
   }
   if(req.method==='DELETE'){
+   if(req.headers?.['if-match']!==undefined&&req.headers?.['if-match']!==String(old.updated_at)){json(409,{error:'Material changed. Reload before deleting.'});return true;}
+   if(old.kind==='link'&&db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='reference_library'").get())for(const row of db.prepare('SELECT body FROM reference_library WHERE user_id=?').all(uid)){if(normalizedLink(JSON.parse(row.body).url||'')?.href===old.url){json(422,{error:'레퍼런스에서 사용 중인 링크입니다. 레퍼런스의 링크를 먼저 제외해 주세요.'});return true;}}
    if(old.kind==='file'){
     let used=false;
     if(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='reference_library'").get())for(const row of db.prepare('SELECT body FROM reference_library WHERE user_id=?').all(uid)){const ref=JSON.parse(row.body);if((ref.files||[]).includes(old.file_id)||(ref.images||[]).includes('/api/files/'+old.file_id))used=true;}
