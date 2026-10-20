@@ -23,6 +23,7 @@ export const contentServices=Object.freeze({
  handleAccountDeletion:{access:'excluded',reason:'Account deletion remains in the app.'},
  handleAccounts:{access:'excluded',reason:'Account administration remains in the app.'},
  oauth:{access:'excluded',reason:'Connection consent and credentials remain in the app.'},
+ tasksGoogle:{access:'excluded',reason:'Tasks OAuth/settings and unlinked private Google tasks are excluded from MCP; only explicitly linked Studio completion is synchronized.'},
  calendar:{access:'excluded',reason:'Calendar OAuth/settings and imported private events stay in the connected user home, not shared project/MCP content.'},
  googleSheets:{access:'excluded',reason:'Integration settings and synchronization remain in the app.'},
  account:{access:'excluded',reason:'Login, profile, password, account deletion and settings remain in the app.'}

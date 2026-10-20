@@ -32,3 +32,5 @@ export function addProjectContacts(projectId,contactIds){return revisionMutation
 
 export function linkProjectReferences(projectId,referenceIds){return revisionMutation(`projects/${encodeURIComponent(projectId)}/reference-library`,'POST',{referenceIds:[...referenceIds]});}
 export function unlinkProjectReference(projectId,referenceId){return revisionMutation(`projects/${encodeURIComponent(projectId)}/reference-library/${encodeURIComponent(referenceId)}`,'DELETE',{});}
+
+export const getWorkspaceRevision=()=>revision;
