@@ -8,6 +8,7 @@ export const siteRoleSchema=`
 CREATE TABLE IF NOT EXISTS site_role_memberships(user_id TEXT PRIMARY KEY REFERENCES users(id),role TEXT NOT NULL CHECK(role IN ('admin','user')),revision INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS site_role_audit(id TEXT PRIMARY KEY,actor_id TEXT NOT NULL REFERENCES users(id),target_id TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,reason TEXT NOT NULL,revision INTEGER NOT NULL,actor_role TEXT NOT NULL,created_at INTEGER NOT NULL);`;
 const managementEnabled=new WeakMap();
+export const siteRoleManagementEnabled=db=>managementEnabled.get(db)===true;
 export function configureSiteRoleManagement(db,enabled){managementEnabled.set(db,enabled===true);}
 export function setupSiteRoles(db){db.exec(siteRoleSchema);}
 // Login calls this after credential/status revalidation under BEGIN IMMEDIATE.

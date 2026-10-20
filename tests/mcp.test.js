@@ -1,3 +1,4 @@
+import {configureSiteRoleManagement,setupSiteRoles} from '../server/site-roles.js';
 import {commandFields} from '../src/domain/commands.js';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
@@ -219,7 +220,7 @@ test('new shoot content supports proposal, confirmation, scoped layout, copy and
 test('content capability discovery does not enable pending consent or excluded tools',async t=>{
  const f=await fixture(t),auth=await f.connect('alpha');
  const listed=(await f.rpc(auth,'studio_list_projects')).data.result.structuredContent;
- assert.equal(listed.capabilities.version,2);
+ assert.equal(listed.capabilities.version,3);
  assert.deepEqual(listed.capabilities.services.filter(service=>service.access==='enabled').map(service=>service.id),['projects']);
  for(const name of ['handleScripture','handleDocumentLibrary','handleInventory','handleAccounts','handleSiteRoles','settings','admin']){
   const result=await f.rpc(auth,name,{userId:'beta',path:'/api/account'});assert.equal(result.data.error.code,-32602);
@@ -337,4 +338,31 @@ test('paged document blocks update one item, preserve neighboring content and st
  assert.equal((await read({resource:'documents',id:doc.id})).value.blockCount,2);
  const denied=(await f.rpc(auth,'studio_read_content',{resource:'documents',id:doc.id,field:'__proto__.password'})).data.result;assert.equal(denied.isError,true);
  const duplicate=await read({resource:'catalog',limit:1,offset:1});assert.equal(duplicate.value.items.length,1);assert.ok(duplicate.value.nextOffset>=2);
+});
+
+test('shared equipment catalog MCP create/update uses existing manager permission and confirmed, reversible previews',async t=>{
+ const f=await fixture(t);f.db.prepare("INSERT OR REPLACE INTO site_settings VALUES('admin_user_id','alpha')").run();
+ const writer=await f.connect('alpha',true,true),other=await f.connect('beta',true,true),reader=await f.connect('alpha',false,true);
+ const read=async(auth,target={resource:'catalog'})=>{const r=(await f.rpc(auth,'studio_read_content',target)).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
+ const propose=async(auth,target,values)=>{const prior=await read(auth,target);const response=(await f.rpc(auth,'studio_propose_content',{...target,revision:prior.revision,valuesJson:JSON.stringify(values)})).data;return response.result||{isError:true};};
+ const apply=(auth,id,confirmed=true)=>f.rpc(auth,'studio_apply_changes',{proposalId:id,confirmed});
+ const fields={manufacturer:'Fictional optics',name:'Catalog test 50',nickname:'Test fifty',category:'lens'},before=f.db.prepare('SELECT count(*) n FROM equipment_catalog').get().n;
+ const tools=(await f.rpc(writer,'tools/list')).data.result.tools;assert.match(tools.find(t=>t.name==='studio_propose_content').description,/Catalog supports create\/update/);
+ const caps=(await f.rpc(writer,'studio_list_projects')).data.result.structuredContent.capabilities,manifest=caps.resources.find(r=>r.id==='catalog');assert.equal(manifest.readOnly,false);assert.equal(manifest.canWrite,true);assert.deepEqual(manifest.operations,['create','update']);assert.ok(manifest.fields.includes('manufacturer'));assert.equal(caps.services.find(s=>s.id==='handleEquipmentCatalog').effectiveAccess,'read-write');
+ const readerCaps=(await f.rpc(reader,'studio_list_projects')).data.result.structuredContent.capabilities;assert.equal(readerCaps.resources.find(r=>r.id==='catalog').canWrite,false);
+ const otherCaps=(await f.rpc(other,'studio_list_projects')).data.result.structuredContent.capabilities;assert.equal(otherCaps.resources.find(r=>r.id==='catalog').readOnly,true);assert.equal(otherCaps.services.find(s=>s.id==='handleEquipmentCatalog').effectiveAccess,'read-only');
+ assert.equal((await propose(other,{resource:'catalog'},fields)).isError,true);assert.equal((await propose(reader,{resource:'catalog'},fields)).isError,true);
+ const p=await propose(writer,{resource:'catalog'},fields);assert.notEqual(p.isError,true,JSON.stringify(p));const id=p.structuredContent.proposalId;assert.equal(f.db.prepare('SELECT count(*) n FROM equipment_catalog').get().n,before,'preview inserts roll back');assert.equal((await apply(writer,id,false)).data.result.isError,true);assert.equal((await apply(other,id)).data.result.isError,true);
+ const applied=(await apply(writer,id)).data.result;assert.notEqual(applied.isError,true,JSON.stringify(applied));const model=applied.structuredContent.result.model;assert.notEqual(model.id,p.structuredContent.impact.preview.model.id);assert.equal((await apply(writer,id)).data.result.isError,true);assert.equal((await read(other,{resource:'catalog',id:model.id})).value.name,fields.name,'shared catalog read remains visible');
+ assert.equal((await propose(writer,{resource:'catalog'},{...fields,manufacturer:'FICTIONAL OPTICS'})).isError,true);assert.equal(f.db.prepare('SELECT count(*) n FROM equipment_catalog').get().n,before+1);assert.equal((await propose(writer,{resource:'catalog'},{...fields,name:'Invalid',category:'invalid'})).isError,true);assert.equal((await propose(writer,{resource:'catalog'},{...fields,name:'Forbidden owner',userId:'beta'})).isError,true);
+ const update=await propose(writer,{resource:'catalog',id:model.id},{nickname:'Updated alias'});assert.notEqual(update.isError,true);assert.equal((await apply(writer,update.structuredContent.proposalId)).data.result.isError,undefined);assert.equal((await read(writer,{resource:'catalog',id:model.id})).value.nickname,'Updated alias');
+ const stale=await propose(writer,{resource:'catalog',id:model.id},{nickname:'Stale'});f.db.prepare('UPDATE equipment_catalog SET nickname=?,revision=revision+1 WHERE id=?').run('Concurrent',model.id);assert.equal((await apply(writer,stale.structuredContent.proposalId)).data.result.isError,true);assert.equal((await read(writer,{resource:'catalog',id:model.id})).value.nickname,'Concurrent');
+ const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l1cAAAAASUVORK5CYII=';const photo=await propose(writer,{resource:'catalog',id:model.id},{photo:{type:'image/png',base64:png}});assert.notEqual(photo.isError,true,JSON.stringify(photo));assert.equal(f.db.prepare('SELECT photo FROM equipment_catalog WHERE id=?').get(model.id).photo,null);assert.notEqual((await apply(writer,photo.structuredContent.proposalId)).data.result.isError,true);const stored=f.db.prepare('SELECT photo FROM equipment_catalog WHERE id=?').get(model.id).photo;assert.ok(stored.length>0);const noPhotoChange=await propose(writer,{resource:'catalog',id:model.id},{name:'Catalog test renamed'});await apply(writer,noPhotoChange.structuredContent.proposalId);assert.deepEqual(f.db.prepare('SELECT photo FROM equipment_catalog WHERE id=?').get(model.id).photo,stored);assert.equal((await propose(writer,{resource:'catalog',id:model.id},{photo:{url:'https://example.invalid/image.png'}})).isError,true);
+ const cancelled=await propose(writer,{resource:'catalog',id:model.id},{nickname:'Cancelled'});assert.equal((await f.rpc(writer,'studio_cancel_proposal',{proposalId:cancelled.structuredContent.proposalId})).data.result.structuredContent.cancelled,true);assert.equal((await apply(writer,cancelled.structuredContent.proposalId)).data.result.isError,true);
+ const revoked=await propose(writer,{resource:'catalog',id:model.id},{nickname:'No longer allowed'});f.db.prepare("UPDATE site_settings SET value='beta' WHERE key='admin_user_id'").run();assert.equal((await apply(writer,revoked.structuredContent.proposalId)).data.result.isError,true);assert.equal((await read(writer,{resource:'catalog',id:model.id})).value.nickname,'Concurrent');
+});
+
+test('catalog MCP honors configured site-role memberships in the worker and rechecks demotion on apply',async t=>{
+ const f=await fixture(t);setupSiteRoles(f.db);configureSiteRoleManagement(f.db,true);f.db.prepare("INSERT OR REPLACE INTO site_settings VALUES('super_admin_user_id','alpha')").run();f.db.prepare("INSERT OR REPLACE INTO site_settings VALUES('admin_user_id','alpha')").run();f.db.prepare("INSERT INTO site_role_memberships VALUES('beta','admin',1)").run();const writer=await f.connect('beta',true,true);const caps=(await f.rpc(writer,'studio_list_projects')).data.result.structuredContent.capabilities;assert.equal(caps.resources.find(r=>r.id==='catalog').canWrite,true);
+ const before=(await f.rpc(writer,'studio_read_content',{resource:'catalog'})).data.result.structuredContent;const response=(await f.rpc(writer,'studio_propose_content',{resource:'catalog',revision:before.revision,valuesJson:JSON.stringify({manufacturer:'Fictional',name:'Managed role model',nickname:'Member admin',category:'camera'})})).data.result;assert.notEqual(response.isError,true,JSON.stringify(response));f.db.prepare("UPDATE site_role_memberships SET role='user',revision=2 WHERE user_id='beta'").run();assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:response.structuredContent.proposalId,confirmed:true})).data.result.isError,true);assert.equal(f.db.prepare('SELECT count(*) n FROM equipment_catalog WHERE name=?').get('Managed role model').n,0);
 });

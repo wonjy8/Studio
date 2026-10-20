@@ -1,3 +1,4 @@
+import {siteRoleManagementEnabled} from './site-roles.js';
 import {Worker} from 'node:worker_threads';
 import {randomUUID} from 'node:crypto';
 import {resourceSpec,resourceManifest} from './content-resources.js';
@@ -9,7 +10,7 @@ export function contentService(db){
  const close=()=>{for(const entry of pending.values())entry.reject(Error('Content service closed'));pending.clear();if(worker)worker.terminate();worker=null;};
  async function execute(grant,kind,args,extra={}){
   if(!db.prepare('SELECT grant_id FROM integration_content_consents WHERE grant_id=? AND user_id=? AND version=1').get(grant.id,grant.user_id))throw Error('Full content consent is required in Studio connections settings');
-  if(!worker){const file=db.prepare('PRAGMA database_list').all().find(item=>item.name==='main').file;worker=new Worker(new URL('./content-worker.js',import.meta.url),{workerData:{file}});worker.unref();worker.on('message',({request,value,error,status})=>{const entry=pending.get(request);if(!entry)return;pending.delete(request);if(!pending.size)worker.unref();if(error)entry.reject(Object.assign(Error(error),{status}));else entry.resolve(value);});worker.on('error',error=>{for(const entry of pending.values())entry.reject(error);pending.clear();worker=null;});}
+  if(!worker){const file=db.prepare('PRAGMA database_list').all().find(item=>item.name==='main').file;worker=new Worker(new URL('./content-worker.js',import.meta.url),{workerData:{file,siteRoleManagementEnabled:siteRoleManagementEnabled(db)}});worker.unref();worker.on('message',({request,value,error,status})=>{const entry=pending.get(request);if(!entry)return;pending.delete(request);if(!pending.size)worker.unref();if(error)entry.reject(Object.assign(Error(error),{status}));else entry.resolve(value);});worker.on('error',error=>{for(const entry of pending.values())entry.reject(error);pending.clear();worker=null;});}
   const request=randomUUID();worker.ref();return new Promise((resolve,reject)=>{pending.set(request,{resolve,reject});worker.postMessage({request,uid:grant.user_id,grantId:grant.id,kind,args,...extra});});
  }
  function argumentsFor(args){const spec=resourceSpec(args.resource);
