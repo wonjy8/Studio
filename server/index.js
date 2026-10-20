@@ -103,7 +103,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleScripture({path,url,req,session,json,readJson,readBody:body,assertLiveMutation}))return;
       if(await handleDocumentLibrary({path,req,session,json,readJson}))return;
       if(await handleReferenceLibrary({path,req,session,json,readJson}))return;
-      if(await handleMaterials({path,req,session,json,readJson}))return;
+      if(await handleMaterials({path,req,res,session,json,readJson}))return;
       if(await handleContacts({path,req,session,json,readJson}))return;
       if(await handleRentalVendors({path,req,session,json,readJson}))return;
       if(await googleSheets.routes({path,url,req,res,session,json,readJson}))return;
