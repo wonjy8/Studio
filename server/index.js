@@ -1,3 +1,4 @@
+import {googleOAuthReturn} from './google-oauth-return.js';
 import {googleTasksService} from './google-tasks.js';
 import {googleCalendarService} from './google-calendar.js';
 import {scriptureRoutes} from './scripture.js';
@@ -57,6 +58,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   const handleInvitations=invitationRoutes(db,origin);
   const oauth=oauthService(db,origin),handleMcp=mcpService(db,origin,oauth);
   const attempts = new Map();
+  const googleReturn=googleOAuthReturn(db,{secure});
   let loginInFlight = 0;
   const server = http.createServer(async (req,res)=>{
     res.setHeader('Cache-Control','no-store');
@@ -64,9 +66,9 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     res.setHeader('Referrer-Policy','no-referrer');
     res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'");
     if (secure) res.setHeader('Strict-Transport-Security','max-age=31536000');
-    let diagnosticPath='',diagnosticData,diagnosticDetails={},diagnosticReason='';
+    let session;let diagnosticPath='',diagnosticData,diagnosticDetails={},diagnosticReason='';
     res.once('finish',()=>diagnostics.record(diagnostics.stage(diagnosticPath,diagnosticData),res.statusCode,diagnosticReason,diagnosticDetails));
-    const json=(code,body)=>{if(typeof body?.error==='string')diagnosticReason=body.error;if(body?.result?.isError===true)diagnosticReason=body.result._meta?.['mcp/www_authenticate']?'tool_auth_required':'tool_rejected';res.writeHead(code,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
+    const json=(code,body)=>{if(typeof body?.error==='string')diagnosticReason=body.error;if(body?.result?.isError===true)diagnosticReason=body.result._meta?.['mcp/www_authenticate']?'tool_auth_required':'tool_rejected';if(code===200)googleReturn.start(diagnosticPath,body,session,res);res.writeHead(code,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(body));};
     try {
       const url = new URL(req.url,'http://localhost'),path=url.pathname;diagnosticPath=path;
       if (req.method==='GET' && path==='/health') {db.prepare('SELECT 1').get(); return json(200,{ok:true,revision:process.env.STUDIO_REVISION||'development'});}
@@ -84,7 +86,8 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         try {const data=JSON.parse(await body(limit));if(path==='/oauth/register')diagnosticDetails=diagnostics.metadata(data);if(path==='/mcp'){diagnosticData={method:typeof data?.method==='string'?data.method:''};diagnosticDetails=diagnostics.toolMetadata(data);}parsedJson=data;hasParsedJson=true;return data;} catch(e) {e.status ||=400;throw e;}
       };
       const cookie = req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('studio_session='))?.slice(15);
-      let session = cookie && db.prepare('SELECT user_id,token FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
+      session = cookie && db.prepare('SELECT user_id,token FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
+      const returnedSession=googleReturn.recover(path,url,req,res);if(!session&&returnedSession)session=returnedSession;
       if(session&&!accountActive(db,session.user_id))session=undefined;
       // A request may wait for its body while another request revokes authority.
       // Cover JSON and binary API bodies; role/ownership checks stay in each
@@ -194,7 +197,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       const bytes=await readFile(root+file);
       res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file==='src/rotation-cursor.svg'?'image/svg+xml':'text/html');
       res.end(req.method==='HEAD'?undefined:bytes);
-    } catch(e) {if(!res.headersSent) json(e.status|| (e.code==='ENOENT'?404:500),{error:e.status===413?'Request too large':(e.status&&pathForError(req.url)?e.message:'Request failed')});else res.end();}
+    } catch(e) {if(!res.headersSent&&req.headers.accept?.includes('text/html')&&/^\/oauth\/google\/(?:calendar\/|tasks\/)?callback(?:\?|$)/.test(req.url)){const service=req.url.startsWith('/oauth/google/tasks/')?'Google Tasks':req.url.startsWith('/oauth/google/calendar/')?'Google Calendar':'Google Sheets';const status=e.status||500;res.writeHead(status,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+service+' 연결 확인</title><body><main><h1>'+service+' 연결을 완료하지 못했습니다</h1><p>연결 요청이 만료되었거나 로그인·동의 확인에 실패했습니다. 기존 연결은 유지됩니다.</p><p><a href="/settings/connections">연결 설정으로 돌아가기</a></p></main></body></html>');}else if(!res.headersSent) json(e.status|| (e.code==='ENOENT'?404:500),{error:e.status===413?'Request too large':(e.status&&pathForError(req.url)?e.message:'Request failed')});else res.end();}
   });
   server.requestTimeout=30000;server.headersTimeout=10000;
   server.on('close',()=>{handleMcp.close();tasksGoogle.close();calendar.close();googleSheets.close();db.close();});

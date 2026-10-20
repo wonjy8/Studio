@@ -31,3 +31,9 @@ Disconnect clears only Calendar credentials/states/project links/cache and abort
 Official contract: [Calendar OAuth scopes](https://developers.google.com/workspace/calendar/api/auth), [event insertion and stable IDs](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert), [recurring event list expansion](https://developers.google.com/workspace/calendar/api/v3/reference/events/list).
 
 Connection and publication controls live only in Settings → 연결. Home retains private calendar range/content and a link to connection settings. OAuth completion/cancellation returns to `/settings/connections`.
+
+## Cross-site OAuth return
+
+The ordinary login cookie remains `SameSite=Strict`. Starting a Google connection issues a separate HttpOnly, Secure-in-production, SameSite=Lax proof cookie scoped to that service's exact callback path for ten minutes. The database retains its hash, hashed state, service and original session reference. A Google top-level return can recover only that still-live session after a matching one-use proof; existing service state, account, scope and PKCE checks still apply. Tokens/codes are never placed in the proof or error page. Browser callback failures use a UTF-8 service-specific page with a link back to connection settings. API clients retain UTF-8 JSON errors. This requires no Google Cloud or OAuth permission changes.
+
+`tools/qa-google-oauth-return.mjs` navigates a real Chromium browser between Studio and a fictional Google-origin consent page, confirming that the Strict session cookie is withheld while the service return proof is present. It never contacts real Google services or uses real credentials.
