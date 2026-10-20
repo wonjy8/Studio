@@ -1,5 +1,6 @@
 # Google Calendar integration
 
+Current connection UI: use the single Google button in Settings → 연결; see [Unified Google connection](GOOGLE_CONNECTION.md). Existing service callbacks below remain supported for compatibility. Home has content/empty states only, without connection setup links.
 Each person connects their own Google account explicitly from Settings → 연결 → Google Calendar → Google Calendar 연결. Calendar credentials/states are separate from Sheets and encrypted using the existing Google credential codec/key. Existing Sheets grants and MCP consent are not expanded. This change does not create or provision production credentials, connect a real Google account, or post to a real calendar.
 
 ## Google Cloud/user setup
