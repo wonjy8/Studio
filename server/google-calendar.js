@@ -8,12 +8,12 @@ const fail=(message,status=400)=>Object.assign(Error(message),{status});
 const hash=value=>createHash('sha256').update(value).digest('base64url');
 export const googleCalendarScope='https://www.googleapis.com/auth/calendar.events';
 export const googleCalendarListScope='https://www.googleapis.com/auth/calendar.calendarlist.readonly';
-export function googleCalendarService(db,{origin,codec,clientId=process.env.GOOGLE_CLIENT_ID,clientSecret=process.env.GOOGLE_CLIENT_SECRET,fetcher=fetch,pollMs=60000}={}){
+export function googleCalendarService(db,{origin,codec,clientId=process.env.GOOGLE_CLIENT_ID,clientSecret=process.env.GOOGLE_CLIENT_SECRET,fetcher=fetch,pollMs=60000,oauthAttempts}={}){
  db.exec(`CREATE TABLE IF NOT EXISTS google_calendar_accounts(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,subject TEXT NOT NULL,email TEXT NOT NULL,credentials TEXT NOT NULL,generation TEXT NOT NULL,time_zone TEXT NOT NULL,last_sync INTEGER,error TEXT NOT NULL DEFAULT '',failures INTEGER NOT NULL DEFAULT 0,retry_at INTEGER NOT NULL DEFAULT 0);
  CREATE TABLE IF NOT EXISTS google_calendar_states(state_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,session_token TEXT NOT NULL,verifier TEXT NOT NULL,time_zone TEXT NOT NULL,expires INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS google_calendar_projects(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,project_id TEXT NOT NULL,enabled INTEGER NOT NULL,calendar_id TEXT NOT NULL,from_date TEXT NOT NULL,PRIMARY KEY(user_id,project_id));
  CREATE TABLE IF NOT EXISTS google_calendar_mappings(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,subject TEXT NOT NULL,project_id TEXT NOT NULL,source_type TEXT NOT NULL,source_id TEXT NOT NULL,event_id TEXT NOT NULL,calendar_id TEXT NOT NULL,fingerprint TEXT NOT NULL,synced_at INTEGER NOT NULL,PRIMARY KEY(user_id,subject,project_id,source_type,source_id));`);
- const attempts=googleOAuthAttempts();
+ const attempts=oauthAttempts||googleOAuthAttempts();
  const configured=Boolean(clientId&&clientSecret&&codec),accounts=uid=>db.prepare('SELECT * FROM google_calendar_accounts WHERE user_id=?').get(uid),running=new Map(),controllers=new Map(),cache=new Map();let closed=false,ticking=false;
  const projects=uid=>{const state=readWorkspace(db,uid).state;return [state,...state.projects||[]].filter(p=>!p.project.placeholder);};
  const live=uid=>{if(closed||!accountActive(db,uid)||passwordChangeRequired(db,uid))throw fail('로그인 상태와 Calendar 연결을 확인하세요.',403);};
