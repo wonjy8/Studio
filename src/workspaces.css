@@ -549,3 +549,6 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 @media(max-width:900px){.workspace-rail-divider{width:1px;min-height:28px;margin:8px 4px;align-self:center}}
 
 .scripture-workspace .bible-source-status{margin:0 0 16px}.bible-source-status summary{font-size:var(--text-support)}.bible-source-status p{margin:8px 0;overflow-wrap:anywhere}.bible-source-status [data-bible-source-detail]{white-space:pre-wrap}
+
+/* Shared creation surface: use existing palette/radius/control tokens. */
+.production-app .add-surface{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:100%;min-height:152px;padding:32px;border:1px dashed var(--muted);border-radius:var(--r-surface);background:var(--surface);color:var(--ink);text-align:center;cursor:pointer;font:inherit}.add-surface>.icon{width:28px;height:28px}.add-surface>strong{font-size:var(--text-section);font-weight:500}.production-app .add-surface:hover{background:var(--surface-2)}.production-app .add-surface:focus-visible{outline:2px solid var(--accent);outline-offset:4px}.production-app .reference-empty-add{grid-column:1/-1}.production-app .reference-empty-add:not(button){border:1px dashed var(--muted)}@media(max-width:760px){.production-app .add-surface{padding:24px}}
