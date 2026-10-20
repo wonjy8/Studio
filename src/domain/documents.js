@@ -1,6 +1,6 @@
 export const blockTypes={paragraph:'텍스트',h1:'제목 1',h2:'제목 2',h3:'제목 3',bullet:'글머리 목록',number:'번호 목록',todo:'할 일',quote:'인용',callout:'콜아웃',code:'코드',divider:'구분선',image:'이미지',reference:'레퍼런스'};
-export const documentColors=['#202124','#737780','#2563eb','#8b5cf6','#dc2626','#16a34a','#ea580c'];
-export const documentBackgrounds=['transparent','#f3f4f6','#dbeafe','#ede9fe','#fee2e2','#dcfce7','#ffedd5'];
+export const documentColors=['#202124','#737780','#2563eb','#8b5cf6','#dc2626','#16a34a','#ea580c','#a87960','#c99430','#c84b88'];
+export const documentBackgrounds=['transparent','#f3f4f6','#dbeafe','#ede9fe','#fee2e2','#dcfce7','#ffedd5','#f4ece8','#fbf4da','#fae8f0'];
 const id=prefix=>prefix+'-'+crypto.randomUUID(),identity=value=>typeof value==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(value);
 export const blockText=block=>(block.content||[]).map(run=>run.text).join('');
 export function safeDocumentUrl(value,{image=false}={}){if(typeof value!=='string'||value.length>2000||value!==value.trim())return false;try{const url=new URL(value);return (image?['http:','https:']:['http:','https:','mailto:']).includes(url.protocol)&&(!['http:','https:'].includes(url.protocol)||Boolean(url.hostname));}catch{return false;}}
