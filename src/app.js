@@ -1,4 +1,5 @@
 import {documentWorkspacePage,bindDocumentWorkspace} from './features/document-workspace.js';
+import {bindAppContextMenu} from './features/app-context-menu.js';
 import {linkProjectReferences} from './integrations/api.js';
 import {documentsPage,bindDocuments,documentsCanLeave,documentsDraftPending,flushDocuments,releaseDocuments} from './features/documents.js';
 import {validateWorkspace} from './domain/workspace.js';
@@ -43,6 +44,7 @@ import {settingsPage} from './pages/settings.js';
 import {projectForm,bindProjectIconPicker} from './features/projects/project-form.js';
 import {acceptInvitation} from './app/signup.js';
 import {invitationPanel,bindInvitations} from './features/invitations.js';
+bindAppContextMenu();
 if(await acceptInvitation())await new Promise(()=>{});
 await requireLogin();
 let managedProject=null;
