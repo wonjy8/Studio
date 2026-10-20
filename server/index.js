@@ -1,3 +1,4 @@
+import {documentLibraryRoutes} from './document-library.js';
 import {equipmentCatalogRoutes} from './equipment-catalog.js';
 import {syncRepresentatives} from './project-representative.js';
 import {referenceLibraryRoutes,reconcileReferences} from './reference-library.js';
@@ -35,6 +36,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   configureSiteRoleManagement(db,enableSiteRoleManagement);
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
+  const handleDocumentLibrary=documentLibraryRoutes(db);
   const handleEquipmentCatalog=equipmentCatalogRoutes(db);
   const handleInventory=inventoryRoutes(db),handleRentalVendors=rentalVendorRoutes(db),handleContacts=contactRoutes(db,{orgCanRead,equipmentProjectScope}),handleReferenceLibrary=referenceLibraryRoutes(db);
   syncRepresentatives(db);
@@ -95,6 +97,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleAdminProjects({path,url,req,session,json,readJson}))return;
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;
+      if(await handleDocumentLibrary({path,req,session,json,readJson}))return;
       if(await handleReferenceLibrary({path,req,session,json,readJson}))return;
       if(await handleContacts({path,req,session,json,readJson}))return;
       if(await handleRentalVendors({path,req,session,json,readJson}))return;
