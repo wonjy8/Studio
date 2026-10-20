@@ -129,6 +129,25 @@ src/workspaces.css는 기능별 스타일 뒤에 로드되며 공통 워크스�
 
 구현은 src/features/document-workspace.js(브라우저), src/features/documents.js(공통 편집기), server/document-library.js(계정별 문서 저장)를 사용한다.
 
+### App-wide context menu
+
+앱 화면(.production-app)에서 모든 우클릭은 우클릭 위치에 메뉴를 연다. Context Menu 키와 Shift+F10 키도 같은 메뉴를 연다. 입력란에서는 가능한 잘라내기·복사·붙여넣기·모두 선택을 제공하고, 텍스트 선택·링크·이미지에서는 관련 복사 동작을 제공한다. 그 밖의 화면에는 새로고침과 화면 위/아래 이동을 둔다. 문서 블록은 기존 블록 전용 우클릭 메뉴를 유지하고, 텍스트 선택 서식 메뉴도 선택 범위에 붙는 기존 도구 모음으로 유지한다.
+
+전역 메뉴의 크기와 스타일은 기존 문서 블록 메뉴에 맞춘다.
+
+| 항목 | 기준 |
+| --- | --- |
+| 폭·화면 가장자리 | 280px, 화면 가장자리에서 최소 8px 안쪽 |
+| 높이 | 화면 높이에 맞춘 스크롤; 아래쪽 공간이 부족하면 위쪽으로 배치 |
+| 패널 | --surface, --line, --r-surface(14px), --shadow, corner-shape 대체값 |
+| 안쪽 여백·행 간격 | 패널 8px, 행 사이 2px |
+| 항목 행 | 데스크톱 최소 36px, 900px 이하 최소 44px; 좌우 10px; --r-control(9px) |
+| 글자·아이콘 | --text-body(13px), 400 두께; 아이콘 22px |
+| 상태 | 호버는 --surface-2; 구분선은 --line; 비활성 동작은 보조 글자색 |
+| 키보드 | 포커스 외곽선을 표시하고 위/아래 방향키, Home/End, Enter, Escape를 지원 |
+
+전역 메뉴 구현은 src/features/app-context-menu.js, 연결 지점은 src/app.js, 메뉴 스타일은 src/workspaces.css다. 문서 블록·서식 메뉴도 이 파일의 공통 표면·타입·행 크기를 공유한다.
+
 ### Document editing menus
 
 문서 편집 메뉴는 기존 워크스페이스와 같은 색상·타입·컨트롤 토큰을 사용한다. 메뉴 크기를 조정할 때 세로 선택 패널, 블록 작업 목록, 옆으로 열리는 하위 메뉴, 색상 격자라는 형태와 기존 작동 방식은 유지한다.
