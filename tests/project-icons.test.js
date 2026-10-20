@@ -94,6 +94,8 @@ test('prayer hands use upright joined palms and diagonal cuffs in both variants'
  const outline=icon('prayerHands'),filled=icon('prayerHands',{solid:true});
  assert.ok(ionIconPaths['prayer-hands'].outline.includes('M256 42 C242 40'));
  assert.ok(ionIconPaths['prayer-hands'].filled.includes('M256 42 C242 40'));
+ assert.equal((ionIconPaths['prayer-hands'].outline.match(/stroke-width:32px/g)||[]).length,3);
+ assert.equal((ionIconPaths['prayer-hands'].filled.match(/stroke-width:32px/g)||[]).length,2);
  assert.ok(ionIconPaths['prayer-hands'].outline.includes('M93 400 L183 475'));
  assert.ok(ionIconPaths['prayer-hands'].filled.includes('M93 400 L183 475'));
  assert.ok(ionIconPaths['prayer-hands'].filled.includes('stroke:#fff'));
