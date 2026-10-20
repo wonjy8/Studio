@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {koreanInitials,matchesBibleBook} from '../src/features/bible-passage-chooser.js';
+test('Bible book filtering supports Korean names and initial consonants without inference',()=>{assert.equal(koreanInitials('요한복음'),'ㅇㅎㅂㅇ');for(const query of ['요한','ㅇㅎㅂㅇ',''])assert.ok(matchesBibleBook('요한복음',query));assert.equal(matchesBibleBook('창세기','ㅇㅎ'),false);assert.ok(matchesBibleBook('Genesis','gen'));});

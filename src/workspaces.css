@@ -562,3 +562,13 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .scripture-gallery-open{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;min-height:116px;padding:20px 16px 20px 0;border:0;background:transparent;color:var(--ink);text-align:left;border-radius:var(--r-control)}
 .scripture-gallery-open>span{max-width:100%;overflow-wrap:anywhere}.scripture-gallery-open .document-browse-name{font-weight:500}.scripture-gallery-open .sub{margin:0}
 .scripture-selection{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px}.scripture-selection[hidden]{display:none}
+
+.bible-comparison-label{display:block;color:var(--accent);font-size:var(--text-support);padding:4px 0;font-weight:500}
+@media(max-width:760px){.bible-reading-layout.is-split>[data-bible-panel=right]{border:0;padding:0}.bible-reading-layout.is-split>[data-bible-panel=right]>.scripture-chapter-heading{display:none}.bible-reading-layout.is-split>[data-bible-panel=right]>[data-bible-verses]:empty{display:none}.bible-secondary-verse{padding-left:16px;border-left:2px solid var(--line);margin-bottom:16px}.bible-reading-layout.is-split{gap:12px}}
+
+@media(max-width:760px){.bible-comparison-tools :is([data-bible-book],[data-bible-chapter],.scripture-search-field,[data-bible-passage-picker]){display:none}.bible-comparison-tools:before{content:'대조 번역';font-size:var(--text-support);color:var(--muted)}}
+
+.bible-passage-dialog{width:min(620px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:20px;border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);color:var(--ink)}
+.bible-passage-dialog::backdrop{background:#0008}.bible-passage-dialog>.section-head{margin:0 0 16px}.bible-passage-columns{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:16px}.bible-passage-columns>div{height:min(48dvh,360px);overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:var(--r-control);padding:4px}.bible-passage-columns button{display:block;width:100%;text-align:left;min-height:44px}.bible-passage-columns button[aria-pressed=true]{background:var(--selected);color:var(--accent)}.bible-passage-columns .sub{padding:0 6px}.bible-passage-dialog input{width:100%}
+
+@media(max-width:760px){.scripture-reader>.document-browse-tools:not(.bible-comparison-tools) :is([data-bible-book],[data-bible-chapter]){display:none}.scripture-reader>.document-browse-tools:not(.bible-comparison-tools) [data-bible-passage-picker]{flex:1}.scripture-reader>.document-browse-tools:not(.bible-comparison-tools) [data-bible-version]{width:auto;flex:1;min-width:110px}}
