@@ -1,7 +1,7 @@
 // Synchronous startup keeps the saved appearance in place before styles paint.
 (() => {
   const key='studio.theme.v1',root=document.documentElement;
-  const normalize=value=>value==='dark'?'dark':'light';
+  const normalize=value=>value==='light'?'light':'dark';
   function apply(value){
     const mode=normalize(value);root.dataset.theme=mode;
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content',mode==='dark'?'#111113':'#ffffff');
