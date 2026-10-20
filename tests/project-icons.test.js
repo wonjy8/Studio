@@ -76,9 +76,13 @@ test('happy face follows the custom expressive line style with an inverted fille
  assert.ok(outline.includes(ionIconPaths.happy.outline));
  assert.ok(filled.includes(ionIconPaths.happy.filled));
  assert.match(ionIconPaths.happy.outline,/fill:none;stroke:currentColor/);
- assert.match(ionIconPaths.happy.filled,/fill:currentColor;stroke:currentColor/);
+ assert.match(ionIconPaths.happy.filled,/fill:currentColor;stroke:none/);
  assert.match(ionIconPaths.happy.filled,/stroke:#fff/);
  assert.match(ionIconPaths.happy.filled,/fill:#fff/);
+ assert.doesNotMatch(ionIconPaths.happy.outline,/<circle cx="256"/);
+ assert.match(ionIconPaths.happy.filled,/<circle cx="256"[^>]*fill="currentColor" stroke="none"/);
+ assert.doesNotMatch(ionIconPaths.happy.outline,/m-103 15c38 59/);
+ assert.doesNotMatch(ionIconPaths.happy.filled,/m-103 15c38 59/);
  assert.notEqual(outline,filled);
 });
 
