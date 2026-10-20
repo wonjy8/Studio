@@ -28,3 +28,17 @@
 :root[data-theme="dark"] .modal-wrap{background:#0009}
 :root[data-theme="dark"] :is(button,a,input,textarea,select,[contenteditable]):focus-visible{outline-color:#b9cbff}
 /* Product photos retain their original white backing in both appearances. */
+
+/* App accent preference does not alter semantic or user-authored colors. */
+:root[data-accent]{--blue:var(--accent)}
+:root[data-accent="blue"]{--accent:#2563eb;--selected:#eff5ff}
+:root[data-accent="purple"]{--accent:#7335c4;--selected:#f5efff}
+:root[data-accent="green"]{--accent:#167347;--selected:#edf8f1}
+:root[data-accent="orange"]{--accent:#a54b0b;--selected:#fff3e8}
+:root[data-theme="dark"][data-accent="blue"]{--accent:#8bb8ff;--selected:#252f43}
+:root[data-theme="dark"][data-accent="purple"]{--accent:#c5a5ff;--selected:#32263f}
+:root[data-theme="dark"][data-accent="green"]{--accent:#83d9ab;--selected:#20382c}
+:root[data-theme="dark"][data-accent="orange"]{--accent:#ffb77f;--selected:#402d20}
+:root[data-accent] .production-app .project-item.active{color:var(--accent)}
+:root[data-accent] :is(button,a,input,textarea,select,[contenteditable]):focus-visible{outline-color:var(--accent)}
+:root[data-accent] input[type=radio]{accent-color:var(--accent)}

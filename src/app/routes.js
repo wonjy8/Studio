@@ -3,7 +3,7 @@ const tabPaths={home:'home',schedule:'schedule',contents:'shoots',camera:'camera
 const views={...Object.fromEntries(Object.entries(tabPaths).map(([view,path])=>[path,view])),references:'references'};
 const identity=/^[A-Za-z0-9_-]{1,80}$/;
 const monthPattern=/^\d{4}-(0[1-9]|1[0-2])$/;
-export const settingsSections=['account','connections','data'];
+export const settingsSections=['account','app','connections','data'];
 const usernamePattern=/^[A-Za-z0-9_.-]{1,64}$/;
 const reservedNamespaces=new Set(['api','src','oauth','mcp','.well-known']);
 function namespaceSegment(username){return (reservedNamespaces.has(username.toLowerCase())?'@':'')+username;}
