@@ -1,6 +1,6 @@
 # Google Tasks
 
-홈의 Google Tasks에서 각 사용자가 직접 연결합니다. 기존 Google OAuth 클라이언트와 서버 암호화 키를 재사용하지만 Calendar·Sheets와 토큰, 동의 상태, 연결 테이블을 분리합니다. 기존 연결의 권한을 자동으로 확대하지 않습니다. MCP에는 개인 Google 데이터와 연동 설정을 노출하지 않습니다.
+설정 → 연결 → Google Tasks에서 각 사용자가 직접 연결합니다. 홈에는 연결한 할 일의 완료 상태와 연결 설정 이동 링크만 표시합니다. 기존 Google OAuth 클라이언트와 서버 암호화 키를 재사용하지만 Calendar·Sheets와 토큰, 동의 상태, 연결 테이블을 분리합니다. 기존 연결의 권한을 자동으로 확대하지 않습니다. MCP에는 개인 Google 데이터와 연동 설정을 노출하지 않습니다.
 
 관리자는 Google Cloud에서 Tasks API를 활성화하고 `/oauth/google/tasks/callback`의 공개 origin 전체 URI를 기존 OAuth 클라이언트에 등록해야 합니다. 동의 화면의 테스트 사용자·게시 상태도 확인합니다. 요청 범위는 `openid email https://www.googleapis.com/auth/tasks`이며, 실제 각 사용자 승인 없이 연결하지 않습니다.
 
@@ -13,3 +13,5 @@
 Google Tasks API는 예정 날짜만 지원하고 시각은 읽고 쓸 수 없습니다. Studio 시각은 보존합니다. 반복 설정과 하위 계층, Docs/Chat에서 할당한 항목은 동기화하지 않습니다. 반복의 다음 발생을 추정해 만들지 않습니다. API 제한을 넘는 제목·메모를 잘라 저장하지 않습니다.
 
 공식 계약: [Task 리소스](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks), [생성](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks/insert). 테스트는 격리 DB와 가짜 Google 응답만 사용합니다. 실제 Google 동의와 운영 쓰기는 별도 사용자 동의 이후 검증해야 합니다.
+
+OAuth 완료·취소 후 `/settings/connections`로 돌아옵니다. 홈 조회나 설정 화면 진입만으로 연결·권한·연동 범위를 변경하지 않습니다.
