@@ -3,7 +3,7 @@ import {documentLibraryRoutes} from './document-library.js';
 import {equipmentCatalogRoutes} from './equipment-catalog.js';
 import {syncRepresentatives} from './project-representative.js';
 import {referenceLibraryRoutes,reconcileReferences} from './reference-library.js';
-import {materialLibraryRoutes,registerMaterialFile} from './material-library.js';
+import {materialLibraryRoutes,registerMaterialFile,registerNewProjectDocuments} from './material-library.js';
 import {contactRoutes} from './contacts.js';
 import {rentalVendorRoutes} from './rental-vendors.js';
 import {googleSheetsService} from './google-sheets.js';
@@ -149,7 +149,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         if(path==='/api/workspace'&&req.method==='PUT') {
           const data=await readJson();
           if(!validateWorkspace(data.state))return json(400,{error:'Invalid workspace'});
-          try{return json(200,writeWorkspace(db,uid,linkedWorkspace(db,uid,data.state),data.revision));}catch(e){return json(e.status||500,{error:e.message});}
+          try{const previous=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(uid),saved=writeWorkspace(db,uid,linkedWorkspace(db,uid,data.state),data.revision);registerNewProjectDocuments(db,uid,saved.state,previous?JSON.parse(previous.body):null);return json(200,saved);}catch(e){return json(e.status||500,{error:e.message});}
         }
         if(path==='/api/files'&&req.method==='POST') {
           const type=req.headers['content-type'];
