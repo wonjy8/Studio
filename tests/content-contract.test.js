@@ -38,3 +38,9 @@ test('future editable fields cannot silently add credential, account or permissi
  const forbidden=new Set(['accountId','userId','ownerId','scope','password','permissions','roleId','inviterId','operators','account','settings','admin','token','grantId']);
  for(const resource of resourceManifest())for(const field of resource.fields)assert.equal(forbidden.has(field),false,'Explicit security review required for '+resource.id+'.'+field);
 });
+test('service requirement and actual connection approval are explicitly separate',()=>{
+ const pending=contentCapabilities({scope:'studio:read studio:write'}),approved=contentCapabilities({scope:'studio:read studio:write',consentVersion:1}),reader=contentCapabilities({scope:'studio:read',consentVersion:1});
+ assert.equal(pending.connection.requiresOwnerConsent,true);assert.equal(approved.connection.requiresOwnerConsent,false);assert.equal(approved.connection.canWriteFullContent,true);assert.equal(reader.connection.canWriteFullContent,false);
+ for(const capabilities of [pending,approved,reader])assert.equal(capabilities.services.find(item=>item.id==='handleInventory').access,'consent-required');
+ assert.equal(approved.services.find(item=>item.id==='handleInventory').effectiveAccess,'read-write');assert.equal(reader.services.find(item=>item.id==='handleInventory').effectiveAccess,'read-only');assert.equal(approved.services.find(item=>item.id==='handleEquipmentCatalog').effectiveAccess,'read-only');assert.equal(approved.services.find(item=>item.id==='handleAccounts').effectiveAccess,'excluded');
+});

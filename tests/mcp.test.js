@@ -232,10 +232,11 @@ test('full content consent is owner-specific; documents and QT use preview/confi
  const read=(auth,args)=>f.rpc(auth,'studio_read_content',args);
  assert.equal((await read(writer,{resource:'documents'})).data.result.isError,true);
  const connections=await (await f.call('/api/connections','GET',undefined,{Cookie:f.cookies.alpha})).json(),grantId=connections.connections[0].id;
- assert.equal(connections.connections[0].contentConsentVersion,0);
+ assert.equal(connections.connections[0].contentConsentVersion,0);const legacyCapabilities=(await f.rpc(writer,'studio_list_projects')).data.result.structuredContent.capabilities;assert.equal(legacyCapabilities.connection.requiresOwnerConsent,true);
  assert.equal((await f.call('/api/connections/'+grantId+'/content-consent','POST',{approve:true,version:1},{Origin:f.origin,Cookie:f.cookies.beta})).status,404);
  assert.equal((await f.call('/api/connections/'+grantId+'/content-consent','POST',{approve:false,version:1},{Origin:f.origin,Cookie:f.cookies.alpha})).status,400);
  assert.equal((await f.call('/api/connections/'+grantId+'/content-consent','POST',{approve:true,version:1},{Origin:f.origin,Cookie:f.cookies.alpha})).status,200);
+ const approvedCapabilities=(await f.rpc(writer,'studio_list_projects')).data.result.structuredContent.capabilities;assert.equal(approvedCapabilities.connection.fullContentApproved,true);assert.equal(approvedCapabilities.connection.requiresOwnerConsent,false);assert.equal(approvedCapabilities.services.find(item=>item.id==='handleInventory').access,'consent-required');assert.equal(approvedCapabilities.services.find(item=>item.id==='handleInventory').effectiveAccess,'read-write');assert.equal(approvedCapabilities.toolSchemaVersion,5);assert.ok(approvedCapabilities.serverRevision);
  assert.equal((await read(other,{resource:'documents'})).data.result.isError,true);
  const value=async args=>{const r=(await read(writer,args)).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
  const propose=async(args,fields)=>{const before=await value(args),r=(await f.rpc(writer,'studio_propose_content',{...args,revision:before.revision,valuesJson:JSON.stringify(fields)})).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};

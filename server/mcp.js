@@ -73,7 +73,7 @@ export function mcpService(db,origin,oauth){
    const current=readWorkspace(db,grant.user_id),state=current.state;state.project.id ||= 'project-main';state.projects ||= [];
    if(tool.name==='search'){result(searchProjects(state,origin,args.query));return;}
    if(tool.name==='fetch'){result({...projectDocument(state,origin,args.id),metadata:{revision:current.revision}});return;}
-   if(tool.name==='studio_list_projects'){result({capabilities:contentCapabilities(),revision:current.revision,projects:allProjects(state).map(p=>({id:p.project.id,name:p.project.name,date:p.project.date,location:p.project.location,shoots:p.contents.length}))});return;}
+   if(tool.name==='studio_list_projects'){result({capabilities:{...contentCapabilities({scope:grant.scope,consentVersion:content.consentVersion(grant)}),toolSchemaVersion,serverRevision:process.env.STUDIO_REVISION||'development'},revision:current.revision,projects:allProjects(state).map(p=>({id:p.project.id,name:p.project.name,date:p.project.date,location:p.project.location,shoots:p.contents.length}))});return;}
    if(tool.name==='studio_get_project'){
     const project=allProjects(state).find(p=>p.project.id===args.projectId);if(!project)throw Error('Project not found');const {settings,...production}=project;result({revision:current.revision,project:production});return;
    }
