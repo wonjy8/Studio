@@ -1,0 +1,30 @@
+.reference-board-shell{margin:20px 0;padding:16px;border:1px solid var(--line);border-radius:var(--r-surface);background:var(--surface-2)}
+.reference-board-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.reference-board-toolbar h3{font-size:var(--text-section);margin:0 auto 0 0}
+.reference-board-toolbar input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.reference-board-canvas{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:64px;gap:12px;min-height:calc(var(--reference-board-rows,8)*76px);align-content:start;position:relative;padding:8px;border-radius:var(--r-surface);background-color:var(--surface);background-image:radial-gradient(var(--line) .8px,transparent .8px);background-size:16px 16px}
+.reference-board-card{min-width:0;min-height:0;overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:0;border:1px solid var(--line);background:var(--surface);box-shadow:0 2px 8px #18181b0b}
+.reference-board-card-head{display:flex;align-items:center;gap:8px;min-height:36px;padding:4px 8px;border-bottom:1px solid var(--line);font-size:var(--text-support);color:var(--muted)}
+.reference-board-drag,.reference-board-card-actions button{border:0;background:transparent;color:var(--ink);cursor:grab;min-width:30px;min-height:30px;border-radius:var(--r-control)}
+.reference-board-drag{font-size:20px;line-height:1}
+.reference-board-drag:focus-visible,.reference-board-card-actions button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.reference-board-size{margin-left:auto;border:1px solid var(--line);border-radius:var(--r-control);background:var(--surface);padding:4px 8px;font-size:var(--text-meta);cursor:pointer}
+.reference-board-card-body{min-height:0;overflow:auto;padding:8px;display:flex;align-items:center;justify-content:center}
+.reference-board-image,.reference-board-video{display:block;max-width:100%;max-height:100%;object-fit:contain;border-radius:var(--r-control)}
+.reference-board-video{width:100%;height:100%;background:#111}
+.reference-board-file,.reference-board-link{display:flex;align-items:center;gap:12px;width:100%;padding:12px;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:var(--r-control);overflow-wrap:anywhere}
+.reference-board-file-icon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:10px;background:var(--surface-2)}
+.reference-board-file strong,.reference-board-link strong{display:block;font-size:var(--text-title);font-weight:500}
+.reference-board-file small,.reference-board-link small{display:block;margin-top:4px;color:var(--muted);font-size:var(--text-meta);overflow-wrap:anywhere}
+.reference-board-text .reference-board-card-body{display:block}
+.reference-board-title{margin:0 0 8px}
+.reference-board-copy{height:calc(100% - 54px);margin:0}
+.reference-board-copy textarea{width:100%;height:100%;min-height:64px;resize:none;border:0;padding:8px;background:transparent;line-height:1.65}
+.reference-board-title input{min-height:34px}
+.reference-board-card-actions{display:flex;justify-content:flex-end;gap:2px;padding:2px 6px;border-top:1px solid var(--line)}
+.reference-board-card-actions button{min-height:28px;min-width:28px;color:var(--muted)}
+.reference-board-card-actions button:hover,.reference-board-drag:hover{background:var(--surface-2);color:var(--ink)}
+.reference-board-empty{grid-column:1/-1;align-self:center;justify-self:center;padding:40px;color:var(--muted);text-align:center}
+.reference-attachment-list{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+@media(max-width:900px){.reference-board-shell{padding:12px}.reference-board-toolbar .btn{min-height:44px}.reference-board-canvas{grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:72px}.reference-board-card{grid-area:auto!important;min-height:220px}.reference-board-card-body{min-height:140px}.reference-board-card-actions button{min-width:38px;min-height:38px}}
+@media(max-width:560px){.reference-board-canvas{grid-template-columns:1fr;grid-auto-rows:auto}.reference-board-card{min-height:260px;grid-column:1!important;grid-row:auto!important}.reference-board-image,.reference-board-video{max-height:360px}.reference-board-text .reference-board-card-body{min-height:220px}.reference-board-copy{height:160px}}
