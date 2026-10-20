@@ -125,7 +125,7 @@ export function materialLibraryRoutes(db){
    const data=await readJson(8192),url=normalizedLink(data?.url),tags=parseTags(data?.tags);
    if(!data||!url||!tags||typeof data.title!=='string'||data.title.length>300||typeof (data.category||'')!=='string'||(data.category||'').length>80||typeof (data.description||'')!=='string'||(data.description||'').length>1000)fail(400,'링크 정보를 확인해 주세요.');
    const preview=await previewFor(url.href),now=Date.now(),id=randomUUID(),title=data.title.trim()||preview.previewTitle||url.hostname;
-   db.prepare("INSERT INTO materials(id,user_id,kind,file_id,url,title,description,category,tags,preview_title,preview_description,preview_image,uploaded_at,created_at,updated_at) VALUES(?,?,'link',NULL,?,?,?,?,?,?,?,?,?,?,?)").run(id,uid,url.href,title,data.description.trim(),(data.category||'').trim(),JSON.stringify(tags),preview.previewTitle||'',preview.previewDescription||'',preview.previewImage||'',now,now,now);
+   db.prepare("INSERT INTO materials(id,user_id,kind,file_id,url,title,description,category,tags,preview_title,preview_description,preview_image,uploaded_at,created_at,updated_at) VALUES(?,?,'link',NULL,?,?,?,?,?,?,?,?,?,?,?)").run(id,uid,url.href,title,(data.description||'').trim(),(data.category||'').trim(),JSON.stringify(tags),preview.previewTitle||'',preview.previewDescription||'',preview.previewImage||'',now,now,now);
    json(201,{item:query(uid).find(item=>item.id===id)});return true;
   }
   const old=db.prepare('SELECT * FROM materials WHERE id=? AND user_id=?').get(match[1],uid);if(!old){json(404,{error:'Material not found'});return true;}
