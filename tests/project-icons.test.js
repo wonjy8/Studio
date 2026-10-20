@@ -70,3 +70,27 @@ test('equipment workspace camcorder uses the paired Ionicons outline and filled 
  assert.match(filled,/fill="currentColor" stroke="none"/);
  assert.match(outline,/aria-hidden="true" focusable="false"/);
 });
+
+test('happy face follows the custom expressive line style with an inverted filled pair',()=>{
+ const outline=icon('happy'),filled=icon('happy',{solid:true});
+ assert.ok(outline.includes(ionIconPaths.happy.outline));
+ assert.ok(filled.includes(ionIconPaths.happy.filled));
+ assert.match(ionIconPaths.happy.outline,/fill:none;stroke:currentColor/);
+ assert.match(ionIconPaths.happy.filled,/fill:currentColor;stroke:none/);
+ assert.match(ionIconPaths.happy.filled,/stroke:#fff/);
+ assert.match(ionIconPaths.happy.filled,/fill:#fff/);
+ assert.doesNotMatch(ionIconPaths.happy.outline,/<circle cx="256"/);
+ assert.match(ionIconPaths.happy.filled,/<circle cx="256"[^>]*fill="currentColor" stroke="none"/);
+ assert.doesNotMatch(ionIconPaths.happy.outline,/m-103 15c38 59/);
+ assert.doesNotMatch(ionIconPaths.happy.filled,/m-103 15c38 59/);
+ assert.notEqual(outline,filled);
+});
+
+test('calendar outline fills its tiny date marks while preserving the line frame',()=>{
+ const outline=icon('calendar'),filled=icon('calendar',{solid:true});
+ assert.ok(outline.includes(ionIconPaths.calendar.outline));
+ assert.ok(filled.includes(ionIconPaths.calendar.filled));
+ assert.equal((ionIconPaths.calendar.outline.match(/fill="currentColor" stroke="none"/g)||[]).length,9);
+ assert.match(ionIconPaths.calendar.outline,/<rect fill="none" stroke="currentColor"/);
+ assert.notEqual(outline,filled);
+});
