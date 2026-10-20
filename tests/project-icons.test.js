@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {projectIconCatalog,selectableProjectIcons,findProjectIcons,projectIconInfo} from '../src/design-system/icons/catalog.js';
 import {projectIconPaths} from '../src/design-system/icons/paths.js';
 import {icon} from '../src/design-system/primitives/icons.js';
+import {ionIconAliases,ionIconPaths} from '../src/design-system/icons/ionicons.js';
 import {projectForm,projectIconPage,iconPageSize} from '../src/features/projects/project-form.js';
 import {emptyWorkspace,validateWorkspace,projectIcons} from '../src/domain/workspace.js';
 
@@ -58,11 +59,14 @@ test('every selectable icon uses a real filled vector and legacy identities stay
  for(const item of selectableProjectIcons){const svg=icon(item.id,{solid:true});assert.match(svg,/fill="currentColor"/);assert.match(svg,/stroke="none"/);}
  const state=emptyWorkspace();state.project.icon='tabler-device-desktop-search';assert.ok(validateWorkspace(state));
 });
-test('equipment workspace camcorder keeps one filled silhouette across selection variants',()=>{
- const silhouette=icon('camcorder');
- assert.equal(silhouette,icon('camcorder',{solid:true}));
- assert.notEqual(silhouette,icon('gear'));
- assert.notEqual(silhouette,icon('camera'));
- assert.match(silhouette,/<g fill="currentColor" stroke="none">/);
- assert.match(silhouette,/aria-hidden="true" focusable="false"/);
+test('equipment workspace camcorder uses the paired Ionicons outline and filled variants',()=>{
+ const iconName=ionIconAliases.camcorder;
+ const outline=icon('camcorder');
+ const filled=icon('camcorder',{solid:true});
+ assert.notEqual(outline,filled);
+ assert.ok(outline.includes(ionIconPaths[iconName].outline));
+ assert.ok(filled.includes(ionIconPaths[iconName].filled));
+ assert.match(outline,/fill="none" stroke="currentColor"/);
+ assert.match(filled,/fill="currentColor" stroke="none"/);
+ assert.match(outline,/aria-hidden="true" focusable="false"/);
 });
