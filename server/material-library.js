@@ -137,7 +137,7 @@ export function materialLibraryRoutes(db,{initialize=true,preview=true}={}){
    json(200,{item:query(uid).find(item=>item.id===old.id)});return true;
   }
   if(req.method==='DELETE'){
-   if(req.headers?.['if-match']!==undefined&&req.headers?.['if-match']!==String(old.updated_at)){json(409,{error:'Material changed. Reload before deleting.'});return true;}
+   if(req.headers?.['if-match']!==undefined&&req.headers?.['if-match']!==String(old.updated_at)){json(409,{error:'자료가 변경되었습니다. 새로고침 후 다시 선택해 주세요.'});return true;}
    if(old.kind==='link'&&db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='reference_library'").get())for(const row of db.prepare('SELECT body FROM reference_library WHERE user_id=?').all(uid)){if(normalizedLink(JSON.parse(row.body).url||'')?.href===old.url){json(422,{error:'레퍼런스에서 사용 중인 링크입니다. 레퍼런스의 링크를 먼저 제외해 주세요.'});return true;}}
    if(old.kind==='file'){
     let used=false;
