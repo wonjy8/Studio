@@ -16,17 +16,18 @@ const errors=[];
 try{
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const page=await context.newPage();page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));
  await page.goto(origin);await page.locator('[name=username]').fill('mobile-owner');await page.locator('[name=password]').fill(password);await page.locator('#login [type=submit]').click();await page.locator('.workspace-rail').waitFor();
+ assert.equal(await page.locator('.sidebar-toggle').isVisible(),false);assert.equal(await page.locator('.mobile-close').isVisible(),false);
  const rail=page.locator('.workspace-rail'),panel=page.locator('.project-sidebar'),main=page.locator('.main');
  await rail.locator('[data-action=production]').click();await panel.waitFor({state:'visible'});assert.equal(await main.evaluate(n=>n.inert),true);
  const listURL=page.url();await panel.locator('[data-project=project-main]').click();await panel.waitFor({state:'hidden'});assert.equal(await main.evaluate(n=>n.inert),false);
  await page.goBack();await panel.waitFor({state:'visible'});assert.equal(page.url(),listURL);await page.goForward();await panel.waitFor({state:'hidden'});
  const deep=page.url();await page.reload();await page.locator('.workspace-rail').waitFor();assert.equal(await panel.isVisible(),false);assert.equal(page.url(),deep);
  await page.locator('.project-tabs [data-view=project-settings]').click();await page.locator('#project-name').fill('Retained fictional draft');await page.locator('#project-name').evaluate(n=>n.mobileSentinel='kept');
- const draftURL=page.url();await page.locator('.sidebar-toggle').click();await panel.waitFor({state:'visible'});assert.equal(page.url(),draftURL);await page.goBack();await panel.waitFor({state:'hidden'});assert.equal(await page.locator('#project-name').inputValue(),'Retained fictional draft');assert.equal(await page.locator('#project-name').evaluate(n=>n.mobileSentinel),'kept');
+ const draftURL=page.url();await page.locator('.workspace-rail .rail-button.active').click();await panel.waitFor({state:'visible'});assert.equal(page.url(),draftURL);await page.goBack();await panel.waitFor({state:'hidden'});assert.equal(await page.locator('#project-name').inputValue(),'Retained fictional draft');assert.equal(await page.locator('#project-name').evaluate(n=>n.mobileSentinel),'kept');
  // Discard only the fictional unsaved field before navigating to another feature.
  await page.locator('#project-name').fill('Fictional project');
  await rail.locator('[data-view=member-equipment]').click();await panel.waitFor({state:'visible'});await page.screenshot({path:'/tmp/studio-mobile-navigation-list.png'});await panel.locator('[data-view=equipment-catalog]').click();await panel.waitFor({state:'hidden'});assert.match(page.url(),/inventory\/catalog/);
- await page.locator('.sidebar-toggle').click();await panel.waitFor({state:'visible'});assert.equal(await panel.locator('[data-view=equipment-catalog]').getAttribute('aria-current'),'page');await panel.locator('.mobile-close').click();await panel.waitFor({state:'hidden'});
+ await page.locator('.workspace-rail .rail-button.active').click();await panel.waitFor({state:'visible'});assert.equal(await panel.locator('[data-view=equipment-catalog]').getAttribute('aria-current'),'page');await page.goBack();await panel.waitFor({state:'hidden'});
  for(const width of [320,390,768]){await page.setViewportSize({width,height:844});const box=await rail.boundingBox();assert.ok(box.x>=10&&box.y+box.height<=834,'floating gutters');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal page overflow');assert.ok(await rail.locator('.rail-button').evaluateAll(nodes=>nodes.every(n=>n.getBoundingClientRect().width>=44&&n.getBoundingClientRect().height>=44)));}
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/studio-mobile-floating-navigation.png'});
  await rail.locator('[data-view=settings]').click();await panel.waitFor({state:'visible'});await panel.locator('[data-settings-section=account]').click();await panel.waitFor({state:'hidden'});
