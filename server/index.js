@@ -180,7 +180,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           const usage=db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM files WHERE user_id=?').get(uid).size;
           if(usage+bytes.length>250*1024*1024) return json(413,{error:'Storage quota reached'});
           const id=randomUUID(), name=decodeURIComponent(req.headers['x-file-name']||'file').slice(0,200);
-          db.exec('BEGIN IMMEDIATE');try{db.prepare('INSERT INTO files VALUES(?,?,?,?,?)').run(id,uid,name,type,bytes);registerMaterialFile(db,uid,{id,name,type});indexNewMaterialUpload(db,uid,{id,name,type,bytes});db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}
+          db.exec('BEGIN IMMEDIATE');try{db.prepare('INSERT INTO files VALUES(?,?,?,?,?)').run(id,uid,name,type,bytes);registerMaterialFile(db,uid,{id,name,type});indexNewMaterialUpload(db,uid,{id,name,type,bytes,colors:req.headers['x-material-colors']});db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}
           return json(201,{id,url:`/api/files/${id}`});
         }
         const match=path.match(/^\/api\/files\/([a-f0-9-]{36})$/);

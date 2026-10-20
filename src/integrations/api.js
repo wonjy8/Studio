@@ -1,3 +1,4 @@
+import {sampleUploadColors} from '../domain/material-colors.js';
 let revision=0,mutationGeneration=0,pendingMutations=0;
 let mutationQueue=Promise.resolve();
 // All workspace-revision writes share one queue, including team-only changes.
@@ -24,7 +25,7 @@ export async function saveWorkspace(state){const data=await revisionMutation('wo
 export async function saveEquipmentAssignments(projectId,gearId,values){const data=await revisionMutation(`projects/${encodeURIComponent(projectId)}/equipment/${encodeURIComponent(gearId)}/assignments`,'PUT',{values:structuredClone(values)});return data.state;}
 export function createProjectTeam(projectId,name){return revisionMutation(`projects/${encodeURIComponent(projectId)}/teams`,'POST',{name});}
 export function saveProjectMemberTeams(projectId,memberId,teamIds){return revisionMutation(`projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(memberId)}/teams`,'PUT',{teamIds:[...teamIds]});}
-export async function upload(file){return request('files',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name)},body:file});}
+export async function upload(file){const colors=await sampleUploadColors(file);return request('files',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name),...(colors?{'X-Material-Colors':JSON.stringify(colors)}:{})},body:file});}
 
 export function addProjectParticipants(projectId,userIds,organizationIds,contactIds=[]){return revisionMutation(`projects/${encodeURIComponent(projectId)}/member-selection`,'POST',{userIds:[...userIds],organizationIds:[...organizationIds],contactIds:[...contactIds]});}
 
