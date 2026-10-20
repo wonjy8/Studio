@@ -70,3 +70,14 @@ test('equipment workspace camcorder uses the paired Ionicons outline and filled 
  assert.match(filled,/fill="currentColor" stroke="none"/);
  assert.match(outline,/aria-hidden="true" focusable="false"/);
 });
+
+test('happy face follows the custom expressive line style with an inverted filled pair',()=>{
+ const outline=icon('happy'),filled=icon('happy',{solid:true});
+ assert.ok(outline.includes(ionIconPaths.happy.outline));
+ assert.ok(filled.includes(ionIconPaths.happy.filled));
+ assert.match(ionIconPaths.happy.outline,/fill:none;stroke:currentColor/);
+ assert.match(ionIconPaths.happy.filled,/fill:currentColor;stroke:currentColor/);
+ assert.match(ionIconPaths.happy.filled,/stroke:#fff/);
+ assert.match(ionIconPaths.happy.filled,/fill:#fff/);
+ assert.notEqual(outline,filled);
+});
