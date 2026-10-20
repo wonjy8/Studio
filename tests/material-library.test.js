@@ -51,7 +51,7 @@ test('new personal documents receive a creation date in All Materials and legacy
  const library=await call('materials');assert.ok(library.body.documentDates['account:'+doc.id]>0);
  assert.equal(parseRoute('/documents?document='+doc.id).view,'document-workspace');
  assert.equal(parseRoute(routePath({view:'materials',username:'fictional'})).view,'materials');
- assert.match(routePath({view:'materials',username:'fictional'}),/\\/dataspace\\/materials$/);
+ assert.ok(routePath({view:'materials',username:'fictional'}).endsWith('/dataspace/materials'));
 });
 test('Materials navigation groups documents under All Materials and keeps references separate',()=>{
  const html=projectNavigation(emptyWorkspace(),'materials',false,{});
