@@ -1,3 +1,4 @@
+import {scriptureRoutes} from './scripture.js';
 import {documentLibraryRoutes} from './document-library.js';
 import {equipmentCatalogRoutes} from './equipment-catalog.js';
 import {syncRepresentatives} from './project-representative.js';
@@ -29,13 +30,14 @@ import { randomUUID } from 'node:crypto';
 import { openStore } from './store.js';
 import { digest, token, hashPassword, verifyPassword } from './auth.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
-export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false',google={},enableSiteRoleManagement=process.env.STUDIO_SITE_ROLE_MANAGEMENT==='enabled'}={}) {
+export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false',google={},scripture={},enableSiteRoleManagement=process.env.STUDIO_SITE_ROLE_MANAGEMENT==='enabled'}={}) {
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir,{siteRoleBootstrap:enableSiteRoleManagement});
   try{await prepareAccountSchema(db,dir);}catch(error){db.close();throw error;}
   configureSiteRoleManagement(db,enableSiteRoleManagement);
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
+  const handleScripture=scriptureRoutes(db,scripture);
   const handleDocumentLibrary=documentLibraryRoutes(db);
   const handleEquipmentCatalog=equipmentCatalogRoutes(db);
   const handleInventory=inventoryRoutes(db),handleRentalVendors=rentalVendorRoutes(db),handleContacts=contactRoutes(db,{orgCanRead,equipmentProjectScope}),handleReferenceLibrary=referenceLibraryRoutes(db);
@@ -97,6 +99,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleAdminProjects({path,url,req,session,json,readJson}))return;
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;
+      if(await handleScripture({path,url,req,session,json,readJson,readBody:body,assertLiveMutation}))return;
       if(await handleDocumentLibrary({path,req,session,json,readJson}))return;
       if(await handleReferenceLibrary({path,req,session,json,readJson}))return;
       if(await handleContacts({path,req,session,json,readJson}))return;
