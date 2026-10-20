@@ -78,5 +78,5 @@ export async function googleSheetsService(db,{origin,dir,fetcher=fetch,clientId=
   const route=path.match(/^\/api\/google\/sheets\/([A-Za-z0-9_-]+)(\/sync)?$/);if(route&&['POST','DELETE'].includes(req.method)){await readJson();sessionLive(session);const link=db.prepare('SELECT * FROM google_sheet_links WHERE id=?').get(route[1]);if(!link||link.scope_key!==collection(uid,link.organization_id))throw fail('시트 연결을 찾을 수 없습니다.',404);if(req.method==='DELETE'&&!route[2]){db.prepare('DELETE FROM google_sheet_links WHERE id=?').run(link.id);json(200,{ok:true});return true;}if(req.method==='POST'&&route[2]){await sync(link.id);sessionLive(session);json(200,{link:publicLink(db.prepare('SELECT * FROM google_sheet_links WHERE id=?').get(link.id))});return true;}}
   return false;
  }
- return {routes,sync,tick,kick:()=>{if(configured&&!closed&&pollMs>0)void tick();},close:()=>{closed=true;clearInterval(timer);for(const controller of controllers)controller.abort();}};
+ return {routes,sync,tick,credentialCodec:configured?{seal,unseal}:null,kick:()=>{if(configured&&!closed&&pollMs>0)void tick();},close:()=>{closed=true;clearInterval(timer);for(const controller of controllers)controller.abort();}};
 }

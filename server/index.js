@@ -1,3 +1,4 @@
+import {googleCalendarService} from './google-calendar.js';
 import {scriptureRoutes} from './scripture.js';
 import {documentLibraryRoutes} from './document-library.js';
 import {equipmentCatalogRoutes} from './equipment-catalog.js';
@@ -32,7 +33,7 @@ import { randomUUID } from 'node:crypto';
 import { openStore } from './store.js';
 import { digest, token, hashPassword, verifyPassword } from './auth.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
-export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false',google={},scripture={},enableSiteRoleManagement=process.env.STUDIO_SITE_ROLE_MANAGEMENT==='enabled'}={}) {
+export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false',google={},googleCalendar={},scripture={},enableSiteRoleManagement=process.env.STUDIO_SITE_ROLE_MANAGEMENT==='enabled'}={}) {
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir,{siteRoleBootstrap:enableSiteRoleManagement});
   try{await prepareAccountSchema(db,dir);}catch(error){db.close();throw error;}
@@ -46,6 +47,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   const handleReferenceBoards=referenceBoardRoutes(db);
   syncRepresentatives(db);
   let googleSheets;try{googleSheets=await googleSheetsService(db,{dir,origin,...google});}catch(error){db.close();throw error;}
+  const calendar=googleCalendarService(db,{origin,...google,...googleCalendar,codec:googleSheets.credentialCodec});
   const handleEquipmentSharing=equipmentSharingRoutes(db);
   const handleAccounts=accountRoutes(db),handleAccountDeletion=accountDeletionRoutes(db);
   const dummy = await hashPassword(token());
@@ -93,6 +95,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
       if(session&&passwordChangeRequired(db,session.user_id)&&!['/api/session','/api/logout','/api/account/password'].includes(path)&&path.startsWith('/api/'))return json(403,{error:'PASSWORD_CHANGE_REQUIRED'});
       if(path==='/api/connections/diagnostics'&&req.method==='GET'){if(!session)return json(401,{error:'Login required'});if(!isAdmin(db,session.user_id))return json(403,{error:'Administrator required'});return json(200,{version:'connection-diagnostics-1',toolSchemaVersion,events:diagnostics.list()});}
+      if(path==='/oauth/google/calendar/callback'&&await calendar.routes({path,url,req,res,session,json,readJson}))return;
       if(path==='/oauth/google/callback'&&await googleSheets.routes({path,url,req,res,session,json,readJson}))return;
       if(path==='/mcp'){await handleMcp({req,res,json,readJson});return;}
       if(await oauth.routes({path,url,req,res,json,body,readJson,session}))return;
@@ -109,6 +112,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleMaterials({path,req,res,session,json,readJson}))return;
       if(await handleContacts({path,req,session,json,readJson}))return;
       if(await handleRentalVendors({path,req,session,json,readJson}))return;
+      if(await calendar.routes({path,url,req,res,session,json,readJson}))return;
       if(await googleSheets.routes({path,url,req,res,session,json,readJson}))return;
       if(await handleEquipmentCatalog({path,url,req,res,session,json,readJson}))return;
       if(await handleInventory({path,url,req,session,json,readJson})){if(!['GET','HEAD'].includes(req.method)&&res.statusCode<400)googleSheets.kick();return;}
@@ -152,7 +156,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         if(path==='/api/workspace'&&req.method==='PUT') {
           const data=await readJson();
           if(!validateWorkspace(data.state))return json(400,{error:'Invalid workspace'});
-          try{const previous=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(uid),saved=writeWorkspace(db,uid,linkedWorkspace(db,uid,data.state),data.revision);registerNewProjectDocuments(db,uid,saved.state,previous?JSON.parse(previous.body):null);return json(200,saved);}catch(e){return json(e.status||500,{error:e.message});}
+          try{const previous=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(uid),saved=writeWorkspace(db,uid,linkedWorkspace(db,uid,data.state),data.revision);registerNewProjectDocuments(db,uid,saved.state,previous?JSON.parse(previous.body):null);calendar.kick(uid);return json(200,saved);}catch(e){return json(e.status||500,{error:e.message});}
         }
         if(path==='/api/files'&&req.method==='POST') {
           const type=req.headers['content-type'];
@@ -189,8 +193,8 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     } catch(e) {if(!res.headersSent) json(e.status|| (e.code==='ENOENT'?404:500),{error:e.status===413?'Request too large':(e.status&&pathForError(req.url)?e.message:'Request failed')});else res.end();}
   });
   server.requestTimeout=30000;server.headersTimeout=10000;
-  server.on('close',()=>{handleMcp.close();googleSheets.close();db.close();});
-  return {server,db,googleSheets};
+  server.on('close',()=>{handleMcp.close();calendar.close();googleSheets.close();db.close();});
+  return {server,db,googleSheets,calendar};
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)) {
   const {server}=await createApp();
