@@ -4,14 +4,17 @@ const itemKey=button=>button.dataset.project?'project:'+button.dataset.project:b
 export function createSidebarNavigation({account,setMobileOpen}){
  const storageKey='studio.sidebar.v1:'+account,mobile=matchMedia('(max-width:900px)');let preferences;
  try{preferences=normalizeSidebarPreferences(JSON.parse(localStorage.getItem(storageKey)));}catch{preferences=normalizeSidebarPreferences(null);}
- let pendingOpen=null,gesture=null,suppressed=null;
+ let pendingOpen=null,gesture=null,suppressed=null,keyboardBaseline=window.innerHeight;
  const persist=()=>{try{localStorage.setItem(storageKey,JSON.stringify(preferences));}catch{/* Keep the current session usable when browser storage is unavailable. */}};
  const sidebar=()=>document.querySelector('.workspace-sidebar');
  const items=group=>[...group.querySelectorAll('[data-sidebar-key]')].filter(item=>item.closest('[data-sidebar-sort]')===group);
  const activeRail=()=>sidebar()?.querySelector('.workspace-rail .rail-button.active');
  function sync(){
   const node=sidebar();if(!node)return;const expanded=mobile.matches?node.classList.contains('is-open'):!preferences.collapsed,panel=node.querySelector('.project-sidebar');
+  const rail=node.querySelector('.workspace-rail'),railHidden=mobile.matches&&(document.body.classList.contains('mobile-keyboard-open')||Boolean(document.querySelector('.modal-wrap')));rail.inert=railHidden;rail.setAttribute('aria-hidden',String(railHidden));
+  const main=document.querySelector('.production-app > .main');if(main)main.inert=mobile.matches&&expanded;
   document.querySelector('.production-app')?.classList.toggle('sidebar-collapsed',preferences.collapsed);
+  if(mobile.matches){const active=activeRail();if(active){const left=active.offsetLeft,right=left+active.offsetWidth;if(left<rail.scrollLeft)rail.scrollLeft=left;else if(right>rail.scrollLeft+rail.clientWidth)rail.scrollLeft=right-rail.clientWidth;}}
   panel.id='workspace-secondary-sidebar';panel.inert=!expanded;panel.setAttribute('aria-hidden',String(!expanded));
   for(const button of node.querySelectorAll('.rail-button')){button.setAttribute('aria-pressed',String(button.classList.contains('active')));button.setAttribute('aria-controls',panel.id);button.setAttribute('aria-expanded',String(expanded&&button.classList.contains('active')));}
  }
@@ -24,10 +27,11 @@ export function createSidebarNavigation({account,setMobileOpen}){
   if(gesture&&!gesture.item.isConnected)finish(false);
   const node=sidebar();if(!node)return;const rail=node.querySelector('.workspace-rail'),bottom=rail.querySelector('.rail-bottom');
   if(bottom){rail.dataset.bottomSlots=String(bottom.querySelectorAll('.rail-button').length);for(const button of bottom.querySelectorAll('.rail-button'))rail.append(button);bottom.remove();}
+  for(const button of rail.querySelectorAll('.rail-button'))if(!button.querySelector('.rail-label')){const label=document.createElement('span');label.className='rail-label';label.textContent=button.dataset.view==='admin'?'관리자':button.title||button.getAttribute('aria-label');button.append(label);}
   prepare(rail,'rail');bottomSlots(rail);
   for(const group of node.querySelectorAll('.project-sidebar nav.project-list')){const name=groupNames[group.getAttribute('aria-label')];if(name)prepare(group,name);}
   if(!node.querySelector('[data-sidebar-sort-status]')){const status=document.createElement('span');status.className='sr-only';status.dataset.sidebarSortStatus='';status.setAttribute('role','status');status.setAttribute('aria-live','polite');node.append(status);}
-  if(pendingOpen&&activeRail()?.dataset.sidebarKey===pendingOpen){pendingOpen=null;if(mobile.matches)setMobileOpen(true);}
+  if(pendingOpen&&activeRail()?.dataset.sidebarKey===pendingOpen){pendingOpen=null;if(mobile.matches)setMobileOpen(true,{replace:true});}
   sync();
  }
  function saveOrder(group,ordered){
@@ -38,8 +42,8 @@ export function createSidebarNavigation({account,setMobileOpen}){
   const item=event.target.closest('[data-sidebar-key]');
   if(item&&event.detail!==0&&suppressed&&performance.now()<suppressed.until&&item.dataset.sidebarKey===suppressed.key){event.preventDefault();event.stopImmediatePropagation();suppressed=null;return;}
   const button=event.target.closest('.workspace-rail .rail-button');if(!button)return;
-  if(button.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();if(mobile.matches)setMobileOpen(!sidebar().classList.contains('is-open'));else{preferences.collapsed=!preferences.collapsed;persist();sync();}return;}
-  pendingOpen=button.dataset.sidebarKey;preferences.collapsed=false;persist();sync();
+  if(button.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();if(mobile.matches)setMobileOpen(true);else{preferences.collapsed=!preferences.collapsed;persist();sync();}return;}
+  pendingOpen=button.dataset.sidebarKey;if(!mobile.matches){preferences.collapsed=false;persist();}sync();
  }
  function start(){
   const drag=gesture;if(!drag||!drag.item.isConnected)return;clearTimeout(drag.timer);drag.started=true;
@@ -54,10 +58,12 @@ export function createSidebarNavigation({account,setMobileOpen}){
   Object.assign(drag.preview.style,{left:x-drag.offsetX+'px',top:y-drag.offsetY+'px'});
   const bounds=drag.group.getBoundingClientRect();drag.valid=x>=bounds.left-16&&x<=bounds.right+16&&y>=bounds.top-18&&y<=bounds.bottom+18;
   drag.line.hidden=!drag.valid;if(!drag.valid)return;
+  const horizontal=mobile.matches&&drag.group.classList.contains('workspace-rail');
+  if(horizontal&&drag.group.scrollWidth>drag.group.clientWidth){if(x<bounds.left+24)drag.group.scrollLeft-=12;else if(x>bounds.right-24)drag.group.scrollLeft+=12;}
   if(drag.group.scrollHeight>drag.group.clientHeight){if(y<bounds.top+28)drag.group.scrollTop-=12;else if(y>bounds.bottom-28)drag.group.scrollTop+=12;}
-  const others=items(drag.group).filter(item=>item!==drag.item);let index=others.findIndex(item=>{const rect=item.getBoundingClientRect();return y<rect.top+rect.height/2;});if(index<0)index=others.length;drag.index=index;
+  const others=items(drag.group).filter(item=>item!==drag.item);let index=others.findIndex(item=>{const rect=item.getBoundingClientRect();return horizontal?x<rect.left+rect.width/2:y<rect.top+rect.height/2;});if(index<0)index=others.length;drag.index=index;
   const rect=(others[index]||others.at(-1))?.getBoundingClientRect();if(!rect){drag.valid=false;drag.line.hidden=true;return;}
-  Object.assign(drag.line.style,{left:bounds.left+4+'px',top:(others[index]?rect.top-3:rect.bottom+3)+'px',width:Math.max(12,bounds.width-8)+'px'});
+  Object.assign(drag.line.style,horizontal?{left:(others[index]?rect.left-3:rect.right+3)+'px',top:bounds.top+4+'px',width:'2px',height:Math.max(12,bounds.height-8)+'px'}:{left:bounds.left+4+'px',top:(others[index]?rect.top-3:rect.bottom+3)+'px',width:Math.max(12,bounds.width-8)+'px',height:'2px'});
  }
  function finish(commit){
   const drag=gesture;if(!drag)return;gesture=null;clearTimeout(drag.timer);
@@ -78,7 +84,15 @@ export function createSidebarNavigation({account,setMobileOpen}){
   if(!event.altKey||!['ArrowUp','ArrowDown'].includes(event.key))return;const item=event.target.closest('[data-sidebar-key]'),group=item?.closest('[data-sidebar-sort]');if(!group)return;event.preventDefault();event.stopImmediatePropagation();const ordered=items(group),index=ordered.indexOf(item),next=index+(event.key==='ArrowUp'?-1:1);if(next<0||next>=ordered.length)return;[ordered[index],ordered[next]]=[ordered[next],ordered[index]];saveOrder(group,ordered);item.focus();
  },true);
  window.addEventListener('contextmenu',event=>{if(gesture?.started){event.preventDefault();event.stopImmediatePropagation();}},true);
- window.addEventListener('blur',()=>finish(false));mobile.addEventListener('change',sync);
+ function keyboard(){
+  const active=document.activeElement,editing=active?.matches('input:not([type=checkbox]):not([type=radio]),textarea,[contenteditable=true]'),height=window.visualViewport?.height||window.innerHeight;
+  if(!editing)keyboardBaseline=height;
+  const hidden=mobile.matches&&Boolean(editing)&&keyboardBaseline-height>120;
+  document.body.classList.toggle('mobile-keyboard-open',hidden);
+  const rail=sidebar()?.querySelector('.workspace-rail');if(rail){rail.inert=hidden;rail.setAttribute('aria-hidden',String(hidden));}
+ }
+ window.addEventListener('focusin',keyboard);window.addEventListener('focusout',()=>setTimeout(keyboard,0));window.visualViewport?.addEventListener('resize',keyboard);window.addEventListener('resize',keyboard);
+ window.addEventListener('blur',()=>finish(false));mobile.addEventListener('change',()=>{sync();keyboard();});
  const observer=new MutationObserver(()=>{if(gesture&&!gesture.item.isConnected)finish(false);});observer.observe(document.getElementById('app'),{childList:true,subtree:true});
  return {refresh,sync};
 }
