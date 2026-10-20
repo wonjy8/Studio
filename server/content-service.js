@@ -27,6 +27,6 @@ const permitted=['resource','id','field','blockId','ownerId','memberId','project
   },
   async apply(grant,id){const row=db.prepare('SELECT body FROM integration_content_proposals WHERE id=? AND user_id=? AND grant_id=? AND expires>?').get(id,grant.user_id,grant.id,Date.now());if(!row)throw Error('Proposal unavailable or expired');const {args,values,revision}=JSON.parse(row.body);return execute(grant,'apply',args,{values,baseline:revision,proposalId:id});},
   owns: (grant,id)=>typeof id==='string'&&Boolean(db.prepare('SELECT id FROM integration_content_proposals WHERE id=? AND user_id=? AND grant_id=?').get(id,grant.user_id,grant.id)),
-  cancel(grant,id){db.prepare('DELETE FROM integration_content_proposals WHERE id=? AND user_id=? AND grant_id=?').run(id,grant.user_id,grant.id);db.prepare('DELETE FROM integration_proposals WHERE id=? AND user_id=? AND grant_id=?').run(id,grant.user_id,grant.id);return {cancelled:true};}
+  cancel(grant,id){const content=db.prepare('DELETE FROM integration_content_proposals WHERE id=? AND user_id=? AND grant_id=?').run(id,grant.user_id,grant.id);const project=db.prepare('DELETE FROM integration_proposals WHERE id=? AND user_id=? AND grant_id=?').run(id,grant.user_id,grant.id);return {cancelled:content.changes+project.changes>0};}
  };
 }

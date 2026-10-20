@@ -245,7 +245,7 @@ test('full content consent is owner-specific; documents and QT use preview/confi
  assert.equal((await f.rpc(other,'studio_apply_changes',{proposalId:p.proposalId,confirmed:true})).data.result.isError,true);
  await apply(p);assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:p.proposalId,confirmed:true})).data.result.isError,true);
  let docs=await value({resource:'documents'});assert.equal(docs.value.total,1);const id=docs.value.items[0].id;
- const cancelled=await propose({resource:'documents',id},{title:'Cancelled'});await f.rpc(writer,'studio_cancel_proposal',{proposalId:cancelled.proposalId});assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:cancelled.proposalId,confirmed:true})).data.result.isError,true);
+ const cancelled=await propose({resource:'documents',id},{title:'Cancelled'});assert.equal((await f.rpc(writer,'studio_cancel_proposal',{proposalId:cancelled.proposalId})).data.result.structuredContent.cancelled,true);assert.equal((await f.rpc(writer,'studio_cancel_proposal',{proposalId:cancelled.proposalId})).data.result.structuredContent.cancelled,false);assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:cancelled.proposalId,confirmed:true})).data.result.isError,true);
  const stale=await propose({resource:'documents',id},{title:'Stale'});await apply(await propose({resource:'documents',id},{title:'Current'}));assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:stale.proposalId,confirmed:true})).data.result.structuredContent.error,'REVISION_CONFLICT');
  const qt=await apply(await propose({resource:'qt'},{date:'2026-10-20'}));const noteId=qt.result.note.document.id;
  await apply(await propose({resource:'gratitude',noteId},{text:'Fictional thanks'}));
