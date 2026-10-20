@@ -25,7 +25,7 @@ export function createSidebarNavigation({account,setMobileOpen}){
  }
  function refresh(){
   if(gesture&&!gesture.item.isConnected)finish(false);
-  const node=sidebar();if(!node)return;const rail=node.querySelector('.workspace-rail'),bottom=rail.querySelector('.rail-bottom');
+  const node=sidebar();if(!node)return;node.querySelector('.sidebar-heading h2')?.setAttribute('tabindex','-1');const rail=node.querySelector('.workspace-rail'),bottom=rail.querySelector('.rail-bottom');
   if(bottom){rail.dataset.bottomSlots=String(bottom.querySelectorAll('.rail-button').length);for(const button of bottom.querySelectorAll('.rail-button'))rail.append(button);bottom.remove();}
   for(const button of rail.querySelectorAll('.rail-button'))if(!button.querySelector('.rail-label')){const label=document.createElement('span');label.className='rail-label';label.textContent=button.dataset.view==='admin'?'관리자':button.title||button.getAttribute('aria-label');button.append(label);}
   prepare(rail,'rail');bottomSlots(rail);
