@@ -76,3 +76,17 @@ Existing account-owned project consent and per-proposal confirmation remain requ
 Organization stock, checkout/return, account documents and scripture/QT are outside this MCP editing contract. Do not request broader consent to work around unsupported operations. After deploying, compare `/health` revision and unauthenticated MCP `tools/list` (no project data) with the expected commit and schema. Then refresh the app's tool definitions in ChatGPT settings if available and open a new conversation; reconnect OAuth only if authentication or previously granted write consent requires it. A new plugin package is not needed for server tool updates. Reading project data successfully does not prove that the client has refreshed its tool schema.
 
 Example requests: “촬영 목록을 보여줘”, “이 촬영에 할 일 ‘배터리 충전’을 추가하도록 제안해 줘”, “이 촬영의 인원과 장비 선택 변경을 제안해 줘”, “이 촬영을 복제하도록 제안해 줘”. Review the exact impact before confirming each proposal. Declining a proposal makes no writes; leave it unapplied until its ten-minute expiry. Revision conflicts require rereading, a new proposal and renewed confirmation.
+
+### Content coverage and consent rollout
+
+`studio_list_projects.capabilities` publishes the versioned server content registry without changing tool names or exposing new records. `server/content-contract.js` is the explicit service classification; adding an app service without a decision fails the service coverage test. An unknown service is denied. A pending service remains denied even for an existing read/write grant or a fabricated extra scope. This is a guardrail and coverage inventory, not completed support for those stores.
+
+| Content service | Current MCP status |
+| --- | --- |
+| Owned project, shoot selection/copy, tasks, members, project gear, references, layout | Enabled under existing project consent |
+| Account documents; material/reference libraries and boards | Pending consent and service adapter implementation |
+| Scripture notes, QT, gratitude, prayer, verse annotations and Bible | Pending consent and service adapter implementation |
+| Personal/member/organization inventory, checkout/return/history, catalog and rental vendors | Pending consent and service adapter implementation |
+| Account/login/profile/password/deletion; settings/integrations; administrator, invitations, sharing/permissions | Excluded; use app UI |
+
+Do not turn pending services on by reusing existing grants. First obtain approval for the exact data classes and re-consent flow. Future adapters must reuse existing object-level authorization and validators, implement bounded list/search/detail and conflict-aware confirmed proposals, and test cross-account/organization denial, cancellation/expiry and replay. New security-sensitive features require an explicit decision rather than automatic publication. App tool metadata Refresh and a new conversation can still be necessary after a contract change; the server cannot force the ChatGPT UI to refresh.

@@ -213,3 +213,14 @@ test('new shoot content supports proposal, confirmation, scoped layout, copy and
  }
  current=await change([{operation:'configure_shoot',entityId:shootId,values:{gearIds:[]}}]);assert.equal(current.project.contents[0].configuration.cameras.length,0);assert.equal(current.project.contents[1].configuration.cameras.length,1);
 });
+
+test('content capability discovery does not enable pending consent or excluded tools',async t=>{
+ const f=await fixture(t),auth=await f.connect('alpha');
+ const listed=(await f.rpc(auth,'studio_list_projects')).data.result.structuredContent;
+ assert.equal(listed.capabilities.version,1);
+ assert.deepEqual(listed.capabilities.services.filter(service=>service.access==='enabled').map(service=>service.id),['projects']);
+ for(const name of ['handleScripture','handleDocumentLibrary','handleInventory','handleAccounts','handleSiteRoles','settings','admin']){
+  const result=await f.rpc(auth,name,{userId:'beta',path:'/api/account'});assert.equal(result.data.error.code,-32602);
+ }
+ assert.equal(f.db.prepare('SELECT revision FROM workspaces WHERE user_id=?').get('alpha').revision,1);
+});
