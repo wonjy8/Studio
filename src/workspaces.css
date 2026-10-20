@@ -418,3 +418,19 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .bible-aligned-row.is-selected .scripture-verse{background:transparent;border-radius:0}
 .bible-aligned-row.is-selected.selection-start{border-top-left-radius:var(--r-control);border-top-right-radius:var(--r-control)}
 .bible-aligned-row.is-selected.selection-end{border-bottom-left-radius:var(--r-control);border-bottom-right-radius:var(--r-control)}
+
+/* Secondary navigation collapses without replacing the active editor. */
+@media(min-width:901px){
+ .production-app.sidebar-collapsed{grid-template-columns:var(--rail) minmax(0,1fr)}
+ .sidebar-collapsed .workspace-sidebar{grid-template-columns:var(--rail);width:var(--rail)}
+ .sidebar-collapsed .project-sidebar{display:none}
+}
+.workspace-rail [data-sidebar-bottom-start]{margin-top:auto}
+[data-sidebar-key]{-webkit-user-drag:none}
+.is-sidebar-dragging,.is-sidebar-dragging *{cursor:grabbing!important;user-select:none!important}
+.sidebar-drag-source{opacity:.25}
+.sidebar-drag-preview{position:fixed!important;z-index:3000;pointer-events:none!important;margin:0!important;max-width:none!important;box-sizing:border-box;background:var(--surface)!important;box-shadow:0 8px 28px rgba(24,24,27,.18);border:1px solid var(--line)!important;opacity:.96;overflow:hidden}
+.sidebar-drop-line{position:fixed;z-index:3001;height:2px;border-radius:2px;background:var(--blue);pointer-events:none}
+.sidebar-drop-line::before{content:'';position:absolute;left:-2px;top:-2px;width:6px;height:6px;border-radius:50%;background:inherit}
+.sidebar-drop-line[hidden]{display:none}
+.workspace-rail{overflow-y:auto;min-height:0}
