@@ -12,7 +12,7 @@ test('home workspace summarizes projects with nearby shoots on the left and QT o
  const html=homeWorkspacePage({state,account:{name:'종유'}});
  assert.match(html,/Project One/);assert.match(html,/Project Two/);assert.match(html,/Prepare camera/);
  assert.ok(html.indexOf('home-upcoming-panel')<html.indexOf('data-home-qt'));assert.ok(html.indexOf('<h2>내 프로젝트</h2>')<html.indexOf('home-upcoming-panel'));assert.doesNotMatch(html,/data-personal-calendar|data-google-tasks/);
- assert.match(html,/home-command/);assert.match(html,/100% 완료/);assert.match(html,/0% 완료/);assert.match(html,/data-view="materials"/);assert.match(html,/data-view="scripture-prayers"/);assert.match(html,/data-home-qt/);assert.doesNotMatch(html,/data-view="document-workspace"|data-action="add-project"|개인 작업 공간/);assert.match(html,/data-project="p1"/);
+ assert.match(html,/home-command/);assert.match(html,/JONGYOU<span>STUDIO/);assert.doesNotMatch(html,/PROJECTS · PEOPLE · EVERYDAY/);assert.match(html,/100% 완료/);assert.match(html,/0% 완료/);assert.match(html,/data-view="materials"/);assert.match(html,/data-view="scripture-prayers"/);assert.match(html,/data-home-qt/);assert.doesNotMatch(html,/data-view="document-workspace"|data-action="add-project"|개인 작업 공간/);assert.match(html,/data-project="p1"/);
  assert.doesNotMatch(html,/안녕하세요|프로젝트 현황을 살펴보고 개인 문서를 이어서 작업하세요/);
 });
 test('home workspace is the first rail item and owns its own sidebar',()=>{

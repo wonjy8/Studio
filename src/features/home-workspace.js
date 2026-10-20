@@ -16,7 +16,7 @@ export function homeWorkspacePage({state,account}={}){
  const projectProgress=item=>{const all=item.tasks||[],done=all.filter(task=>task.completed).length;return {all:all.length,done,percent:all.length?Math.round(done/all.length*100):0};};
  const shortcut=(view,title,detail)=>`<button type="button" class="home-shortcut" data-view="${view}"><span>${title}</span><small>${detail}</small>${icon('chevron')}</button>`;
  return `<section class="home-workspace home-command">
-  <div class="home-command-brand"><span class="home-brand-mark" aria-hidden="true">${icon('production',{solid:true})}</span><h2>STUDIO<span>WORKSPACE</span></h2><p>PROJECTS · PEOPLE · EVERYDAY</p></div>
+  <div class="home-command-brand"><span class="home-brand-mark" aria-hidden="true">${icon('production',{solid:true})}</span><h2>JONGYOU<span>STUDIO</span></h2></div>
   <section class="home-workspace-panel home-project-directory"><div class="section-head"><h2>내 프로젝트</h2><span class="home-count">${projects.length} PROJECTS</span></div>
    <div class="home-workspace-projects">${projects.map(item=>{const progress=projectProgress(item);return `<button type="button" class="home-workspace-project" data-project="${esc(item.project.id)}"><span class="home-project-dot" aria-hidden="true"></span><span class="home-workspace-project-copy"><strong>${esc(item.project.name)}</strong><small>${(item.contents||[]).length}개 촬영 · ${progress.all-progress.done}개 남은 할 일</small></span><span class="home-project-progress"><span>${progress.all?progress.percent+'% 완료':'시작 전'}</span><span class="home-progress-track" aria-hidden="true"><span style="width:${progress.percent}%"></span></span></span>${icon('chevron')}</button>`;}).join('')||'<div class="empty">아직 프로젝트가 없습니다.</div>'}</div>
   </section>

@@ -1,0 +1,30 @@
+/* Global appearance tokens. Product identity and user-authored colors stay intact. */
+:root{color-scheme:light;--accent:#2563eb;--home-highlight:var(--accent);--home-panel:var(--surface)}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#111113;--surface:#19191c;--surface-2:#232327;--ink:#f0f0ed;--muted:#aaaab2;--line:#36363d;--accent:#8bb8ff;--selected:#252f43;--ok:#8bd1a7;--warn:#edc879;--bad:#ff929e;--shadow:0 10px 35px #0003;--home-highlight:var(--accent);--home-panel:linear-gradient(115deg,#1a1a1d,#141416)}
+:root[data-theme="dark"] :is(.sidebar,.topbar,.project-header,.project-sidebar,.mobile-nav){background:var(--bg);border-color:var(--line)}
+:root[data-theme="dark"] .production-app .workspace-rail{background:var(--surface);border-color:var(--line)}
+:root[data-theme="dark"] :is(.rail-button,.sidebar-bottom,.project-tab,.settings-app-version){color:var(--muted)}
+:root[data-theme="dark"] .rail-button:hover{background:var(--surface-2);color:var(--ink)}
+:root[data-theme="dark"] .rail-button.active{background:var(--selected);color:var(--accent)}
+:root[data-theme="dark"] .production-app .project-item.active{background:var(--selected);color:#a9c9ff}
+:root[data-theme="dark"] .btn.primary{color:var(--bg)}
+:root[data-theme="dark"] :is(.camera,.now,.brand-mark){background:var(--surface-2);color:var(--ink)}
+:root[data-theme="dark"] .mini-day.is-selected{color:var(--bg)}
+:root[data-theme="dark"] :is(input,textarea,select){color:var(--ink)}
+:root[data-theme="dark"] input::placeholder,:root[data-theme="dark"] textarea::placeholder{color:var(--muted)}
+:root[data-theme="dark"] :is(.invite-link-box input,.equipment-view-switch .active,.equipment-group>.section-head,.type-callout,.google-setup code){background:var(--surface);color:var(--ink)}
+:root[data-theme="dark"] :is(.equipment-view-switch,.equipment-count,.equipment-kind,.directory-row .avatar){background:var(--surface-2);color:var(--muted)}
+:root[data-theme="dark"] .organization-row .avatar{background:#31283f;color:#d3b8ff}
+:root[data-theme="dark"] .equipment-select.is-selected{background:#20362c;color:var(--ok);border-color:#3a6350}
+:root[data-theme="dark"] .warning{background:#332c1b;border-color:#6e5b2e}
+:root[data-theme="dark"] .account-danger-box{border-color:#713b44}
+:root[data-theme="dark"] .account-danger-row>.btn{background:var(--surface);border-color:var(--line);color:var(--bad)}
+:root[data-theme="dark"] :is(.google-sheet-error,.inventory-overdue){color:var(--bad)}
+:root[data-theme="dark"] .layout-viewport{background:var(--bg)}
+:root[data-theme="dark"] .camera-stage{background-image:linear-gradient(90deg,var(--line) 1px,transparent 1px),linear-gradient(var(--line) 1px,transparent 1px)}
+:root[data-theme="dark"] .layout-height-handle:before{background:var(--line)}
+:root[data-theme="dark"] .layout-equipment{border-color:#445a79}
+:root[data-theme="dark"] .document-editable.is-empty:before{color:var(--muted)}
+:root[data-theme="dark"] .modal-wrap{background:#0009}
+:root[data-theme="dark"] :is(button,a,input,textarea,select,[contenteditable]):focus-visible{outline-color:#b9cbff}
+/* Product photos retain their original white backing in both appearances. */
