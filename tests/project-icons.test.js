@@ -94,3 +94,14 @@ test('calendar outline fills its tiny date marks while preserving the line frame
  assert.match(ionIconPaths.calendar.outline,/<rect fill="none" stroke="currentColor"/);
  assert.notEqual(outline,filled);
 });
+
+test('prayer hands use upright joined palms and diagonal cuffs in both variants',()=>{
+ const outline=icon('prayerHands'),filled=icon('prayerHands',{solid:true});
+ assert.ok(ionIconPaths['prayer-hands'].outline.includes('M256 42 C242 40'));
+ assert.ok(ionIconPaths['prayer-hands'].filled.includes('M256 42 C242 40'));
+ assert.ok(ionIconPaths['prayer-hands'].outline.includes('M93 400 L183 475'));
+ assert.ok(ionIconPaths['prayer-hands'].filled.includes('M93 400 L183 475'));
+ assert.ok(ionIconPaths['prayer-hands'].filled.includes('stroke:#fff'));
+ assert.ok(outline.includes(ionIconPaths['prayer-hands'].outline));
+ assert.ok(filled.includes(ionIconPaths['prayer-hands'].filled));
+});
