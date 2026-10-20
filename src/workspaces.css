@@ -272,9 +272,6 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 /* Home workspace: a calm overview, with personal documents close at hand. */
 .home-workspace{max-width:1200px;margin:0 auto;min-width:0}
 .home-workspace-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:24px}
-.home-workspace-heading h2{margin:0 0 6px;font-size:var(--text-page);font-weight:500;line-height:1.3}
-.home-workspace-heading .eyebrow{margin:0 0 8px;color:var(--muted);font-size:var(--text-support)}
-.home-workspace-heading .sub{margin:0}
 .home-workspace-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .home-workspace-actions .btn,.home-workspace-personal>.btn{display:inline-flex;align-items:center;gap:8px}
 .home-workspace-actions .icon,.home-workspace-personal>.btn .icon{width:18px;height:18px}
