@@ -1,0 +1,41 @@
+// Fictional translations with unequal lengths, headings, and omitted verses.
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {createServer} from 'node:net';
+import {createApp} from '../server/index.js';
+import {hashPassword} from '../server/auth.js';
+import {bibleVersionStore} from '../server/bible-versions.js';
+const {chromium}=await import(process.env.STUDIO_PLAYWRIGHT_MODULE||'playwright');
+const reserve=createServer();await new Promise(r=>reserve.listen(0,'127.0.0.1',r));const port=reserve.address().port;await new Promise(r=>reserve.close(r));const origin='http://127.0.0.1:'+port;
+const dir=await mkdtemp('/tmp/studio-bible-comparison-'),app=await createApp({dir,origin,secure:false});
+app.db.prepare('INSERT INTO users VALUES(?,?,?)').run('owner','fictional-owner',await hashPassword('Fictional!Qa2026'));
+const store=bibleVersionStore(app.db);
+function translation(name,long=false){return {name,verses:['창세기','출애굽기'].flatMap((book,order)=>[1,2].flatMap(chapter=>Array.from({length:8},(_,i)=>({book,chapter,verse:i+1,text:(!long&&i===2?'<Fictional section heading> ':'')+(long&&i===0?'Fictional lengthy translation '.repeat(25):'Fictional '+book+' '+chapter+':'+(i+1)),testament:'구약',order})).filter(v=>!long||v.verse!==4)))};}
+store.save('owner',translation('새번역성경.csv'),'fixture-ko');store.save('owner',translation('NIV.csv',true),'fixture-en');
+await new Promise(r=>app.server.listen(port,'127.0.0.1',r));
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[],requests=[];
+ page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{const url=new URL(r.url());if(url.pathname==='/api/scripture/bible')requests.push(url);});page.setDefaultTimeout(15000);
+ await page.goto(origin);await page.locator('[name=username]').fill('fictional-owner');await page.locator('[name=password]').fill('Fictional!Qa2026');await page.locator('#login [type=submit]').click();await page.locator('.production-app').waitFor();await page.getByRole('button',{name:'말씀 워크스페이스',exact:true}).click();
+ let start=requests.length;await page.locator('[data-view=scripture-bible]').click();await page.locator('[data-verse-index]').first().waitFor();assert.equal(requests.length-start,1,'first chapter and metadata arrive together');
+ await page.locator('[data-bible-split]').click();const left=page.locator('[data-bible-panel=left]'),right=page.locator('[data-bible-panel=right]');await right.locator('[data-verse-index]').first().waitFor();
+ assert.equal(await left.locator('[data-bible-version]').inputValue()===await right.locator('[data-bible-version]').inputValue(),false);
+ const aligned=async()=>{await page.waitForFunction(()=>{const panels=[...document.querySelectorAll('[data-bible-panel]')];if(panels.length!==2)return false;const rows=panels.map(p=>[...p.querySelectorAll('[data-bible-row]')]);if(rows.some(r=>r.length!==8))return false;return rows[0].every(row=>{const other=rows[1].find(r=>r.dataset.bibleRow===row.dataset.bibleRow);if(!other)return false;const a=row.querySelector('label'),b=other.querySelector('label');return Math.abs(row.getBoundingClientRect().top-other.getBoundingClientRect().top)<2&&(!a||!b||Math.abs(a.getBoundingClientRect().top-b.getBoundingClientRect().top)<2);});});};
+ await aligned();assert.equal(await right.locator('[data-bible-placeholder]').count(),1);
+ await left.locator('.scripture-verse').nth(1).click();await right.locator('[data-verse-index="5"]').evaluate(input=>input.click());
+ assert.equal(await left.locator('[data-verse-index]:checked').count(),6,'2 through 7 selected across versions, including omitted verse');
+ await left.locator('[data-verse-index="4"]').evaluate(input=>input.click());assert.equal(await left.locator('[data-verse-index]:checked').count(),6,'third reverse endpoint stays included');
+ await page.locator('[data-bible-split]').click();await page.waitForFunction(()=>document.querySelectorAll('[data-bible-panel]').length===1);assert.equal(await left.locator('[data-verse-index]:checked').count(),6);await page.locator('[data-bible-split]').click();await right.locator('[data-verse-index]').first().waitFor();assert.equal(await left.locator('[data-verse-index]:checked').count(),6);
+ const selectedKeys=await left.locator('[data-verse-index]:checked').evaluateAll(nodes=>nodes.map(n=>n.dataset.verseKey));const rightKeys=await right.locator('[data-verse-index]:checked').evaluateAll(nodes=>nodes.map(n=>n.dataset.verseKey));assert.ok(rightKeys.every(k=>selectedKeys.includes(k)));
+ start=requests.length;await right.locator('[data-bible-chapter]').selectOption('2');await page.waitForFunction(()=>[...document.querySelectorAll('[data-bible-heading]')].every(n=>n.textContent==='창세기 2장'));assert.equal(await left.locator('[data-bible-chapter]').inputValue(),'2');assert.equal(await left.locator('[data-verse-index]:checked').count(),0);assert.equal(requests.length-start,2);await aligned();
+ start=requests.length;await left.locator('[data-bible-chapter]').selectOption('1');await page.waitForFunction(()=>[...document.querySelectorAll('[data-bible-heading]')].every(n=>n.textContent==='창세기 1장'));assert.equal(requests.length-start,0,'revisited chapters use bounded session cache');
+ await right.locator('[data-bible-book]').selectOption('출애굽기');await page.waitForFunction(()=>[...document.querySelectorAll('[data-bible-heading]')].every(n=>n.textContent==='출애굽기 1장'));assert.equal(await left.locator('[data-bible-book]').inputValue(),'출애굽기');
+ await left.locator('[data-bible-next]').click();await page.waitForFunction(()=>[...document.querySelectorAll('[data-bible-heading]')].every(n=>n.textContent==='출애굽기 2장'));await aligned();
+ await right.locator('[data-bible-font="1"]').click();await aligned();await page.setViewportSize({width:1100,height:900});await aligned();await page.screenshot({path:'/tmp/studio-bible-comparison-desktop.png'});
+ await page.setViewportSize({width:390,height:844});await page.waitForTimeout(150);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await right.locator('[data-verse-index="0"]').evaluate(input=>input.click());assert.equal(await left.locator('[data-verse-index="0"]').isChecked(),true);await page.screenshot({path:'/tmp/studio-bible-comparison-mobile.png'});await page.setViewportSize({width:1440,height:1000});await aligned();
+ // Switching to the same translation deduplicates subsequent chapter reads.
+ await right.locator('[data-bible-version]').selectOption(await left.locator('[data-bible-version]').inputValue());await page.waitForFunction(()=>document.querySelectorAll('[data-bible-panel=right] [data-verse-index]').length===8);start=requests.length;await left.locator('[data-bible-book]').selectOption('창세기');await page.waitForFunction(()=>[...document.querySelectorAll('[data-bible-heading]')].every(n=>n.textContent==='창세기 1장'));assert.equal(requests.length-start,0);await aligned();
+ start=requests.length;await left.locator('[data-bible-search]').fill('Fictional 창세기 1:7');await page.waitForFunction(()=>[...document.querySelectorAll('[data-bible-heading]')].every(n=>n.textContent==='검색 결과')&&document.querySelectorAll('[data-verse-index]').length===2);assert.equal(requests.length-start,1,'same-version simultaneous search shares one request');await left.locator('[data-bible-search]').fill('');await page.waitForFunction(()=>document.querySelectorAll('[data-verse-index]').length===16);await aligned();
+ assert.deepEqual(errors,[]);console.log('PASS paired chapters, both-side navigation, aligned unequal/missing verses, chained range selection, resize/mobile, combined first load and cached chapter requests');
+}finally{await browser.close();await new Promise(r=>app.server.close(r));await rm(dir,{recursive:true,force:true});}

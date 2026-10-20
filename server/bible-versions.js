@@ -12,6 +12,7 @@ export function bibleVersionMetadata(bible){
 export function bibleVersionStore(db){
  db.exec(`CREATE TABLE IF NOT EXISTS scripture_versions(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,id TEXT NOT NULL,title TEXT NOT NULL,language TEXT NOT NULL,fingerprint TEXT NOT NULL,imported_at INTEGER NOT NULL,PRIMARY KEY(user_id,id));
  CREATE TABLE IF NOT EXISTS scripture_version_verses(user_id TEXT NOT NULL,version_id TEXT NOT NULL,book TEXT NOT NULL,chapter INTEGER NOT NULL,verse INTEGER NOT NULL,body TEXT NOT NULL,testament TEXT NOT NULL,book_order INTEGER NOT NULL,PRIMARY KEY(user_id,version_id,book,chapter,verse),FOREIGN KEY(user_id,version_id) REFERENCES scripture_versions(user_id,id) ON DELETE CASCADE);`);
+ const bookCache=new Map();let bookCacheStamp='';
  const legacy=uid=>db.prepare('SELECT title,fingerprint,imported_at importedAt FROM scripture_bibles WHERE user_id=?').get(uid);
  function list(uid){
   const versions=db.prepare('SELECT id,title,language,fingerprint,imported_at importedAt FROM scripture_versions WHERE user_id=? ORDER BY imported_at,id').all(uid),prior=legacy(uid);
@@ -22,7 +23,11 @@ export function bibleVersionStore(db){
   const versions=list(uid),requested=params.get('version'),selected=requested?versions.find(v=>v.id===requested):versions[0];
   if(requested&&!selected)throw Object.assign(Error('성경 버전을 찾을 수 없습니다.'),{status:404});
   const source=selected?.id==='legacy'?'scripture_verses':'scripture_version_verses',condition=selected?.id==='legacy'?'user_id=?':'user_id=? AND version_id=?',args=selected?.id==='legacy'?[uid]:[uid,selected?.id||''];
-  const books=db.prepare(`SELECT book,testament,count(*) verses,max(chapter) chapters FROM ${source} WHERE ${condition} GROUP BY book ORDER BY min(book_order)`).all(...args);
+  const stamp=db.prepare('SELECT total_changes() changes').get().changes+':'+db.prepare('PRAGMA data_version').get().data_version;
+  if(stamp!==bookCacheStamp){bookCache.clear();bookCacheStamp=stamp;}
+  const cacheKey=JSON.stringify([uid,selected?.id||'',selected?.fingerprint||'']);
+  if(!bookCache.has(cacheKey)){bookCache.set(cacheKey,db.prepare(`SELECT book,testament,count(*) verses,max(chapter) chapters FROM ${source} WHERE ${condition} GROUP BY book ORDER BY min(book_order)`).all(...args));if(bookCache.size>128)bookCache.delete(bookCache.keys().next().value);}
+  const books=structuredClone(bookCache.get(cacheKey));
   const passages=parseBiblePassages(params.get('passage')||''),book=params.get('book'),chapter=Number(params.get('chapter')),search=params.get('q')?.trim().slice(0,200)||'';
   let verses=[];const fields='book,chapter,verse,body text';
   if(passages){const found=new Map();for(const passage of passages){const rows=db.prepare(`SELECT ${fields} FROM ${source} WHERE ${condition} AND book=? AND chapter>=? AND chapter<=? AND (chapter<>? OR verse>=?) AND (chapter<>? OR verse<=?) ORDER BY chapter,verse LIMIT 501`).all(...args,passage.book,passage.chapter,passage.endChapter,passage.chapter,passage.start,passage.endChapter,passage.end);for(const row of rows)found.set(`${row.book}:${row.chapter}:${row.verse}`,row);if(found.size>500)throw Object.assign(Error('성경 본문은 한 번에 500절까지 선택하세요.'),{status:400});}verses=[...found.values()];}

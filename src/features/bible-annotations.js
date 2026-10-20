@@ -4,11 +4,11 @@ import {annotationSlices} from '../domain/verse-annotations.js';
 import {bindScriptureSelectionMenu} from './scripture-selection-menu.js';
 const bindings=new WeakMap();
 const place=(panel,x,y)=>{panel.style.left=Math.max(8,Math.min(x,innerWidth-panel.offsetWidth-8))+'px';panel.style.top=Math.max(8,Math.min(y,innerHeight-panel.offsetHeight-8))+'px';};
-export async function bindBibleAnnotations(root,verses,{noteId=''}={}){
+export async function bindBibleAnnotations(root,verses,{noteId='',loadAnnotations=params=>request('scripture/annotations?'+params)}={}){
  bindings.get(root)?.abort();const controller=new AbortController(),signal=controller.signal;bindings.set(root,controller);
  const observer=new MutationObserver(()=>{if(!root.isConnected)controller.abort();});observer.observe(document.body,{childList:true,subtree:true});signal.addEventListener('abort',()=>observer.disconnect());
  const groups=[...new Map(verses.map(verse=>[`${verse.book}:${verse.chapter}`,verse])).values()];
- const results=await Promise.all(groups.map(verse=>request('scripture/annotations?'+new URLSearchParams({book:verse.book,chapter:verse.chapter}))));if(!root.isConnected||signal.aborted)return;
+ const results=await Promise.all(groups.map(verse=>loadAnnotations(new URLSearchParams({book:verse.book,chapter:verse.chapter}))));if(!root.isConnected||signal.aborted)return;
  const annotations=results.flatMap(result=>result.annotations),states=[];let tooltip=null,memoPanel=null,memoDirty=false,removeMemoGuard=null;
  const closeMemo=()=>{removeMemoGuard?.();removeMemoGuard=null;memoPanel?.remove();memoPanel=null;memoDirty=false;};
  const closeTooltip=()=>{tooltip?.remove();tooltip=null;};

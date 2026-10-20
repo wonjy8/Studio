@@ -405,3 +405,10 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .qt-split.is-scripture-hidden{grid-template-columns:minmax(0,1fr)}
 .qt-split.is-scripture-hidden .qt-journal{border-right:0;padding-right:0;width:100%;max-width:880px;margin-inline:auto}
 .qt-split>.qt-scripture[hidden]{display:none!important}
+
+/* Bible translations share verse addresses and reserve the taller row. The
+   natural child remains un-sized so ResizeObserver can respond to reflow. */
+.bible-row-natural,.bible-row-heading{display:flow-root}
+.bible-aligned-row{min-width:0}
+.bible-reading-layout.is-split .bible-row-heading .scripture-section-heading{margin:16px 0 8px}
+.bible-reading-layout.is-split .scripture-chapter-heading{flex-wrap:wrap}

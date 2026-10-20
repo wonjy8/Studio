@@ -23,3 +23,14 @@ test('legacy imports remain readable and matching reimport does not duplicate th
  store.save('owner',fake('새번역성경.csv','새 가상 본문'),'new');assert.equal(store.list('owner').length,1);assert.equal(db.prepare('SELECT body FROM scripture_verses').get().body,'새 가상 본문');
 });
 test('metadata recognizes language and canonical version titles',()=>{assert.equal(bibleVersionMetadata(fake('folder/NIV_Bible.csv','Fictional')).title,'NIV');assert.equal(bibleVersionMetadata(fake('새번역성경.csv','가상')).language,'ko');});
+
+test('cached book summaries remain private and refresh after translation or database changes',t=>{
+ const {db,store}=fixture(t),ko=store.save('owner',fake('새번역성경.csv','가상 본문'),'first');
+ const read=()=>store.read('owner',new URLSearchParams({version:ko.id,book:'창세기',chapter:'1'}));
+ const initial=read();assert.equal(initial.books[0].chapters,1);
+ initial.books[0].chapters=999;assert.equal(read().books[0].chapters,1,'caller cannot mutate cached metadata');
+ const updated=fake('새번역성경.csv','수정한 가상 본문');updated.verses.push({book:'창세기',chapter:2,verse:1,text:'둘째 장',testament:'구약',order:0});store.save('owner',updated,'second');
+ assert.equal(read().books[0].chapters,2);assert.equal(read().verses[0].text,'수정한 가상 본문');assert.deepEqual(store.read('other',new URLSearchParams()).books,[]);
+ db.prepare('INSERT INTO scripture_version_verses VALUES(?,?,?,?,?,?,?,?)').run('owner',ko.id,'출애굽기',1,1,'추가 본문','구약',1);
+ assert.equal(read().books.length,2,'database changes invalidate metadata');
+});
