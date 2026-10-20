@@ -2,7 +2,7 @@
 :root{color-scheme:light;--accent:#2563eb;--home-highlight:var(--accent);--home-panel:var(--surface)}
 :root[data-theme="dark"]{color-scheme:dark;--bg:#111113;--surface:#19191c;--surface-2:#232327;--ink:#f0f0ed;--muted:#aaaab2;--line:#36363d;--accent:#8bb8ff;--selected:#252f43;--ok:#8bd1a7;--warn:#edc879;--bad:#ff929e;--shadow:0 10px 35px #0003;--home-highlight:var(--accent);--home-panel:linear-gradient(115deg,#1a1a1d,#141416)}
 :root[data-theme="dark"] :is(.sidebar,.topbar,.project-header,.project-sidebar,.mobile-nav){background:var(--bg);border-color:var(--line)}
-:root[data-theme="dark"] .production-app .workspace-rail{background:var(--surface);border-color:var(--line)}
+:root[data-theme="dark"] .production-app .workspace-rail{background:var(--surface-2);border-color:var(--line)}
 :root[data-theme="dark"] :is(.rail-button,.sidebar-bottom,.project-tab,.settings-app-version){color:var(--muted)}
 :root[data-theme="dark"] .rail-button:hover{background:var(--surface-2);color:var(--ink)}
 :root[data-theme="dark"] .rail-button.active{background:var(--selected);color:var(--accent)}
