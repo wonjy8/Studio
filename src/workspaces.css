@@ -263,7 +263,7 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .scripture-workspace .scripture-reader [data-bible-verses]{max-height:none;overflow:visible;margin-bottom:24px}
 .scripture-reader .scripture-verse{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;padding:6px 12px;border:0;border-radius:var(--r-control);cursor:pointer;font-size:var(--text-section);line-height:1.95;overflow-wrap:anywhere}
 .scripture-reader .scripture-verse-number{font-family:inherit;font-size:var(--text-support);font-weight:500;color:var(--muted);text-align:right;padding-top:5px}
-.scripture-reader .scripture-verse-text{font-family:Georgia,'Noto Serif KR','AppleMyungjo','Batang',serif}
+.scripture-reader .scripture-verse-text{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;font-weight:400;line-height:1.85;letter-spacing:normal;word-break:keep-all;overflow-wrap:anywhere}
 .scripture-reader .scripture-verse:has(input:checked){background:var(--selected)}
 .scripture-reader .scripture-verse:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:4px}
 .scripture-reader .scripture-verse:has(.sub){display:flex;font-size:var(--text-body)}
@@ -547,3 +547,5 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
  .sidebar-collapsed>.main{background:var(--bg);border-top-left-radius:var(--r-panel);border-bottom-left-radius:var(--r-panel);overflow:clip}
 }
 @media(max-width:900px){.workspace-rail-divider{width:1px;min-height:28px;margin:8px 4px;align-self:center}}
+
+.scripture-workspace .bible-source-status{margin:0 0 16px}.bible-source-status summary{font-size:var(--text-support)}.bible-source-status p{margin:8px 0;overflow-wrap:anywhere}.bible-source-status [data-bible-source-detail]{white-space:pre-wrap}
