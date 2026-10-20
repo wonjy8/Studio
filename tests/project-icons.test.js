@@ -81,3 +81,12 @@ test('happy face follows the custom expressive line style with an inverted fille
  assert.match(ionIconPaths.happy.filled,/fill:#fff/);
  assert.notEqual(outline,filled);
 });
+
+test('calendar outline fills its tiny date marks while preserving the line frame',()=>{
+ const outline=icon('calendar'),filled=icon('calendar',{solid:true});
+ assert.ok(outline.includes(ionIconPaths.calendar.outline));
+ assert.ok(filled.includes(ionIconPaths.calendar.filled));
+ assert.equal((ionIconPaths.calendar.outline.match(/fill="currentColor" stroke="none"/g)||[]).length,9);
+ assert.match(ionIconPaths.calendar.outline,/<rect fill="none" stroke="currentColor"/);
+ assert.notEqual(outline,filled);
+});
