@@ -29,6 +29,7 @@ export async function bindScriptureWorkspace({view,namespace,documentId,onSelect
  async function bible(){
   await flushScriptureDrafts();const info=await request('scripture/bible');if(!alive())return;
   chrome(`<div class="document-browse-tools"><h2>성경</h2><button class="btn" data-bible-split aria-pressed="${bibleLayout.split}">분할 보기</button></div>${info.books.length?`<div class="bible-reading-layout ${bibleLayout.split?'is-split':''}" data-bible-layout><section aria-label="${bibleLayout.split?'왼쪽 성경':'성경 본문'}" data-bible-panel="left"></section>${bibleLayout.split?'<section aria-label="오른쪽 성경" data-bible-panel="right"></section>':''}</div>`:'<div class="empty">연결된 성경 데이터가 없습니다.</div>'}`);bindImport();
+  if(info.repository?.error)message(Error(info.repository.error));
   root.querySelector('[data-bible-split]').onclick=()=>void run(async()=>{await flushScriptureDrafts();bibleLayout.split=!bibleLayout.split;await bible();});
   const quote=async verses=>{const value=newScriptureNote();value.passage=verseLabel(verses);value.document.title=value.passage;value.document.blocks=[...quoteVerses(verses),newBlock()];await run(async()=>{const result=await request('scripture/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});if(alive())await edit(result.note);});};
   if(!info.books.length)return;
