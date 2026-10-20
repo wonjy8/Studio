@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {routePath,parseRoute,routeBelongsToAccount} from '../src/app/routes.js';
 import {projectNavigation} from '../src/patterns/navigation.js';
+import {ionIconAliases,ionIconPaths} from '../src/design-system/icons/ionicons.js';
 import {appShell} from '../src/app/shell.js';
 import {emptyWorkspace} from '../src/domain/workspace.js';
 test('organization collection URLs retain account, section and history identity',()=>{
@@ -23,5 +24,5 @@ test('equipment workspace paths retain account scope and never become project ta
  assert.equal(parseRoute('/fictional.operator/inventory/unknown').valid,false);
 });
 test('equipment navigation includes the catalog and rental desks as entries and administrator uses a separate shield',()=>{
- const state=emptyWorkspace(),html=projectNavigation(state,'inventory',false,{isAdmin:true});for(const name of ['멤버 장비','조직 장비','장비 도감','대여소'])assert.ok(html.includes(name));assert.doesNotMatch(html,/전체 장비|반출 현황|반출·반납 내역|data-inventory-collections/);const sidebar=html.match(/<nav class="project-list" aria-label="장비 관리 메뉴">([\s\S]*?)<\/nav>/)[1];assert.equal((sidebar.match(/data-view=/g)||[]).length,4);assert.match(html,/aria-label="자료 워크스페이스"/);assert.match(html,/aria-label="관리자 워크스페이스"/);const admin=html.match(/<button[^>]*aria-label="관리자 워크스페이스"[\s\S]*?<\/button>/)?.[0];assert.match(admin,/M12 3 4 6v6/);assert.doesNotMatch(projectNavigation(state,'inventory',false,{}),/aria-label="관리자 워크스페이스"/);
+ const state=emptyWorkspace(),html=projectNavigation(state,'inventory',false,{isAdmin:true});for(const name of ['멤버 장비','조직 장비','장비 도감','대여소'])assert.ok(html.includes(name));assert.doesNotMatch(html,/전체 장비|반출 현황|반출·반납 내역|data-inventory-collections/);const sidebar=html.match(/<nav class="project-list" aria-label="장비 관리 메뉴">([\s\S]*?)<\/nav>/)[1];assert.equal((sidebar.match(/data-view=/g)||[]).length,4);assert.match(html,/aria-label="자료 워크스페이스"/);assert.match(html,/aria-label="관리자 워크스페이스"/);const admin=html.match(/<button[^>]*aria-label="관리자 워크스페이스"[\s\S]*?<\/button>/)?.[0];assert.ok(admin?.includes(ionIconPaths[ionIconAliases.shield].filled));assert.doesNotMatch(projectNavigation(state,'inventory',false,{}),/aria-label="관리자 워크스페이스"/);
 });
