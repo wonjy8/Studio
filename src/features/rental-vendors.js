@@ -17,7 +17,7 @@ export async function bindRentalVendors(){
  function drawList(){
   const query=search.value.trim().toLocaleLowerCase();
   const filtered=vendors.filter(v=>[v.name,v.address,v.contact,v.phone,v.email].join(' ').toLocaleLowerCase().includes(query));
-  list.innerHTML=filtered.map(v=>'<button class="catalog-card" type="button" data-vendor-id="'+esc(v.id)+'" aria-pressed="'+(v.id===selected?.id)+'"><span class="catalog-photo catalog-photo-empty" role="img" aria-label="대여소">'+icon('folder')+'</span><strong>'+esc(v.name)+'</strong><span class="sub">'+esc(v.address||v.contact||'주소 미등록')+'</span><span class="sub">'+esc([v.phone,v.email].filter(Boolean).join(' · '))+'</span></button>').join('')||'<div class="workspace-empty">검색 결과가 없습니다.</div>';
+  list.innerHTML=filtered.map(v=>'<button class="catalog-card" type="button" data-vendor-id="'+esc(v.id)+'" aria-pressed="'+(v.id===selected?.id)+'"><span class="catalog-photo catalog-photo-empty" role="img" aria-label="대여소">'+icon('folder')+'</span><strong>'+esc(v.name)+'</strong><span class="sub">'+esc(v.address||v.contact||'주소 미등록')+'</span><span class="sub">'+esc([v.phone,v.email].filter(Boolean).join(' · '))+'</span></button>').join('')||'<div class="workspace-empty">'+(query?'검색 결과가 없습니다.':'등록된 대여소가 없습니다.')+'</div>';
   list.querySelectorAll('[data-vendor-id]').forEach(button=>button.onclick=()=>{if(!leave())return;selected=vendors.find(v=>v.id===button.dataset.vendorId);editorOpen=true;draw();});
  }
  function draw(){
