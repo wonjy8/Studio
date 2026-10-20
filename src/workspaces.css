@@ -316,3 +316,14 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .scripture-verse sup{font-size:.7em;line-height:0}
 .scripture-footnotes li,.scripture-verse{scroll-margin-top:120px}
 .scripture-footnotes li:target,.scripture-verse:target{background:var(--selected)}
+
+/* Seven Bible reading sizes centered on the existing typography tokens. */
+.scripture-reader-actions{display:flex;align-items:center;flex-wrap:wrap;gap:16px}
+.scripture-font-controls{display:flex;align-items:center;gap:4px}
+.scripture-font-controls [data-bible-font-status]{min-width:32px;text-align:center;font-variant-numeric:tabular-nums}
+.scripture-font-controls button{min-width:36px}
+.scripture-reader .scripture-verse-text,.scripture-reader .scripture-section-heading{font-size:min(var(--text-page),calc(var(--text-section) + var(--bible-size-offset,0rem)))}
+.scripture-reader .scripture-scalable-text{font-size:min(var(--text-page),calc(var(--text-body) + var(--bible-size-offset,0rem)))}
+@media(max-width:900px){.scripture-font-controls button{min-width:44px}}
+
+.scripture-reader .scripture-footnotes{font-size:min(var(--text-page),calc(var(--text-support) + var(--bible-size-offset,0rem)))}
