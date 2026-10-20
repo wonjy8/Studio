@@ -19,3 +19,13 @@ test('failed requests are retryable instead of becoming a cached failure',async(
  let attempts=0;const library=createBibleLibrary('library-test-retry',{fetcher:async()=>{if(++attempts===1)throw Error('Fictional offline');return fixture();}});
  await assert.rejects(library.read(new URLSearchParams({book:'창세기',chapter:'1'})),/Fictional offline/);assert.equal((await library.read(new URLSearchParams({book:'창세기',chapter:'1'}))).verses.length,2);
 });
+
+test('reopening a cached failed import refreshes its status and version list before returning',async()=>{
+ let repaired=false,metadataReads=0;const data=fixture(),fetcher=async path=>{
+  if(path.includes('metadata=1'))metadataReads++;
+  return {...data,repository:{configured:true,error:repaired?'':'NIV.zip: Fictional old import failure'},versions:repaired?[...data.versions,{id:'niv',title:'NIV',importedAt:2}]:data.versions};
+ };
+ const first=createBibleLibrary('library-import-recovery',{fetcher});await first.read(new URLSearchParams({book:'창세기',chapter:'1'}));await settle();repaired=true;
+ const reopened=createBibleLibrary('library-import-recovery',{fetcher}),result=await reopened.read(new URLSearchParams({book:'창세기',chapter:'1'}));
+ assert.equal(result.repository.error,'');assert.ok(result.versions.some(v=>v.id==='niv'));assert.equal(metadataReads,1);
+});
