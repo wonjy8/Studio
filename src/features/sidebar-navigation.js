@@ -1,5 +1,5 @@
 import {normalizeSidebarPreferences,orderSidebarItems,mergeSidebarOrder} from '../domain/sidebar-preferences.js';
-const groupNames={'홈 메뉴':'home','말씀 메뉴':'scripture','문서 메뉴':'documents','장비 관리 메뉴':'equipment','자료 메뉴':'materials','관리자 메뉴':'admin','설정 메뉴':'settings','프로젝트 목록':'projects','공유 프로젝트':'shared'};
+const groupNames={'홈 메뉴':'home','말씀 메뉴':'scripture-v2','문서 메뉴':'documents','장비 관리 메뉴':'equipment','자료 메뉴':'materials','관리자 메뉴':'admin','설정 메뉴':'settings','프로젝트 목록':'projects','공유 프로젝트':'shared'};
 const itemKey=button=>button.dataset.project?'project:'+button.dataset.project:button.dataset.openShared?'shared:'+button.dataset.openShared:button.dataset.settingsSection?'setting:'+button.dataset.settingsSection:button.dataset.view||button.dataset.action;
 export function createSidebarNavigation({account,setMobileOpen}){
  const storageKey='studio.sidebar.v1:'+account,mobile=matchMedia('(max-width:900px)');let preferences;
@@ -19,9 +19,16 @@ export function createSidebarNavigation({account,setMobileOpen}){
   for(const button of node.querySelectorAll('.rail-button')){button.setAttribute('aria-pressed',String(button.classList.contains('active')));button.setAttribute('aria-controls',panel.id);button.setAttribute('aria-expanded',String(expanded&&button.classList.contains('active')));}
  }
  function bottomSlots(rail){const entries=items(rail),count=Number(rail.dataset.bottomSlots||0);entries.forEach((button,index)=>button.toggleAttribute('data-sidebar-bottom-start',count>0&&index===entries.length-count));}
+ function dividers(group){
+  group.querySelectorAll(':scope > .sidebar-group-divider').forEach(node=>node.remove());
+  const buttons=items(group);
+  for(const index of (group.dataset.sidebarSeparators||'').split(',').map(Number).filter(n=>n>0)){
+   if(!buttons[index])continue;const line=document.createElement('div');line.className='sidebar-group-divider';line.setAttribute('role','separator');buttons[index].before(line);
+  }
+ }
  function prepare(group,name){
   group.dataset.sidebarSort=name;for(const button of group.querySelectorAll(':scope > button')){const key=itemKey(button);if(!key)continue;button.dataset.sidebarKey=key;button.draggable=false;button.setAttribute('aria-description','드래그하거나 Alt와 위아래 방향키로 순서를 변경합니다.');}
-  for(const button of orderSidebarItems(items(group),preferences.orders[name],item=>item.dataset.sidebarKey))group.append(button);
+  for(const button of orderSidebarItems(items(group),preferences.orders[name],item=>item.dataset.sidebarKey))group.append(button);dividers(group);
  }
  function refresh(){
   if(gesture&&!gesture.item.isConnected)finish(false);
@@ -35,7 +42,7 @@ export function createSidebarNavigation({account,setMobileOpen}){
   sync();
  }
  function saveOrder(group,ordered){
-  const name=group.dataset.sidebarSort;preferences.orders[name]=mergeSidebarOrder(preferences.orders[name],ordered.map(item=>item.dataset.sidebarKey));persist();for(const item of ordered)group.append(item);if(name==='rail')bottomSlots(group);
+  const name=group.dataset.sidebarSort;preferences.orders[name]=mergeSidebarOrder(preferences.orders[name],ordered.map(item=>item.dataset.sidebarKey));persist();for(const item of ordered)group.append(item);if(name==='rail')bottomSlots(group);dividers(group);
  }
  function click(event){
   if(gesture?.started){event.preventDefault();event.stopImmediatePropagation();return;}

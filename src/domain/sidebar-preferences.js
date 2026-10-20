@@ -1,4 +1,4 @@
-const groups=new Set(['rail','home','scripture','documents','equipment','materials','admin','settings','projects','shared']);
+const groups=new Set(['rail','home','scripture','scripture-v2','documents','equipment','materials','admin','settings','projects','shared']);
 const validKey=value=>typeof value==='string'&&value.length>0&&value.length<=200;
 export function normalizeSidebarPreferences(value){
  const orders={};if(value&&typeof value.orders==='object'&&value.orders)for(const [group,keys]of Object.entries(value.orders))if(groups.has(group)&&Array.isArray(keys))orders[group]=[...new Set(keys.filter(validKey))].slice(0,2000);
