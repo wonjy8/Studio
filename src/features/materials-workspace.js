@@ -21,12 +21,12 @@ export async function bindMaterialsWorkspace({state,documentId,onSelectDocument,
  const current=++generation,alive=()=>root.isConnected&&generation===current;
  const gallery=root.querySelector('[data-material-gallery]'),message=root.querySelector('[data-material-message]'),dialog=root.querySelector('[data-material-dialog]');
  const search=root.querySelector('[data-material-search]'),category=root.querySelector('[data-material-category]'),date=root.querySelector('[data-material-date]'),sort=root.querySelector('[data-material-sort]'),linkForm=root.querySelector('[data-material-link-form]');
- let items=[],docs=[],kind='all',busy=false,selectedItem=null;
+ let items=[],docs=[],documentDates={},kind='all',busy=false;
  const workspaces=[state,...(state?.projects||[])].filter(project=>!project.project?.placeholder);
  const detail=(item)=>item.kind==='document'?(item.projectId?onOpenProject?.(item.projectId,item.documentId):onSelectDocument?.(item.documentId)):openItem(item);
  function documentItems(){
-  const own=docs.map(doc=>({id:'doc-'+doc.id,kind:'document',title:doc.title,description:(doc.blocks||[]).map(block=>(block.content||[]).map(run=>run.text).join('')).join(' ').slice(0,260),category:'내 문서',tags:[],uploadedAt:null,documentId:doc.id,source:'내 문서'}));
-  const project=workspaces.flatMap(space=>(space.documents||[]).map(doc=>({id:'doc-'+space.project.id+'-'+doc.id,kind:'document',title:doc.title,description:(doc.blocks||[]).map(block=>(block.content||[]).map(run=>run.text).join('')).join(' ').slice(0,260),category:space.project.name,tags:[],uploadedAt:null,documentId:doc.id,projectId:space.project.id,source:space.project.name})));
+  const own=docs.map(doc=>({id:'doc-'+doc.id,kind:'document',title:doc.title,description:(doc.blocks||[]).map(block=>(block.content||[]).map(run=>run.text).join('')).join(' ').slice(0,260),category:'내 문서',tags:[],uploadedAt:documentDates['account:'+doc.id]||null,documentId:doc.id,source:'내 문서'}));
+  const project=workspaces.flatMap(space=>(space.documents||[]).map(doc=>({id:'doc-'+space.project.id+'-'+doc.id,kind:'document',title:doc.title,description:(doc.blocks||[]).map(block=>(block.content||[]).map(run=>run.text).join('')).join(' ').slice(0,260),category:space.project.name,tags:[],uploadedAt:documentDates[space.project.id+':'+doc.id]||null,documentId:doc.id,projectId:space.project.id,source:space.project.name})));
   return [...own,...project];
  }
  function preview(item){
@@ -40,9 +40,9 @@ export async function bindMaterialsWorkspace({state,documentId,onSelectDocument,
  }
  function card(item){
   const kind=item.kind==='link'?'link':item.kind==='document'?'document':kindOf(item),tags=(item.tags||[]).map(tag=>'<span class="materials-tag">#'+esc(tag)+'</span>').join('');
-  const title=item.previewTitle||item.title,description=item.previewDescription||item.description||item.source||'';
+  const title=item.previewTitle||item.title,description=item.previewDescription||item.description||item.source||'',actions=item.kind==='document'?'':'<div class="materials-card-actions"><button class="btn" type="button" data-material-edit="'+esc(item.id)+'">정보 수정</button><button class="btn" type="button" data-material-reference="'+esc(item.id)+'">레퍼런스에 추가</button><button class="btn danger" type="button" data-material-delete="'+esc(item.id)+'">삭제</button></div>';
   const external=item.kind==='link'?safeExternal(item.url):'';
-  return '<article class="materials-card" data-material-card="'+esc(item.id)+'"><button class="materials-card-preview" type="button" data-material-open="'+esc(item.id)+'" aria-label="'+esc(item.title)+' 열기">'+preview(item)+'</button><div class="materials-card-body"><div class="materials-card-meta"><span>'+labelOf(kind)+'</span><time>'+dateLabel(item.uploadedAt)+'</time></div><button class="materials-card-title" type="button" data-material-open="'+esc(item.id)+'">'+esc(title)+'</button>'+(description?'<p>'+esc(description)+'</p>':'')+(external?'<a class="materials-card-url" href="'+esc(external)+'" target="_blank" rel="noopener noreferrer">'+esc(item.url)+'</a>':'')+(item.category?'<span class="materials-category">'+esc(item.category)+'</span>':'')+'<div class="materials-tags">'+tags+'</div><div class="materials-card-actions"><button class="btn" type="button" data-material-edit="'+esc(item.id)+'">정보 수정</button><button class="btn" type="button" data-material-reference="'+esc(item.id)+'">레퍼런스에 추가</button><button class="btn danger" type="button" data-material-delete="'+esc(item.id)+'">삭제</button></div></div></article>';
+  return '<article class="materials-card" data-material-card="'+esc(item.id)+'"><button class="materials-card-preview" type="button" data-material-open="'+esc(item.id)+'" aria-label="'+esc(item.title)+' 열기">'+preview(item)+'</button><div class="materials-card-body"><div class="materials-card-meta"><span>'+labelOf(kind)+'</span><time>'+dateLabel(item.uploadedAt)+'</time></div><button class="materials-card-title" type="button" data-material-open="'+esc(item.id)+'">'+esc(title)+'</button>'+(description?'<p>'+esc(description)+'</p>':'')+(external?'<a class="materials-card-url" href="'+esc(external)+'" target="_blank" rel="noopener noreferrer">'+esc(item.url)+'</a>':'')+(item.category?'<span class="materials-category">'+esc(item.category)+'</span>':'')+'<div class="materials-tags">'+tags+'</div>'+actions+'</div></article>';
  }
  function updateCategories(){
   const values=[...new Set(items.map(item=>item.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko')),old=category.value;
@@ -116,7 +116,7 @@ export async function bindMaterialsWorkspace({state,documentId,onSelectDocument,
  try{
   const [library,accountDocs]=await Promise.all([request('materials'),request('document-library')]);
   if(!alive())return;
-  items=library.items||[];docs=accountDocs.documents||[];
+  items=library.items||[];documentDates=library.documentDates||{};docs=accountDocs.documents||[];
   updateCategories();draw();
  }catch(error){if(alive())setMessage(error.message,true);}
 }
