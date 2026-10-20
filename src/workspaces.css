@@ -361,3 +361,27 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .bible-reading-layout [data-bible-version]{max-width:100%;min-width:120px}
 .bible-reading-layout.is-split .scripture-search-field{flex-basis:100%}
 @media(max-width:760px){.bible-reading-layout.is-split{grid-template-columns:minmax(0,1fr);gap:24px}.bible-reading-layout.is-split>.scripture-reader+section{border-left:0;border-top:1px solid var(--line);padding-left:0;padding-top:24px}}
+
+/* QT is a document surface; formatting and memos follow the existing document menus. */
+.qt-document-title,.qt-passage-title{border:0;background:transparent;white-space:pre-wrap;overflow-wrap:anywhere;cursor:text}
+.qt-document-title{font-size:var(--text-page);font-weight:500;margin:0 0 32px;min-height:1.5em}
+.qt-document-input{min-height:40px;padding:4px 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:var(--text-body);line-height:1.9;outline:none}
+.qt-document-input:empty:before,.qt-document-title:empty:before,.qt-passage-title:empty:before{content:attr(data-placeholder);color:var(--muted);pointer-events:none}
+.qt-document-input:focus-visible,.qt-document-title:focus-visible,.qt-passage-title:focus-visible{outline:2px solid var(--selected);outline-offset:4px;border-radius:4px}
+.qt-journal li{margin-bottom:4px}.qt-journal li:before{top:7px}.qt-item-remove{opacity:0;min-width:28px;padding:0}
+.qt-journal li:hover .qt-item-remove,.qt-item-remove:focus-visible{opacity:1}
+.qt-prayer-person{margin-top:4px;margin-bottom:12px}.qt-prayer-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.qt-prayer-heading h3{margin:0}.qt-prayer-tabs{display:flex;gap:4px}.qt-prayer-tabs [aria-pressed="true"]{background:var(--selected)}
+.qt-prayer-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.qt-prayer-filters input{flex:1;min-width:120px}
+.qt-prayer-record{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.qt-prayer-record>div{flex:1;min-width:0}.qt-prayer-record p{white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0;font-size:var(--text-body)}
+.qt-passage-group{font-size:var(--text-title);font-weight:500;margin:24px 0 12px}
+.scripture-memo-mark{border-bottom:2px dashed #d8aa19;cursor:help;padding-bottom:1px}
+.scripture-memo-mark:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.scripture-inline-code{font-family:monospace;background:var(--surface-2);border-radius:3px}
+.scripture-memo-overlay,.scripture-memo-editor{position:fixed;z-index:5100;width:280px;max-width:calc(100vw - 16px);padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-surface);box-shadow:var(--shadow);font-size:var(--text-body);max-height:60dvh;overflow:auto}
+.scripture-memo-overlay{pointer-events:none}.scripture-memo-overlay p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 8px}.scripture-memo-overlay p:last-child{margin:0}
+.scripture-memo-editor .field{margin:8px 0}.scripture-memo-editor textarea{font:inherit;width:100%;min-height:100px;padding:10px;border:1px solid var(--line);border-radius:var(--r-control);resize:vertical}
+.scripture-memo-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.scripture-annotation-status[hidden],[data-annotation-index]>[hidden]{display:none!important}
+@media(max-width:900px){.qt-document-input,.qt-document-title,.qt-passage-title{font-size:16px}.qt-document-title{font-size:var(--text-page)}.qt-item-remove{opacity:1}.scripture-memo-editor textarea{font-size:16px}}

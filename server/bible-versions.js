@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {parseBiblePassage} from '../src/domain/bible.js';
+import {parseBiblePassages} from '../src/domain/bible.js';
 
 export function bibleVersionMetadata(bible){
  const filename=bible.name.normalize('NFKC').split('/').at(-1);
@@ -23,9 +23,9 @@ export function bibleVersionStore(db){
   if(requested&&!selected)throw Object.assign(Error('성경 버전을 찾을 수 없습니다.'),{status:404});
   const source=selected?.id==='legacy'?'scripture_verses':'scripture_version_verses',condition=selected?.id==='legacy'?'user_id=?':'user_id=? AND version_id=?',args=selected?.id==='legacy'?[uid]:[uid,selected?.id||''];
   const books=db.prepare(`SELECT book,testament,count(*) verses,max(chapter) chapters FROM ${source} WHERE ${condition} GROUP BY book ORDER BY min(book_order)`).all(...args);
-  const passage=parseBiblePassage(params.get('passage')||''),book=params.get('book'),chapter=Number(params.get('chapter')),search=params.get('q')?.trim().slice(0,200)||'';
+  const passages=parseBiblePassages(params.get('passage')||''),book=params.get('book'),chapter=Number(params.get('chapter')),search=params.get('q')?.trim().slice(0,200)||'';
   let verses=[];const fields='book,chapter,verse,body text';
-  if(passage)verses=db.prepare(`SELECT ${fields} FROM ${source} WHERE ${condition} AND book=? AND chapter>=? AND chapter<=? AND (chapter<>? OR verse>=?) AND (chapter<>? OR verse<=?) ORDER BY chapter,verse LIMIT 501`).all(...args,passage.book,passage.chapter,passage.endChapter,passage.chapter,passage.start,passage.endChapter,passage.end);
+  if(passages){const found=new Map();for(const passage of passages){const rows=db.prepare(`SELECT ${fields} FROM ${source} WHERE ${condition} AND book=? AND chapter>=? AND chapter<=? AND (chapter<>? OR verse>=?) AND (chapter<>? OR verse<=?) ORDER BY chapter,verse LIMIT 501`).all(...args,passage.book,passage.chapter,passage.endChapter,passage.chapter,passage.start,passage.endChapter,passage.end);for(const row of rows)found.set(`${row.book}:${row.chapter}:${row.verse}`,row);if(found.size>500)throw Object.assign(Error('성경 본문은 한 번에 500절까지 선택하세요.'),{status:400});}verses=[...found.values()];}
   else if(book&&Number.isSafeInteger(chapter)&&chapter>0)verses=db.prepare(`SELECT ${fields} FROM ${source} WHERE ${condition} AND book=? AND chapter=? ORDER BY verse`).all(...args,book,chapter);
   else if(search)verses=db.prepare(`SELECT ${fields} FROM ${source} WHERE ${condition} AND instr(body,?)>0 ORDER BY book_order,chapter,verse LIMIT 100`).all(...args,search);
   const clean=({fingerprint,...value})=>value;
