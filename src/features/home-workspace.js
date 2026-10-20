@@ -11,7 +11,7 @@ export function homeWorkspacePage({state,account}={}){
  const tasks=projects.flatMap(item=>(item.tasks||[]).filter(task=>!task.completed).map(task=>({task,project:item.project,shoot:item.contents?.find(shoot=>shoot.id===task.shootId)})))
   .sort((a,b)=>(a.task.date||'9999').localeCompare(b.task.date||'9999')||a.project.name.localeCompare(b.project.name,'ko'));
  return `<section class="home-workspace">
-  <header class="home-workspace-heading"><div class="home-workspace-actions"><button class="btn" data-view="document-workspace">${icon('tabler-file-text')} 내 문서</button><button class="btn primary" data-action="add-project">${icon('plus')} 프로젝트 추가</button></div></header>
+  <section class="home-workspace-panel home-qt-panel" data-home-qt aria-label="오늘 QT"><p class="sub" role="status">오늘 QT를 불러오는 중…</p></section>
   <div class="home-workspace-metrics" aria-label="작업 요약">
    <article class="home-workspace-metric"><span>프로젝트</span><strong>${projects.length}</strong></article>
    <article class="home-workspace-metric"><span>앞으로 7일 촬영</span><strong>${shoots.length}</strong></article>
@@ -27,7 +27,7 @@ export function homeWorkspacePage({state,account}={}){
    <section class="home-workspace-panel"><div class="section-head"><h2>남은 할 일</h2><span class="sub">${tasks.length}개</span></div>
     <div class="home-workspace-list">${tasks.slice(0,6).map(({task,project,shoot})=>`<div class="home-workspace-row"><span class="home-workspace-task-mark" aria-hidden="true"></span><span class="home-workspace-row-copy"><strong>${esc(task.name)}</strong><small>${esc(project.name)}${shoot?` · ${esc(shoot.name)}`:''}${task.date?` · ${esc(task.date.replace(/-/g,'.'))}`:''}</small></span></div>`).join('')||'<div class="empty">남은 할 일이 없습니다.</div>'}</div>
    </section>
-   <section class="home-workspace-panel home-workspace-personal"><div class="section-head"><h2>개인 작업 공간</h2>${icon('tabler-file-text')}</div><p class="sub">프로젝트에 연결하지 않고 저장한 문서를 모아보고 계속 편집할 수 있습니다.</p><button class="btn" data-view="document-workspace">내 문서 열기 ${icon('chevron')}</button></section>
+
   </div>
  </section>`;
 }
