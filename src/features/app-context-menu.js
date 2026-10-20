@@ -22,6 +22,13 @@ function place(menu,x,y){
   menu.style.left=Math.max(edge,Math.min(x,innerWidth-rect.width-edge))+'px';
   menu.style.top=Math.max(edge,Math.min(y,innerHeight-rect.height-edge))+'px';
 }
+function scrollContainer(target){
+  for(let node=target;node&&node!==document.body;node=node.parentElement){
+    const style=getComputedStyle(node);
+    if(node.scrollHeight>node.clientHeight&&/(auto|scroll)/.test(style.overflowY))return node;
+  }
+  return document.scrollingElement||document.documentElement;
+}
 function closeMenu(restore=false){
   if(!activeMenu)return;
   const {element,origin}=activeMenu;
@@ -79,9 +86,10 @@ async function runAction(action,target,menu){
   }else if(action==='reload'){
     location.reload();
   }else if(action==='top'){
-    window.scrollTo({top:0,behavior:'smooth'});
+    scrollContainer(target).scrollTo({top:0,behavior:'smooth'});
   }else if(action==='bottom'){
-    window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'});
+    const container=scrollContainer(target);
+    container.scrollTo({top:container.scrollHeight,behavior:'smooth'});
   }
   closeMenu();
 }
@@ -143,7 +151,7 @@ function handleContextMenu(event){
 export function bindAppContextMenu(){
   document.addEventListener('contextmenu',handleContextMenu);
   document.addEventListener('pointerdown',event=>{if(activeMenu&&!activeMenu.element.contains(event.target))closeMenu();});
-  document.addEventListener('keydown',event=>{if(!activeMenu&&event.key==='ContextMenu'){const target=document.activeElement;if(target instanceof Element&&target.closest('#app')){event.preventDefault();const rect=target.getBoundingClientRect();handleContextMenu({defaultPrevented:false,target,clientX:rect.left+24,clientY:rect.top+24,preventDefault(){}});}}});
+  document.addEventListener('keydown',event=>{if(activeMenu||!(event.key==='ContextMenu'||(event.shiftKey&&event.key==='F10')))return;const target=document.activeElement;if(!(target instanceof Element)||!target.closest('#app'))return;event.preventDefault();const rect=target.getBoundingClientRect();target.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:rect.left+24,clientY:rect.top+24}));});
   window.addEventListener('resize',()=>closeMenu());
   window.addEventListener('scroll',()=>closeMenu(),true);
 }
