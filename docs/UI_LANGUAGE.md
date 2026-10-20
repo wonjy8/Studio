@@ -56,7 +56,7 @@ Studio의 UI 원칙은 **Glanceable · Calm · Contextual · Connected · Shoot-
 | 리스트·상세 간격 | 데스크톱 20px, 760px 이하 16px |
 | 상세 패널 안쪽 여백 | 데스크톱·태블릿 20px, 760px 이하 18px |
 | 리스트 패널 안쪽 여백 | 12px |
-| 기본 폼 필드 간격 | 16px; 라벨과 입력 사이 8px |
+| 기본 폼 필드 간격 | 12px; 라벨과 입력 사이 6px; 특수 패턴은 여백 토큰에 맞게 조정 |
 | 카드 안쪽 여백 | 공통 카드 17px, 좁은 화면 16px; 워크스페이스 상세 패널은 별도 기준 적용 |
 
 ## 2. Controls and interaction
