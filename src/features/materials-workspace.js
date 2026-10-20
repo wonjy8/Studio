@@ -31,7 +31,7 @@ export async function bindMaterialsWorkspace({state,documentId,onSelectDocument,
  }
  function preview(item){
   const url='/api/files/'+encodeURIComponent(item.fileId);
-  if(item.kind==='link'&&item.previewImage){const external=safeExternal(item.previewImage);return external?'<img loading="lazy" src="'+esc(external)+'" alt="">':'';}
+  if(item.kind==='link'&&item.previewImage){return '<img loading="lazy" src="/api/materials/'+esc(item.id)+'/preview-image" alt="">';}
   const type=item.mimeType||'';
   if(type.startsWith('image/'))return '<img loading="lazy" src="'+url+'" alt="'+esc(item.title)+'">';
   if(type.startsWith('video/'))return '<video controls preload="metadata" src="'+url+'" aria-label="'+esc(item.title)+'"></video>';
@@ -64,7 +64,7 @@ export async function bindMaterialsWorkspace({state,documentId,onSelectDocument,
  function refresh(){return request('materials').then(result=>{items=result.items||[];updateCategories();draw();});}
  function openItem(item){
   if(item.kind==='document'){detail(item);return;}
-  const body=item.kind==='link'?(item.previewImage?'<img class="materials-dialog-image" src="'+esc(safeExternal(item.previewImage))+'" alt="">':'')+(item.previewTitle?'<h2>'+esc(item.previewTitle)+'</h2>':'<h2>'+esc(item.title)+'</h2>')+(item.previewDescription?'<p>'+esc(item.previewDescription)+'</p>':'')+'<a class="btn primary" href="'+esc(safeExternal(item.url))+'" target="_blank" rel="noopener noreferrer">링크 열기</a>':(item.mimeType||'').startsWith('image/')?'<img class="materials-dialog-image" src="/api/files/'+esc(item.fileId)+'" alt="'+esc(item.title)+'">':(item.mimeType||'').startsWith('video/')?'<video class="materials-dialog-video" controls autoplay src="/api/files/'+esc(item.fileId)+'"></video>':'<div class="materials-file-open">'+icon('tabler-file-text')+'<h2>'+esc(item.title)+'</h2><p>'+esc(item.mimeType||'파일')+' · '+(item.size||0)+' bytes</p><a class="btn primary" href="/api/files/'+esc(item.fileId)+'?download">다운로드</a></div>';
+  const body=item.kind==='link'?(item.previewImage?'<img class="materials-dialog-image" src="/api/materials/'+esc(item.id)+'/preview-image" alt="">':'')+(item.previewTitle?'<h2>'+esc(item.previewTitle)+'</h2>':'<h2>'+esc(item.title)+'</h2>')+(item.previewDescription?'<p>'+esc(item.previewDescription)+'</p>':'')+'<a class="btn primary" href="'+esc(safeExternal(item.url))+'" target="_blank" rel="noopener noreferrer">링크 열기</a>':(item.mimeType||'').startsWith('image/')?'<img class="materials-dialog-image" src="/api/files/'+esc(item.fileId)+'" alt="'+esc(item.title)+'">':(item.mimeType||'').startsWith('video/')?'<video class="materials-dialog-video" controls autoplay src="/api/files/'+esc(item.fileId)+'"></video>':'<div class="materials-file-open">'+icon('tabler-file-text')+'<h2>'+esc(item.title)+'</h2><p>'+esc(item.mimeType||'파일')+' · '+(item.size||0)+' bytes</p><a class="btn primary" href="/api/files/'+esc(item.fileId)+'?download">다운로드</a></div>';
   dialog.innerHTML='<div class="materials-dialog-content"><header><h2>'+esc(item.title)+'</h2><button class="btn" type="button" data-dialog-close>닫기</button></header>'+body+'<p class="sub">'+dateLabel(item.uploadedAt)+(item.category?' · '+esc(item.category):'')+'</p></div>';
   dialog.querySelector('[data-dialog-close]').onclick=()=>dialog.close();dialog.onclose=()=>{dialog.replaceChildren();};dialog.showModal();
  }
