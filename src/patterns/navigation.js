@@ -1,4 +1,4 @@
-import {icon} from '../design-system/primitives/icons.js';
+import {navigationIcon as icon} from '../design-system/primitives/icons.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
 export const projectTabs=[['home','홈','home'],['schedule','일정','calendar'],['tasks','할 일','book'],['references','문서','book'],['members','멤버','people'],['project-settings','설정','settings']];
 export function projectNavigation(state,view,open,session={}){
