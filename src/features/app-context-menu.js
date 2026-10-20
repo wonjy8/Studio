@@ -87,7 +87,7 @@ function makeMenuItem(menu,item,target){
   const button=document.createElement('button');
   button.type='button';button.setAttribute('role','menuitem');button.tabIndex=-1;
   button.disabled=Boolean(item.disabled);
-  button.innerHTML=icon(item.icon);
+  button.innerHTML=item.icon?icon(item.icon):'<span class="app-context-menu-icon-spacer" aria-hidden="true"></span>';
   const label=document.createElement('span');label.textContent=item.label;button.append(label);
   button.addEventListener('click',()=>void runAction(item.action,target,menu));
   menu.append(button);
@@ -117,9 +117,9 @@ function openMenu(event,target,items){
   menu.querySelector('[role="menuitem"]:not(:disabled)')?.focus({preventScroll:true});
 }
 function handleContextMenu(event){
-  if(event.defaultPrevented)return;
   const target=event.target instanceof Element?event.target:null;
   if(!target?.closest('.production-app'))return;
+  if(event.defaultPrevented&&target.closest('[data-block]')&&document.querySelector('.document-menu'))return;
   const editable=editableTarget(target),text=selectedText(target),items=[];
   if(editable&&text)items.push({label:'잘라내기',icon:'tabler-scissors',action:'cut'});
   if(text)items.push({label:'복사',icon:'tabler-copy',action:'copy'});
@@ -127,9 +127,9 @@ function handleContextMenu(event){
   if(link)items.push({label:'링크 주소 복사',icon:'tabler-link',action:'copy-link'});
   if(imageTarget)items.push({label:'이미지 주소 복사',icon:'tabler-photo',action:'copy-image'});
   if(editable&&navigator.clipboard?.readText)items.push({label:'붙여넣기',icon:'tabler-clipboard',action:'paste'});
-  items.push({label:'모두 선택',icon:'tabler-select-all',action:'select-all'});
+  items.push({label:'모두 선택',icon:'tabler-checklist',action:'select-all'});
   if(items.length)items.push({separator:true});
-  items.push({label:'새로고침',icon:'tabler-refresh',action:'reload'});
+  items.push({label:'새로고침',action:'reload'});
   items.push({label:'맨 위로',icon:'tabler-arrow-bar-to-up',action:'top'});
   items.push({label:'맨 아래로',icon:'tabler-arrow-bar-to-down',action:'bottom'});
   event.preventDefault();
