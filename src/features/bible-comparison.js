@@ -10,7 +10,8 @@ export function extendBibleSelection(state,key,orderedKeys){
 }
 
 export function bindBibleComparison(layout,state={selected:new Set(),anchor:null}){
- let frame=0,disposed=false;
+ let frame=0,disposed=false;const moved=new Map();
+ function restore(){for(const [row,{container,next}]of moved){if(container.isConnected)container.insertBefore(row,row.dataset.bibleRow?container.querySelector('.scripture-footnotes'):next?.parentNode===container?next:null);else row.remove();row.querySelector('[data-comparison-label]')?.remove();row.classList.remove('bible-secondary-verse');}moved.clear();}
  const clickSurface=layout.closest('main')||layout;
  const panels=new Map(),observer=new ResizeObserver(schedule),mobile=matchMedia('(max-width:760px)');
  const lifetime=new MutationObserver(()=>{if(!layout.isConnected)dispose();});lifetime.observe(document.body,{childList:true,subtree:true});
@@ -18,12 +19,14 @@ export function bindBibleComparison(layout,state={selected:new Set(),anchor:null
  function schedule(){if(disposed)return;cancelAnimationFrame(frame);frame=requestAnimationFrame(align);}
  function align(){
   if(!layout.isConnected){dispose();return;}
+  restore();
   const list=[...panels.keys()].filter(panel=>panel.isConnected);
   // Padding from a previous pairing must not survive version or viewport changes.
   const rows=list.flatMap(panel=>[...panel.querySelectorAll('[data-bible-row]')]);
   for(const row of rows){row.style.minHeight='';row.querySelector('.bible-row-heading').style.minHeight='';}
   for(const panel of list)panel.querySelector('[data-bible-verses]').style.paddingTop='';
-  if(list.length!==2||mobile.matches)return;
+  if(list.length!==2)return;
+  if(mobile.matches){const secondaryLabel=list[1].querySelector('[data-bible-version]')?.selectedOptions[0]?.textContent||'대조 번역';const primary=list[0].querySelector('[data-bible-verses]'),tools=list[1].querySelector('.document-browse-tools');if(tools){moved.set(tools,{container:tools.parentNode,next:tools.nextSibling});tools.classList.add('bible-comparison-tools');primary.before(tools);}const secondary=list[1].querySelector('[data-bible-verses]'),rowsRight=new Map([...secondary.querySelectorAll('[data-bible-row]')].map(row=>[row.dataset.bibleRow,row]));for(const row of primary.querySelectorAll('[data-bible-row]')){const pair=rowsRight.get(row.dataset.bibleRow);if(!pair)continue;const label=document.createElement('span');label.className='bible-comparison-label';label.dataset.comparisonLabel='';label.textContent=secondaryLabel;pair.prepend(label);pair.classList.add('bible-secondary-verse');moved.set(pair,{container:secondary,next:pair.nextSibling});row.after(pair);}return;}
   const containers=list.map(panel=>panel.querySelector('[data-bible-verses]'));
   const top=Math.max(...containers.map(node=>node.getBoundingClientRect().top));
   for(const node of containers)node.style.paddingTop=(top-node.getBoundingClientRect().top)+'px';
@@ -52,6 +55,7 @@ export function bindBibleComparison(layout,state={selected:new Set(),anchor:null
  function register(panel,controller){panels.set(panel,controller);return ()=>panels.delete(panel);}
  async function navigate(source){state.selected.clear();state.anchor=null;await Promise.all([...panels].filter(([panel])=>panel.isConnected).map(([,controller])=>controller.navigate(source)));}
  function rendered(panel){
+  restore();
   // A translation may omit an address (or have no verses in this chapter).
   // Keep an explicit empty row rather than pairing different verse numbers.
   const orderedKeys=keys();
@@ -66,5 +70,5 @@ export function bindBibleComparison(layout,state={selected:new Set(),anchor:null
   panel.querySelectorAll('[data-verse-key]').forEach(input=>input.onchange=()=>{Object.assign(state,extendBibleSelection(state,input.dataset.verseKey,keys()));update();});update();schedule();
  }
  mobile.addEventListener('change',schedule);
- return {register,navigate,rendered,schedule};
+ return {register,navigate,rendered,schedule,restore};
 }
