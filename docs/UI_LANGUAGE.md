@@ -84,6 +84,8 @@ Studio의 UI 원칙은 **Glanceable · Calm · Contextual · Connected · Shoot-
 
 프로젝트 선택기는 617개의 채움형 아이콘을 제공한다. 검색, 분류, 한 번에 48개 결과 보기, 키보드 탐색을 지원한다. 저장된 기존 아이콘 ID는 호환성을 유지한다. 프로젝트/배치 팔레트와 아이콘은 선택 창 안에서 고르고, 검색 중에도 기존 선택 값은 보존한다. 색상 선택에는 보조기기용 이름이 있다.
 
+홈 레일은 굴뚝 없는 집, 자료 레일은 살짝 기울어 겹친 문서 두 장을 사용한다. 참고 이미지에 맞춘 Studio 전용 도형을 `src/design-system/icons/workspace-icons.js`에 outline/filled 쌍으로 등록하고 공통 512px 렌더러로 표시한다. 선택 상태·크기·접근성 이름·이동 동작은 기존 레일 규칙을 유지한다.
+
 아이콘 및 시각 리소스의 원본:
 - src/design-system/primitives/icons.js 및 src/design-system/icons/ionicons.js: Ionicons 8.0.13 내비게이션·일반 UI 아이콘의 outline/filled 쌍과 SVG 렌더러
 - src/design-system/icons/IONICONS-LICENSE.txt: Ionicons MIT 라이선스
