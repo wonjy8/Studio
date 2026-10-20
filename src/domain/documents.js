@@ -5,7 +5,7 @@ const id=prefix=>prefix+'-'+crypto.randomUUID(),identity=value=>typeof value==='
 export const blockText=block=>(block.content||[]).map(run=>run.text).join('');
 export function safeDocumentUrl(value,{image=false}={}){if(typeof value!=='string'||value.length>2000||value!==value.trim())return false;try{const url=new URL(value);return (image?['http:','https:']:['http:','https:','mailto:']).includes(url.protocol)&&(!['http:','https:'].includes(url.protocol)||Boolean(url.hostname));}catch{return false;}}
 export function newBlock(type='paragraph',text=''){if(!Object.hasOwn(blockTypes,type))throw Error('블록 종류를 확인하세요.');return {id:id('block'),type,content:text?[{text}]:[],...(type==='todo'?{checked:false}:{})};}
-export const newDocument=(title='제목 없음')=>({id:id('document'),title,blocks:[newBlock()]});
+export const newDocument=(title='제목 없음')=>({id:id('document'),title:title.trim().slice(0,200)||'제목 없음',blocks:[newBlock()]});
 export function validDocuments(documents){
  if(!Array.isArray(documents)||documents.length>100||new Set(documents.map(d=>d?.id)).size!==documents.length)return false;let characters=0;
  for(const doc of documents){if(!doc||Object.keys(doc).some(k=>!['id','title','blocks'].includes(k))||!identity(doc.id)||typeof doc.title!=='string'||!doc.title.trim()||doc.title.length>200||!Array.isArray(doc.blocks)||!doc.blocks.length||doc.blocks.length>2000||new Set(doc.blocks.map(b=>b?.id)).size!==doc.blocks.length)return false;
@@ -14,5 +14,5 @@ export function validDocuments(documents){
  }}return true;
 }
 export function duplicateBlock(block){return {...structuredClone(block),id:id('block')};}
-export function duplicateDocument(doc){return {id:id('document'),title:(doc.title+' (복사)').slice(0,200),blocks:doc.blocks.map(duplicateBlock)};}
+export function duplicateDocument(doc){return {id:id('document'),title:doc.title.slice(0,195)+' (복사)',blocks:doc.blocks.map(duplicateBlock)};}
 export function moveBlock(blocks,fromId,toId,after=false){const next=structuredClone(blocks),from=next.findIndex(b=>b.id===fromId);if(from<0||fromId===toId)return next;const [block]=next.splice(from,1),to=next.findIndex(b=>b.id===toId);if(to<0)throw Error('이동할 블록을 찾을 수 없습니다.');next.splice(to+Number(after),0,block);return next;}
