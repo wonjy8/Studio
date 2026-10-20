@@ -1,0 +1,19 @@
+// Fictional provider navigation exercises real browser SameSite cookie behavior.
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {createApp} from '../server/index.js';
+import {hashPassword} from '../server/auth.js';
+const {chromium}=await import(process.env.STUDIO_PLAYWRIGHT_MODULE||'playwright');
+const dir=await mkdtemp('/tmp/studio-oauth-browser-');let origin;
+const fetcher=async(input,options={})=>{const url=new URL(input);let value;
+ if(url.hostname==='oauth2.googleapis.com')value={access_token:'fictional-access',refresh_token:'fictional-refresh',expires_in:3600,scope:'openid email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/tasks'};
+ else if(url.hostname==='openidconnect.googleapis.com')value={sub:'fictional-subject',email:'fictional@example.invalid',email_verified:true};
+ else value={items:[]};return new Response(JSON.stringify(value));};
+// Reserve through the app, then use a second instance with its exact public origin.
+const probe=await createApp({dir,origin:'http://localhost',secure:false});await new Promise(r=>probe.server.listen(0,'127.0.0.1',r));const port=probe.server.address().port;await new Promise(r=>probe.server.close(r));origin='http://127.0.0.1:'+port;
+const app=await createApp({dir,origin,secure:false,google:{clientId:'fictional-client',clientSecret:'fictional-secret',fetcher,pollMs:0}});app.db.prepare('INSERT INTO users VALUES(?,?,?)').run('browser','browser',await hashPassword('Fictional!OAuth2026'));await new Promise(r=>app.server.listen(port,'127.0.0.1',r));const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
+try{const page=await browser.newPage(),observed=[];await page.route('https://accounts.google.com/**',route=>{const auth=new URL(route.request().url()),callback=new URL(auth.searchParams.get('redirect_uri'));callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'fictional-code'});return route.fulfill({contentType:'text/html; charset=utf-8',body:'<!doctype html><a href="'+callback.href.replaceAll('&','&amp;')+'">Fictional consent continue</a>'});});page.on('request',req=>{if(new URL(req.url()).pathname.startsWith('/oauth/google/'))observed.push({strict:req.headers().cookie?.includes('studio_session=')||false,proof:req.headers().cookie?.includes('_return=')||false});});
+ await page.goto(origin);await page.locator('[name=username]').fill('browser');await page.locator('[name=password]').fill('Fictional!OAuth2026');await page.locator('#login [type=submit]').click();await page.locator('.workspace-rail').waitFor();await page.goto(origin+'/browser/settings/connections');
+ for(const service of ['calendar','tasks']){await page.locator('[data-'+service+'-connect]').click();await page.getByText('Fictional consent continue').click();await page.waitForURL('**/settings/connections?'+service+'=connected');await page.locator(service==='calendar'?'[data-calendar-disconnect]':'[data-tasks-disconnect]').waitFor();}
+ assert.equal(observed.length,2);assert.ok(observed.every(item=>!item.strict&&item.proof));await page.goto(origin+'/oauth/google/tasks/callback?state=fictional-invalid&code=fictional-code');assert.ok(await page.getByRole('heading',{name:'Google Tasks 연결을 완료하지 못했습니다'}).count());assert.equal(await page.getByText('Google Calendar 연결을 완료하지 못했습니다').count(),0);await page.getByRole('link',{name:'연결 설정으로 돌아가기'}).click();await page.locator('[data-tasks-disconnect]').waitFor();console.log('PASS real Chromium cross-site Calendar/Tasks returns: Strict session withheld, scoped return proof present, connection saved, UTF-8 service error and settings recovery');
+}finally{await browser.close();await new Promise(r=>app.server.close(r));await rm(dir,{recursive:true,force:true});}
