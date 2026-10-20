@@ -1,3 +1,4 @@
+import {nivOmissions} from '../src/domain/bible-omissions.js';
 import {bibleBooks} from '../src/domain/bible.js';
 import {inflateRawSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
@@ -32,7 +33,7 @@ export function notionScriptureNotes(files){
 
 // These NIV references intentionally have no main-text verse in the supplied source.
 // Omit only those empty rows; never synthesize text or renumber the surrounding verses.
-const nivOmissions=new Set(['마태복음:17:21','마태복음:18:11','마태복음:23:14','마가복음:7:16','마가복음:9:44','마가복음:9:46','마가복음:11:26','마가복음:15:28','누가복음:17:36','누가복음:23:17','요한복음:5:4','사도행전:8:37','사도행전:15:34','사도행전:24:7','사도행전:28:29','로마서:16:24']);
+
 export function notionBibleVerses(files){
  const candidates=[...files].filter(([name])=>/\.csv$/i.test(name)),preferred=candidates.filter(([name])=>!/_all\.csv$/i.test(name));
  for(const [name,text]of preferred.length?preferred:candidates){
