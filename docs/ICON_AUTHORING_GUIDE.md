@@ -18,7 +18,7 @@ Studio에서 새 아이콘을 만들거나 기존 아이콘을 수정할 때 적
 
 ## 기존 아이콘 언어와 구현 기준
 
-- 공통 UI와 내비게이션 아이콘은 중앙 `icon()` 렌더러와 Ionicons 8.0.13의 SVG 자산을 사용한다. 화면별 임의 SVG나 별도 아이콘 라이브러리를 추가하지 않는다.
+- 공통 UI·내비게이션·배치도·조명 아이콘은 중앙 렌더러와 Ionicons 8.0.13의 SVG 자산을 사용한다. 화면별 임의 SVG나 별도 아이콘 라이브러리를 추가하지 않는다.
 - Ionicons 원본 SVG의 `512 × 512 viewBox`를 유지한다. 기존 프로젝트 선택 아이콘은 해당 카탈로그의 캔버스를 유지한다.
 - 선형과 채움형은 Ionicons에서 같은 이름의 `-outline` 파일과 기본 파일을 한 쌍으로 가져온다. `-sharp` 파일은 사용하지 않는다.
 - 현재 맥락에 맞는 Ionicons를 재사용한다. 새 아이콘은 두 변형을 함께 등록하고 `src/design-system/icons/ionicons.js`의 이름 연결을 갱신한다.
@@ -39,4 +39,6 @@ Studio에서 새 아이콘을 만들거나 기존 아이콘을 수정할 때 적
 - `docs/UI_LANGUAGE.md` — 공통 아이콘 언어와 UI 디자인 기준
 - `docs/UI_CONTROL_STANDARDS.md` — 아이콘 버튼 크기와 조작 영역
 - `docs/PROJECT_ICONS.md` — 프로젝트 아이콘 카탈로그·출처·라이선스
-- `src/design-system/primitives/icons.js` — 공통 SVG 렌더러와 기본 아이콘
+- `src/design-system/primitives/icons.js` — 공통 SVG 렌더러와 내비게이션 아이콘 이름 연결
+- `src/design-system/primitives/layout-icons.js` — 배치도·조명 아이콘 이름 연결
+- `src/design-system/icons/ionicons.js` — Ionicons outline/filled SVG 경로
