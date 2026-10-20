@@ -31,7 +31,7 @@ test('links are validated, tagged, searchable metadata and do not fetch private 
  const invalid=await call('materials','POST',{url:'javascript:alert(1)',title:'bad'});assert.equal(invalid.status,400);
  const created=await call('materials','POST',{url:'http://127.0.0.1:1/private',title:'Fictional location',category:'Location',tags:'interview, night',description:'safe note'});
  assert.equal(created.status,201);assert.equal(created.body.item.title,'Fictional location');assert.deepEqual(created.body.item.tags,['interview','night']);assert.equal(created.body.item.previewTitle,'');
- const updated=await call('materials+'/'+created.body.item.id,'PUT',{title:'Updated location',category:'Place',tags:['night','exterior'],description:'updated'});
+ const updated=await call('materials/'+created.body.item.id,'PUT',{title:'Updated location',category:'Place',tags:['night','exterior'],description:'updated'});
  assert.equal(updated.status,200);assert.deepEqual(updated.body.item.tags,['night','exterior']);
  assert.equal((await call('materials','GET',undefined,'b')).body.items.length,0);
 });
