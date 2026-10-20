@@ -33,3 +33,6 @@
 - `node --test tests/scripture.test.js`: ZIP/CSV, 노션 노트, 성경 구절, 계정 분리, 저장 충돌, 중복 QT, 삭제 정리.
 - `STUDIO_PLAYWRIGHT_MODULE=... node tools/qa-scripture-browser.mjs`: 합성 본문과 QT 응답을 사용하는 브라우저 검증.
 - `STUDIO_QA_NOTION_ZIP=/path/to/private-export.zip`을 함께 지정하면 해당 파일을 로컬 임시 DB로만 가져와 확인한다. 업로드 파일·본문을 커밋하지 않는다.
+
+
+책 선택은 구약·신약 그룹으로 구분한다. 가져온 본문에 명시된 `<제목>`은 해당 절 위 소제목으로 표시하고, `a)` 등 표식에 대응하는 주석은 현재 본문 맨 아래에 모은다. 주석 표식과 본문 위치는 서로 연결되며 주석 속 성경 이름/약어와 장:절은 해당 장의 구절로 이동한다. 원본 CSV와 저장 본문은 변경하지 않으므로 기존 가져오기에도 적용된다.
