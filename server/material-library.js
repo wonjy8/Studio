@@ -1,3 +1,4 @@
+import {initializeMaterialIndex} from './material-index.js';
 import {randomUUID} from 'node:crypto';
 import {lookup} from 'node:dns/promises';
 import {isIP} from 'node:net';
@@ -73,7 +74,7 @@ const parseTags=value=>{
  return clean;
 };
 function serialize(row){
- return {id:row.id,kind:row.kind,fileId:row.file_id||null,fileName:row.file_name||null,mimeType:row.mime_type||null,size:row.size??null,url:row.url||'',title:row.title,description:row.description||'',category:row.category||'',tags:JSON.parse(row.tags||'[]'),previewTitle:row.preview_title||'',previewDescription:row.preview_description||'',previewImage:row.preview_image||'',uploadedAt:row.uploaded_at||null};
+ return {id:row.id,kind:row.kind,fileId:row.file_id||null,fileName:row.file_name||null,mimeType:row.mime_type||null,size:row.size??null,url:row.url||'',title:row.title,description:row.description||'',category:row.category||'',tags:JSON.parse(row.tags||'[]'),previewTitle:row.preview_title||'',previewDescription:row.preview_description||'',previewImage:row.preview_image||'',uploadedAt:row.uploaded_at||null,metadata:row.index_metadata?JSON.parse(row.index_metadata):null};
 }
 export function registerMaterialFile(db,userId,file){
  const now=Date.now();
@@ -95,14 +96,14 @@ export function registerNewProjectDocuments(db,userId,next,previous){
  for(const project of [next,...(next.projects||[])])for(const doc of project.documents||[])if(!oldByProject.get(project.project.id||'project-main')?.has(doc.id))db.prepare('INSERT OR IGNORE INTO material_document_dates VALUES(?,?,?,?)').run(userId,project.project.id||'project-main',doc.id,Date.now());
 }
 export function materialLibraryRoutes(db,{initialize=true,preview=true}={}){
- if(initialize){ db.exec("CREATE TABLE IF NOT EXISTS materials(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind TEXT NOT NULL CHECK(kind IN ('file','link')),file_id TEXT REFERENCES files(id) ON DELETE CASCADE,url TEXT,title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',category TEXT NOT NULL DEFAULT '',tags TEXT NOT NULL DEFAULT '[]',preview_title TEXT NOT NULL DEFAULT '',preview_description TEXT NOT NULL DEFAULT '',preview_image TEXT NOT NULL DEFAULT '',uploaded_at INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(user_id,file_id),CHECK((kind='file' AND file_id IS NOT NULL AND url IS NULL) OR (kind='link' AND file_id IS NULL AND url IS NOT NULL)))");
+ if(initialize){ initializeMaterialIndex(db);db.exec("CREATE TABLE IF NOT EXISTS materials(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind TEXT NOT NULL CHECK(kind IN ('file','link')),file_id TEXT REFERENCES files(id) ON DELETE CASCADE,url TEXT,title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',category TEXT NOT NULL DEFAULT '',tags TEXT NOT NULL DEFAULT '[]',preview_title TEXT NOT NULL DEFAULT '',preview_description TEXT NOT NULL DEFAULT '',preview_image TEXT NOT NULL DEFAULT '',uploaded_at INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(user_id,file_id),CHECK((kind='file' AND file_id IS NOT NULL AND url IS NULL) OR (kind='link' AND file_id IS NULL AND url IS NOT NULL)))");
  db.prepare("INSERT OR IGNORE INTO materials(id,user_id,kind,file_id,url,title,description,category,tags,uploaded_at,created_at,updated_at) SELECT id,user_id,'file',id,NULL,name,'','','[]',NULL,0,0 FROM files").run();
  db.exec('CREATE TABLE IF NOT EXISTS material_document_dates(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,project_id TEXT NOT NULL,document_id TEXT NOT NULL,created_at INTEGER,PRIMARY KEY(user_id,project_id,document_id))');
  for(const row of db.prepare('SELECT user_id,body FROM document_library').all())for(const doc of JSON.parse(row.body))db.prepare('INSERT OR IGNORE INTO material_document_dates VALUES(?,?,?,NULL)').run(row.user_id,'account',doc.id);
  for(const row of db.prepare('SELECT user_id,body FROM workspaces').all()){const state=JSON.parse(row.body);for(const project of [state,...(state.projects||[])])for(const doc of project.documents||[])db.prepare('INSERT OR IGNORE INTO material_document_dates VALUES(?,?,?,NULL)').run(row.user_id,project.project.id||'project-main',doc.id);}
 }
  const documentDates=userId=>Object.fromEntries(db.prepare('SELECT project_id,document_id,created_at FROM material_document_dates WHERE user_id=?').all(userId).map(row=>[row.project_id+':'+row.document_id,row.created_at]));
- const query=userId=>db.prepare("SELECT m.*,f.name file_name,f.type mime_type,length(f.bytes) size FROM materials m LEFT JOIN files f ON f.id=m.file_id AND f.user_id=m.user_id WHERE m.user_id=? ORDER BY COALESCE(m.uploaded_at,m.created_at) DESC,m.rowid DESC").all(userId).map(serialize);
+ const query=userId=>db.prepare("SELECT m.*,f.name file_name,f.type mime_type,length(f.bytes) size,mi.body index_metadata FROM materials m LEFT JOIN files f ON f.id=m.file_id AND f.user_id=m.user_id LEFT JOIN material_file_metadata mi ON mi.file_id=f.id AND mi.user_id=m.user_id WHERE m.user_id=? ORDER BY COALESCE(m.uploaded_at,m.created_at) DESC,m.rowid DESC").all(userId).map(serialize);
  return async({path,req,res,session,json,readJson})=>{
   if(!path.startsWith('/api/materials'))return false;
   if(!session){json(401,{error:'Login required'});return true;}
