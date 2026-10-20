@@ -1,3 +1,4 @@
+import {validDocuments} from './documents.js';
 import {validSchedule,validDate} from './calendar.js';
 import {gearCategories,lightingTypes,layoutKinds,validTableGeometry} from './layout.js';
 import {projectIconIds} from '../design-system/icons/catalog.js';
@@ -5,7 +6,7 @@ export const projectIcons=projectIconIds;
 import {identityColors} from './colors.js';
 export const projectColors=identityColors;
 export function emptyWorkspace() {
-  return {project:{name:'새 프로젝트',date:'',time:'',location:''},contents:[],schedule:[],members:[],gear:[],cameras:[],layoutObjects:[],refs:[],tasks:[],settings:{aiConnected:false,provider:''}};
+  return {project:{name:'새 프로젝트',date:'',time:'',location:''},contents:[],schedule:[],members:[],gear:[],cameras:[],layoutObjects:[],refs:[],tasks:[],documents:[],settings:{aiConnected:false,provider:''}};
 }
 export function validateWorkspace(value) {
   if (!value || typeof value !== 'object') return false;
@@ -26,6 +27,7 @@ export function workspaceFileIds(value){
 function validateProject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const base = emptyWorkspace();
+  if(value.documents!==undefined&&!validDocuments(value.documents))return false;
   if (Object.keys(value).some(k => !(k in base))) return false;
   const text = x => typeof x === 'string' && x.length <= 2000;
   const fields = (o, names) => o && names.every(k => text(o[k]));
@@ -47,7 +49,7 @@ function validateProject(value) {
   }
   for(const item of value.layoutObjects||[]){if(!item||!/^[a-zA-Z0-9_-]{1,80}$/.test(item.id)||ids.has(item.id))return false;ids.add(item.id);}
   if(value.project.placeholder!==undefined&&typeof value.project.placeholder!=='boolean')return false;
-  if(value.project.placeholder&&(value.project.name!=='새 프로젝트'||value.project.date||value.project.time||value.project.location||value.project.description||['contents','schedule','members','gear','cameras','refs','tasks','layoutObjects'].some(key=>value[key]?.length)))return false;
+  if(value.project.placeholder&&(value.project.name!=='새 프로젝트'||value.project.date||value.project.time||value.project.location||value.project.description||['contents','schedule','members','gear','cameras','refs','tasks','documents','layoutObjects'].some(key=>value[key]?.length)))return false;
   const status = x => ['ready','check','problem'].includes(x);
   if (!value.contents.every(x => fields(x,['name','time','location']) && (x.date===undefined||x.date===''||validDate(x.date)) && status(x.status) && typeof x.script === 'boolean' && (x.completed === undefined || typeof x.completed === 'boolean') && (!x.scriptFile || /^[a-f0-9-]{36}$/.test(x.scriptFile)))) return false;
   for(const shoot of value.contents){

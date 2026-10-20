@@ -1,6 +1,6 @@
 import {icon} from '../design-system/primitives/icons.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
-export const projectTabs=[['home','홈','home'],['schedule','일정','calendar'],['tasks','할 일','book'],['camera','카메라','camera'],['references','레퍼런스','image'],['members','멤버','people'],['gear','장비','gear'],['shoot','촬영 모드','play'],['project-settings','설정','settings']];
+export const projectTabs=[['home','홈','home'],['schedule','일정','calendar'],['tasks','할 일','book'],['references','문서','book'],['members','멤버','people'],['project-settings','설정','settings']];
 export function projectNavigation(state,view,open,session={}){
  const projects=[state,...(state.projects||[])].map(p=>p.project).filter(p=>!p.placeholder).sort((a,b)=>(a.order||0)-(b.order||0));
  const equipment=['equipment-catalog','material-equipment','member-equipment','inventory','inventory-outstanding','inventory-history','inventory-checkout','inventory-settings','admin-equipment'].includes(view),materials=['library','dataspace'].includes(view),adminWorkspace=Boolean(session.isAdmin&&['admin','contacts','admin-invitations','admin-organizations','admin-projects'].includes(view)),settings=view==='settings';
