@@ -327,3 +327,32 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 @media(max-width:900px){.scripture-font-controls button{min-width:44px}}
 
 .scripture-reader .scripture-footnotes{font-size:min(var(--text-page),calc(var(--text-support) + var(--bible-size-offset,0rem)))}
+
+/* QT journals and scripture share one set of per-account verse annotations. */
+.qt-editor-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.qt-editor-toolbar h2{margin:0 auto 0 0;font-size:var(--text-title);font-weight:500}
+.qt-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start}
+.qt-journal{min-width:0;padding-right:32px;border-right:1px solid var(--line)}
+.qt-journal>section{margin-bottom:32px}
+.qt-journal h3,.qt-scripture>h3{margin:0 0 12px;font-size:var(--text-section);font-weight:500}
+.qt-journal textarea{display:block;width:100%;min-height:96px;resize:vertical;box-sizing:border-box}
+.qt-journal ol{margin:0 0 8px;padding-left:24px;counter-reset:qt-item;list-style:none}
+.qt-journal li{position:relative;display:flex;gap:8px;margin-bottom:12px;counter-increment:qt-item}
+.qt-journal li:before{position:absolute;right:calc(100% + 8px);top:10px;content:counter(qt-item) '.';color:var(--muted);font-size:var(--text-body)}
+.qt-item-content{flex:1;min-width:0}.qt-journal li textarea{min-height:64px}
+.qt-item-remove{flex:none;align-self:flex-start}
+.qt-prayer-person{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.qt-prayer-person input{flex:1;min-width:100px}
+.qt-scripture{min-width:0;width:100%;max-width:none;position:sticky;top:16px;max-height:calc(100dvh - 140px);overflow:auto;padding:0 4px 12px}
+.qt-scripture .scripture-verse{cursor:text}.qt-scripture .scripture-verse-number{font-size:var(--text-meta)}
+.qt-original p{white-space:pre-wrap;font-size:var(--text-body);overflow-wrap:anywhere}
+.qt-create-row{background:var(--selected)}
+.bible-annotation{margin:0 0 8px 40px!important;font-size:var(--text-support)}
+.scripture-workspace .bible-annotation summary{font-size:var(--text-support);padding:4px 0;overflow-wrap:anywhere}
+.bible-annotation-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px;background:var(--surface-2);border-radius:var(--r-control)}
+.bible-annotation-fields .field{margin:0}.bible-annotation-memo{grid-column:1/-1}
+.bible-annotation textarea{width:100%;min-height:80px;box-sizing:border-box;resize:vertical}
+.scripture-verse-text{border-radius:4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+@media(max-width:900px){.qt-split{grid-template-columns:1fr;gap:24px}.qt-journal{padding:0;border:0}.qt-scripture{position:static;max-height:none;border-top:1px solid var(--line);padding-top:20px}.qt-prayer-person{flex-direction:column}.bible-annotation{margin-left:28px!important}}
+.qt-editor-toolbar [hidden],.qt-journal [hidden],.bible-annotation [hidden],.qt-scripture [hidden]{display:none!important}
+.qt-journal textarea,.bible-annotation textarea,.qt-prayer-person input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-control);padding:10px;line-height:1.6}
+@media(max-width:900px){.qt-journal textarea,.bible-annotation textarea,.qt-prayer-person input{font-size:16px}}
