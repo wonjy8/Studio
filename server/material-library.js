@@ -32,7 +32,7 @@ async function readLimited(response,limit){
  return new TextDecoder().decode(Buffer.concat(chunks.map(chunk=>Buffer.from(chunk))));
 }
 const decode=value=>String(value||'').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).trim();
-const meta=(html,key)=>{const patterns=[new RegExp('<meta[^>]+(?:property|name)=["\\']'+key+'["\\'][^>]+content=["\\']([^"\\']*)["\\'][^>]*>','i'),new RegExp('<meta[^>]+content=["\\']([^"\\']*)["\\'][^>]+(?:property|name)=["\\']'+key+'["\\'][^>]*>','i')];for(const pattern of patterns){const match=html.match(pattern);if(match)return decode(match[1]);}return '';};
+const meta=(html,key)=>{for(const tag of html.match(/<meta\b[^>]*>/gi)||[]){const name=tag.match(/\b(?:property|name)\s*=\s*["']([^"']+)["']/i)?.[1];if(name!==key)continue;return decode(tag.match(/\bcontent\s*=\s*["']([^"']*)["']/i)?.[1]||'');}return '';};
 async function previewFor(input){
  let url=normalizedLink(input);if(!url)return {};
  for(let redirects=0;redirects<=3;redirects++){
