@@ -12,24 +12,31 @@ export function homeWorkspacePage({state,account}={}){
   .sort((a,b)=>(a.shoot.date||a.project.date||'').localeCompare(b.shoot.date||b.project.date||'')||String(a.shoot.time||'').localeCompare(String(b.shoot.time||'')));
  const tasks=projects.flatMap(item=>(item.tasks||[]).filter(task=>!task.completed).map(task=>({task,project:item.project,shoot:item.contents?.find(shoot=>shoot.id===task.shootId)})))
   .sort((a,b)=>(a.task.date||'9999').localeCompare(b.task.date||'9999')||a.project.name.localeCompare(b.project.name,'ko'));
- return `<section class="home-workspace">
-  <div class="home-workspace-metrics" aria-label="작업 요약">
-   <article class="home-workspace-metric"><span>프로젝트</span><strong>${projects.length}</strong></article>
-   <article class="home-workspace-metric"><span>앞으로 7일 촬영</span><strong>${shoots.length}</strong></article>
-   <article class="home-workspace-metric"><span>남은 할 일</span><strong>${tasks.length}</strong></article>
-  </div>
-  <div class="home-workspace-columns">
-   <section class="home-workspace-panel home-upcoming-panel"><div class="section-head"><h2>가까운 촬영</h2><span class="sub">앞으로 7일</span></div>
-    <div class="home-workspace-list">${shoots.slice(0,5).map(({shoot,project})=>`<div class="home-workspace-row"><span class="home-workspace-date">${esc((shoot.date||project.date||'').replace(/-/g,'.'))}</span><span class="home-workspace-row-copy"><strong>${esc(shoot.name)}</strong><small>${esc(project.name)} · ${esc(shoot.time||'시간 미정')}</small></span></div>`).join('')||'<div class="empty">예정된 촬영이 없습니다.</div>'}</div>
-   </section>
-   <section class="home-workspace-panel home-qt-panel" data-home-qt aria-label="오늘 QT"><p class="sub" role="status">오늘 QT를 불러오는 중…</p></section>
-   <section class="home-workspace-panel"><div class="section-head"><h2>내 프로젝트</h2><span class="sub">${projects.length}개</span></div>
-    <div class="home-workspace-projects">${projects.map(item=>`<button type="button" class="home-workspace-project" data-project="${esc(item.project.id)}"><span class="project-glyph color-${esc(item.project.color)}">${icon(item.project.icon,{solid:true})}</span><span class="home-workspace-project-copy"><strong>${esc(item.project.name)}</strong><small>${(item.tasks||[]).filter(task=>!task.completed).length}개 할 일 · ${(item.contents||[]).length}개 촬영</small></span>${icon('chevron')}</button>`).join('')||'<div class="empty">아직 프로젝트가 없습니다.</div>'}</div>
-   </section>
-   <section class="home-workspace-panel"><div class="section-head"><h2>남은 할 일</h2><span class="sub">${tasks.length}개</span></div>
-    <div class="home-workspace-list">${tasks.slice(0,6).map(({task,project,shoot})=>`<div class="home-workspace-row"><span class="home-workspace-task-mark" aria-hidden="true"></span><span class="home-workspace-row-copy"><strong>${esc(task.name)}</strong><small>${esc(project.name)}${shoot?` · ${esc(shoot.name)}`:''}${task.date?` · ${esc(task.date.replace(/-/g,'.'))}`:''}</small></span></div>`).join('')||'<div class="empty">남은 할 일이 없습니다.</div>'}</div>
-   </section>
-
+ const totalTasks=projects.reduce((sum,item)=>sum+(item.tasks||[]).length,0),completed=totalTasks-tasks.length;
+ const projectProgress=item=>{const all=item.tasks||[],done=all.filter(task=>task.completed).length;return {all:all.length,done,percent:all.length?Math.round(done/all.length*100):0};};
+ const shortcut=(view,title,detail)=>`<button type="button" class="home-shortcut" data-view="${view}"><span>${title}</span><small>${detail}</small>${icon('chevron')}</button>`;
+ return `<section class="home-workspace home-command">
+  <div class="home-command-brand"><span class="home-brand-mark" aria-hidden="true">${icon('production',{solid:true})}</span><h2>STUDIO<span>WORKSPACE</span></h2><p>PROJECTS · PEOPLE · EVERYDAY</p></div>
+  <section class="home-workspace-panel home-project-directory"><div class="section-head"><h2>내 프로젝트</h2><span class="home-count">${projects.length} PROJECTS</span></div>
+   <div class="home-workspace-projects">${projects.map(item=>{const progress=projectProgress(item);return `<button type="button" class="home-workspace-project" data-project="${esc(item.project.id)}"><span class="home-project-dot" aria-hidden="true"></span><span class="home-workspace-project-copy"><strong>${esc(item.project.name)}</strong><small>${(item.contents||[]).length}개 촬영 · ${progress.all-progress.done}개 남은 할 일</small></span><span class="home-project-progress"><span>${progress.all?progress.percent+'% 완료':'시작 전'}</span><span class="home-progress-track" aria-hidden="true"><span style="width:${progress.percent}%"></span></span></span>${icon('chevron')}</button>`;}).join('')||'<div class="empty">아직 프로젝트가 없습니다.</div>'}</div>
+  </section>
+  <section class="home-workspace-panel home-command-center"><div class="section-head"><h2>오늘의 작업</h2><button class="home-section-link" data-view="workspace-schedule">일정 보기 ${icon('chevron')}</button></div>
+   <div class="home-workspace-metrics" aria-label="작업 요약">
+    <article class="home-workspace-metric"><span>PROJECTS · 프로젝트</span><strong>${projects.length}</strong></article>
+    <article class="home-workspace-metric"><span>UPCOMING · 7일 촬영</span><strong>${shoots.length}</strong></article>
+    <article class="home-workspace-metric"><span>TO DO · 남은 할 일</span><strong>${tasks.length}</strong></article>
+    <article class="home-workspace-metric"><span>DONE · 완료한 할 일</span><strong>${completed}</strong></article>
+   </div>
+   <div class="home-workspace-columns">
+    <section class="home-upcoming-panel"><div class="section-head"><h3>가까운 촬영</h3><span class="sub">앞으로 7일</span></div><div class="home-workspace-list">${shoots.slice(0,5).map(({shoot,project})=>`<button type="button" class="home-workspace-row" ${openAttributes(project,'schedule',shoot.date||project.date||'')}><span class="home-workspace-date">${esc((shoot.date||project.date||'').slice(5).replace('-','.'))}</span><span class="home-workspace-row-copy"><strong>${esc(shoot.name)}</strong><small>${esc(project.name)} · ${esc(shoot.time||'시간 미정')}</small></span>${icon('chevron')}</button>`).join('')||'<div class="empty">예정된 촬영이 없습니다.</div>'}</div></section>
+    <section class="home-qt-panel" data-home-qt aria-label="오늘 QT"><p class="sub" role="status">오늘 QT를 불러오는 중…</p></section>
+   </div>
+   <section class="home-pending-tasks"><div class="section-head"><h3>남은 할 일</h3><button class="home-section-link" data-view="workspace-tasks">전체 보기 ${icon('chevron')}</button></div><div class="home-workspace-list">${tasks.slice(0,5).map(({task,project,shoot})=>`<button type="button" class="home-workspace-row" ${openAttributes(project,'tasks')}><span class="home-workspace-task-mark" aria-hidden="true"></span><span class="home-workspace-row-copy"><strong>${esc(task.name)}</strong><small>${esc(project.name)}${shoot?` · ${esc(shoot.name)}`:''}</small></span>${task.date?`<span class="home-task-date">${esc(task.date.slice(5).replace('-','.'))}</span>`:''}${icon('chevron')}</button>`).join('')||'<div class="empty">남은 할 일이 없습니다.</div>'}</div></section>
+  </section>
+  <div class="home-destinations">
+   <section class="home-workspace-panel"><div class="section-head"><h2>PRODUCTION <small>제작</small></h2></div>${shortcut('workspace-schedule','일정','촬영과 프로젝트 일정')}${shortcut('workspace-tasks','할 일','진행할 작업')}</section>
+   <section class="home-workspace-panel"><div class="section-head"><h2>RESOURCES <small>자료</small></h2></div>${shortcut('materials','모든 자료','파일 · 문서 · 레퍼런스')}${shortcut('member-equipment','장비','멤버 · 조직 장비')}</section>
+   <section class="home-workspace-panel"><div class="section-head"><h2>PERSONAL <small>기록</small></h2></div>${shortcut('scripture-qt','QT','오늘의 말씀과 묵상')}${shortcut('scripture-prayers','기도제목','나와 함께하는 사람들')}</section>
   </div>
  </section>`;
 }
