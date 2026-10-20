@@ -79,6 +79,13 @@ export function registerMaterialFile(db,userId,file){
  const now=Date.now();
  db.prepare("INSERT INTO materials(id,user_id,kind,file_id,title,description,category,tags,uploaded_at,created_at,updated_at) VALUES(?,?,'file',?,?,?,'','[]',?,?,?) ON CONFLICT(user_id,file_id) DO UPDATE SET title=excluded.title,updated_at=excluded.updated_at").run(file.id,userId,file.id,file.name,'',now,now,now);
 }
+export async function registerReferenceLink(db,userId,reference){
+ const url=normalizedLink(reference.url);if(!url)return null;
+ const existing=db.prepare("SELECT id FROM materials WHERE user_id=? AND kind='link' AND url=?").get(userId,url.href);if(existing)return existing.id;
+ const tags=parseTags(reference.tags)||[],preview=await previewFor(url.href),now=Date.now(),id=randomUUID();
+ db.prepare("INSERT INTO materials(id,user_id,kind,file_id,url,title,description,category,tags,preview_title,preview_description,preview_image,uploaded_at,created_at,updated_at) VALUES(?,?,'link',NULL,?,?,?,?,?,?,?,?,?,?,?)").run(id,userId,url.href,reference.name||preview.previewTitle||url.hostname,reference.notes||'',reference.collection||'',JSON.stringify(tags),preview.previewTitle||'',preview.previewDescription||'',preview.previewImage||'',now,now,now);
+ return id;
+}
 export function registerNewAccountDocuments(db,userId,current,next){
  const previous=new Set((current||[]).map(doc=>doc.id));
  for(const doc of next||[])if(!previous.has(doc.id))db.prepare('INSERT OR IGNORE INTO material_document_dates VALUES(?,?,?,?)').run(userId,'account',doc.id,Date.now());
@@ -90,6 +97,7 @@ export function registerNewProjectDocuments(db,userId,next,previous){
 export function materialLibraryRoutes(db){
  db.exec("CREATE TABLE IF NOT EXISTS materials(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind TEXT NOT NULL CHECK(kind IN ('file','link')),file_id TEXT REFERENCES files(id) ON DELETE CASCADE,url TEXT,title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',category TEXT NOT NULL DEFAULT '',tags TEXT NOT NULL DEFAULT '[]',preview_title TEXT NOT NULL DEFAULT '',preview_description TEXT NOT NULL DEFAULT '',preview_image TEXT NOT NULL DEFAULT '',uploaded_at INTEGER,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(user_id,file_id),CHECK((kind='file' AND file_id IS NOT NULL AND url IS NULL) OR (kind='link' AND file_id IS NULL AND url IS NOT NULL)))");
  db.prepare("INSERT OR IGNORE INTO materials(id,user_id,kind,file_id,url,title,description,category,tags,uploaded_at,created_at,updated_at) SELECT id,user_id,'file',id,NULL,name,'','','[]',NULL,0,0 FROM files").run();
+ if(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='reference_library'").get())for(const row of db.prepare('SELECT user_id,body FROM reference_library').all()){const ref=JSON.parse(row.body),url=normalizedLink(ref.url||'');if(!url||db.prepare("SELECT id FROM materials WHERE user_id=? AND kind='link' AND url=?").get(row.user_id,url.href))continue;db.prepare("INSERT INTO materials(id,user_id,kind,file_id,url,title,description,category,tags,uploaded_at,created_at,updated_at) VALUES(?,?,'link',NULL,?,?,?,?,?,?,NULL,0,0)").run(randomUUID(),row.user_id,url.href,ref.name||url.hostname,ref.notes||'',ref.collection||'',JSON.stringify(parseTags(ref.tags)||[]));}
  db.exec('CREATE TABLE IF NOT EXISTS material_document_dates(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,project_id TEXT NOT NULL,document_id TEXT NOT NULL,created_at INTEGER,PRIMARY KEY(user_id,project_id,document_id))');
  for(const row of db.prepare('SELECT user_id,body FROM document_library').all())for(const doc of JSON.parse(row.body))db.prepare('INSERT OR IGNORE INTO material_document_dates VALUES(?,?,?,NULL)').run(row.user_id,'account',doc.id);
  for(const row of db.prepare('SELECT user_id,body FROM workspaces').all()){const state=JSON.parse(row.body);for(const project of [state,...(state.projects||[])])for(const doc of project.documents||[])db.prepare('INSERT OR IGNORE INTO material_document_dates VALUES(?,?,?,NULL)').run(row.user_id,project.project.id||'project-main',doc.id);}
