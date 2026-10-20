@@ -1,9 +1,9 @@
 import {validDocuments} from '../src/domain/documents.js';
 import {registerNewAccountDocuments} from './material-library.js';
 // Account documents are independent of the currently selected project.
-export function documentLibraryRoutes(db){
+export function documentLibraryRoutes(db,{initialize=true}={}){if(initialize){
  db.exec('CREATE TABLE IF NOT EXISTS document_library(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,body TEXT NOT NULL,revision INTEGER NOT NULL)');
- return async({path,req,session,json,readJson})=>{
+ }return async({path,req,session,json,readJson})=>{
   if(path!=='/api/document-library')return false;
   if(!session){json(401,{error:'Login required'});return true;}
   const uid=session.user_id,read=()=>{const row=db.prepare('SELECT body,revision FROM document_library WHERE user_id=?').get(uid);return {documents:row?JSON.parse(row.body):[],revision:row?.revision||0};};

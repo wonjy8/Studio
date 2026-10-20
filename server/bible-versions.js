@@ -9,8 +9,8 @@ export function bibleVersionMetadata(bible){
  const language=known?.[2]||(/[가-힣]/.test(bible.verses.slice(0,20).map(v=>v.text).join(''))||normalizedTitle==='표준새번역'?'ko':'en');
  return {id:'version-'+createHash('sha256').update(normalizedTitle.toLowerCase()).digest('hex').slice(0,20),title:normalizedTitle||'성경',language};
 }
-export function bibleVersionStore(db){
- db.exec(`CREATE TABLE IF NOT EXISTS scripture_versions(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,id TEXT NOT NULL,title TEXT NOT NULL,language TEXT NOT NULL,fingerprint TEXT NOT NULL,imported_at INTEGER NOT NULL,PRIMARY KEY(user_id,id));
+export function bibleVersionStore(db,{initialize=true}={}){
+ if(initialize)db.exec(`CREATE TABLE IF NOT EXISTS scripture_versions(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,id TEXT NOT NULL,title TEXT NOT NULL,language TEXT NOT NULL,fingerprint TEXT NOT NULL,imported_at INTEGER NOT NULL,PRIMARY KEY(user_id,id));
  CREATE TABLE IF NOT EXISTS scripture_version_verses(user_id TEXT NOT NULL,version_id TEXT NOT NULL,book TEXT NOT NULL,chapter INTEGER NOT NULL,verse INTEGER NOT NULL,body TEXT NOT NULL,testament TEXT NOT NULL,book_order INTEGER NOT NULL,PRIMARY KEY(user_id,version_id,book,chapter,verse),FOREIGN KEY(user_id,version_id) REFERENCES scripture_versions(user_id,id) ON DELETE CASCADE);`);
  const bookCache=new Map();let bookCacheStamp='';
  const legacy=uid=>db.prepare('SELECT title,fingerprint,imported_at importedAt FROM scripture_bibles WHERE user_id=?').get(uid);

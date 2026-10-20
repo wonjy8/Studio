@@ -189,7 +189,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     } catch(e) {if(!res.headersSent) json(e.status|| (e.code==='ENOENT'?404:500),{error:e.status===413?'Request too large':(e.status&&pathForError(req.url)?e.message:'Request failed')});else res.end();}
   });
   server.requestTimeout=30000;server.headersTimeout=10000;
-  server.on('close',()=>{googleSheets.close();db.close();});
+  server.on('close',()=>{handleMcp.close();googleSheets.close();db.close();});
   return {server,db,googleSheets};
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)) {

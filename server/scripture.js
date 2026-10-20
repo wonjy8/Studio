@@ -9,12 +9,12 @@ import {parseBiblePassage,parseBiblePassages} from '../src/domain/bible.js';
 import {readNotionZip,notionScriptureNotes,notionBibleVerses} from './notion-scripture-import.js';
 import {dailyQtService} from './daily-qt.js';
 const fail=(message,status=400)=>Object.assign(Error(message),{status});
-export function scriptureRoutes(db,{fetcher,bibleFetcher,githubToken=process.env.BIBLE_GITHUB_TOKEN}={}){
- db.exec(`CREATE TABLE IF NOT EXISTS scripture_notes(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,body TEXT NOT NULL,revision INTEGER NOT NULL,external_id TEXT,qt_date TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(user_id,external_id),UNIQUE(user_id,qt_date));CREATE INDEX IF NOT EXISTS scripture_notes_owner ON scripture_notes(user_id,updated_at);
+export function scriptureRoutes(db,{fetcher,bibleFetcher,githubToken=process.env.BIBLE_GITHUB_TOKEN,initialize=true}={}){
+ if(initialize)db.exec(`CREATE TABLE IF NOT EXISTS scripture_notes(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,body TEXT NOT NULL,revision INTEGER NOT NULL,external_id TEXT,qt_date TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL,UNIQUE(user_id,external_id),UNIQUE(user_id,qt_date));CREATE INDEX IF NOT EXISTS scripture_notes_owner ON scripture_notes(user_id,updated_at);
  CREATE TABLE IF NOT EXISTS scripture_verses(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,book TEXT NOT NULL,chapter INTEGER NOT NULL,verse INTEGER NOT NULL,body TEXT NOT NULL,testament TEXT NOT NULL,book_order INTEGER NOT NULL,PRIMARY KEY(user_id,book,chapter,verse));
  CREATE TABLE IF NOT EXISTS scripture_annotations(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,book TEXT NOT NULL,chapter INTEGER NOT NULL,verse INTEGER NOT NULL,body TEXT NOT NULL,revision INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(user_id,book,chapter,verse));
  CREATE TABLE IF NOT EXISTS scripture_bibles(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,title TEXT NOT NULL,fingerprint TEXT NOT NULL,imported_at INTEGER NOT NULL);`);
- const versions=bibleVersionStore(db),github=githubBibleSource({token:githubToken,fetcher:bibleFetcher});
+ const versions=bibleVersionStore(db,{initialize}),github=githubBibleSource({token:githubToken,fetcher:bibleFetcher});
  const applied=new Map();
  const qt=dailyQtService({fetcher}),rowNote=row=>({...JSON.parse(row.body),revision:row.revision,createdAt:row.created_at,updatedAt:row.updated_at,externalId:row.external_id,automaticQt:Boolean(row.qt_date)}),read=(uid,id)=>db.prepare('SELECT * FROM scripture_notes WHERE user_id=? AND id=?').get(uid,id);
  const create=(uid,note,{externalId=null,qtDate=null}={})=>{if(!validScriptureNote(note))throw fail('말씀 노트 내용을 확인하세요.');if(db.prepare('SELECT count(*) n FROM scripture_notes WHERE user_id=?').get(uid).n>=5000)throw fail('노트는 최대 5000개입니다.');const now=Date.now();db.prepare('INSERT INTO scripture_notes VALUES(?,?,?,1,?,?,?,?)').run(note.document.id,uid,JSON.stringify(note),externalId,qtDate,now,now);return rowNote(read(uid,note.document.id));};
