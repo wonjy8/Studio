@@ -34,3 +34,9 @@ test('cached book summaries remain private and refresh after translation or data
  db.prepare('INSERT INTO scripture_version_verses VALUES(?,?,?,?,?,?,?,?)').run('owner',ko.id,'출애굽기',1,1,'추가 본문','구약',1);
  assert.equal(read().books.length,2,'database changes invalidate metadata');
 });
+
+test('full browser download contains only the selected account and translation in canonical order',t=>{
+ const {store}=fixture(t),value=fake('새번역성경.csv','가상의 한글');value.verses.push({book:'창세기',chapter:2,verse:1,text:'둘째 장',testament:'구약',order:0});
+ const ko=store.save('owner',value,'download-ko');store.save('owner',fake('NIV.csv','Fictional English'),'download-en');
+ const data=store.read('owner',new URLSearchParams({download:'1',version:ko.id}));assert.equal(data.verses.length,2);assert.deepEqual(data.verses.map(v=>v.chapter),[1,2]);assert.ok(data.verses.every(v=>!v.text.includes('English')));assert.equal(store.read('other',new URLSearchParams({download:'1'})).verses.length,0);assert.throws(()=>store.read('other',new URLSearchParams({download:'1',version:ko.id})),{status:404});
+});

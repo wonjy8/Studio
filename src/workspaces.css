@@ -412,3 +412,9 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .bible-aligned-row{min-width:0}
 .bible-reading-layout.is-split .bible-row-heading .scripture-section-heading{margin:16px 0 8px}
 .bible-reading-layout.is-split .scripture-chapter-heading{flex-wrap:wrap}
+
+/* A selected passage is one continuous surface, including aligned blank space. */
+.bible-aligned-row.is-selected{background:var(--selected);border-radius:0}
+.bible-aligned-row.is-selected .scripture-verse{background:transparent;border-radius:0}
+.bible-aligned-row.is-selected.selection-start{border-top-left-radius:var(--r-control);border-top-right-radius:var(--r-control)}
+.bible-aligned-row.is-selected.selection-end{border-bottom-left-radius:var(--r-control);border-bottom-right-radius:var(--r-control)}

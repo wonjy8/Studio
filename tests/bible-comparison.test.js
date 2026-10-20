@@ -1,19 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {bibleVerseKey,extendBibleSelection} from '../src/features/bible-comparison.js';
-const verses=Array.from({length:9},(_,i)=>bibleVerseKey({book:'창세기',chapter:1,verse:i+1}));
-test('each successive click extends from the previous endpoint, including backwards ranges',()=>{
+const verses=Array.from({length:10},(_,i)=>bibleVerseKey({book:'창세기',chapter:1,verse:i+1}));
+test('range stays anchored at the first verse and shrinks to the latest endpoint',()=>{
  let state={selected:new Set(),anchor:null};
- state=extendBibleSelection(state,verses[1],verses,true);
- state=extendBibleSelection(state,verses[5],verses,true);
- assert.deepEqual([...state.selected],verses.slice(1,6));
- state=extendBibleSelection(state,verses[8],verses,true);
- assert.equal(state.selected.size,8);
  state=extendBibleSelection(state,verses[0],verses,true);
- assert.equal(state.selected.size,9);
- state=extendBibleSelection(state,verses[4],verses,false);
- assert.equal(state.selected.has(verses[4]),false);
- assert.equal(state.selected.size,8);
+ state=extendBibleSelection(state,verses[9],verses,true);assert.deepEqual([...state.selected],verses);
+ state=extendBibleSelection(state,verses[6],verses,true);assert.deepEqual([...state.selected],verses.slice(0,7));assert.equal(state.anchor,verses[0]);
+ state=extendBibleSelection(state,verses[0],verses,true);assert.deepEqual([...state.selected],[verses[0]]);
+});
+test('fixed-anchor selection crosses backwards and starts afresh after clearing',()=>{
+ let state={selected:new Set(),anchor:null};state=extendBibleSelection(state,verses[6],verses,true);state=extendBibleSelection(state,verses[0],verses,true);assert.deepEqual([...state.selected],verses.slice(0,7));
+ state=extendBibleSelection(state,verses[9],verses,true);assert.deepEqual([...state.selected],verses.slice(6));
+ state={selected:new Set(),anchor:null};state=extendBibleSelection(state,verses[4],verses,true);assert.deepEqual([...state.selected],[verses[4]]);
 });
 test('canonical addresses distinguish books and chapters and ignore translation lengths',()=>{
  assert.notEqual(bibleVerseKey({book:'창세기',chapter:1,verse:1}),bibleVerseKey({book:'창세기',chapter:2,verse:1}));

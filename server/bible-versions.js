@@ -30,10 +30,11 @@ export function bibleVersionStore(db){
   const books=structuredClone(bookCache.get(cacheKey));
   const passages=parseBiblePassages(params.get('passage')||''),book=params.get('book'),chapter=Number(params.get('chapter')),search=params.get('q')?.trim().slice(0,200)||'';
   let verses=[];const fields='book,chapter,verse,body text';
-  if(passages){const found=new Map();for(const passage of passages){const rows=db.prepare(`SELECT ${fields} FROM ${source} WHERE ${condition} AND book=? AND chapter>=? AND chapter<=? AND (chapter<>? OR verse>=?) AND (chapter<>? OR verse<=?) ORDER BY chapter,verse LIMIT 501`).all(...args,passage.book,passage.chapter,passage.endChapter,passage.chapter,passage.start,passage.endChapter,passage.end);for(const row of rows)found.set(`${row.book}:${row.chapter}:${row.verse}`,row);if(found.size>500)throw Object.assign(Error('성경 본문은 한 번에 500절까지 선택하세요.'),{status:400});}verses=[...found.values()];}
+  if(params.get('download')==='1')verses=db.prepare(`SELECT ${fields} FROM ${source} WHERE ${condition} ORDER BY book_order,chapter,verse`).all(...args);
+  else if(passages){const found=new Map();for(const passage of passages){const rows=db.prepare(`SELECT ${fields} FROM ${source} WHERE ${condition} AND book=? AND chapter>=? AND chapter<=? AND (chapter<>? OR verse>=?) AND (chapter<>? OR verse<=?) ORDER BY chapter,verse LIMIT 501`).all(...args,passage.book,passage.chapter,passage.endChapter,passage.chapter,passage.start,passage.endChapter,passage.end);for(const row of rows)found.set(`${row.book}:${row.chapter}:${row.verse}`,row);if(found.size>500)throw Object.assign(Error('성경 본문은 한 번에 500절까지 선택하세요.'),{status:400});}verses=[...found.values()];}
   else if(book&&Number.isSafeInteger(chapter)&&chapter>0)verses=db.prepare(`SELECT ${fields} FROM ${source} WHERE ${condition} AND book=? AND chapter=? ORDER BY verse`).all(...args,book,chapter);
   else if(search)verses=db.prepare(`SELECT ${fields} FROM ${source} WHERE ${condition} AND instr(body,?)>0 ORDER BY book_order,chapter,verse LIMIT 100`).all(...args,search);
-  const clean=({fingerprint,...value})=>value;
+  const clean=({fingerprint,...value})=>({...value,revision:createHash('sha256').update(fingerprint).digest('hex')});
   return {bible:selected?clean(selected):null,versions:versions.map(clean),books,verses};
  }
  function save(uid,bible,fingerprint){
