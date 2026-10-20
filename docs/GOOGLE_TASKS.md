@@ -1,5 +1,6 @@
 # Google Tasks
 
+Current connection UI: use the single Google button in Settings → 연결; see [Unified Google connection](GOOGLE_CONNECTION.md). Existing service callbacks below remain supported for compatibility. Home has content/empty states only, without connection setup links.
 설정 → 연결 → Google Tasks에서 각 사용자가 직접 연결합니다. 홈에는 연결한 할 일의 완료 상태와 연결 설정 이동 링크만 표시합니다. 기존 Google OAuth 클라이언트와 서버 암호화 키를 재사용하지만 Calendar·Sheets와 토큰, 동의 상태, 연결 테이블을 분리합니다. 기존 연결의 권한을 자동으로 확대하지 않습니다. MCP에는 개인 Google 데이터와 연동 설정을 노출하지 않습니다.
 
 관리자는 Google Cloud에서 Tasks API를 활성화하고 `/oauth/google/tasks/callback`의 공개 origin 전체 URI를 기존 OAuth 클라이언트에 등록해야 합니다. 동의 화면의 테스트 사용자·게시 상태도 확인합니다. 요청 범위는 `openid email https://www.googleapis.com/auth/tasks`이며, 실제 각 사용자 승인 없이 연결하지 않습니다.
