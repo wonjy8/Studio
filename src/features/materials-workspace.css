@@ -1,0 +1,52 @@
+/* All Materials gallery follows the shared workspace tokens. */
+.production-app .materials-workspace{width:100%;max-width:none}
+.production-app .materials-toolbar{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin:0 0 16px}
+.production-app .materials-toolbar>.field{margin:0;min-width:150px}
+.production-app .materials-toolbar .materials-search{flex:1;min-width:220px}
+.production-app .materials-toolbar .field>span{display:block;margin-bottom:6px;color:var(--muted);font-size:var(--text-support)}
+.production-app .materials-upload{position:relative;overflow:hidden;display:inline-flex;align-items:center;cursor:pointer;min-height:44px}
+.production-app .materials-upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.production-app .materials-tabs{display:flex;gap:8px;overflow:auto;margin:0 0 20px;padding:0 0 8px;border-bottom:1px solid var(--line)}
+.production-app .materials-tabs button{flex:0 0 auto;min-height:40px;padding:8px 14px;border:0;border-radius:var(--r-control);background:transparent;color:var(--muted);font:inherit;cursor:pointer}
+.production-app .materials-tabs button.active,.production-app .materials-tabs button[aria-pressed=true]{background:var(--selected);color:var(--ink);font-weight:500}
+.production-app .materials-gallery{columns:5 210px;column-gap:16px}
+.production-app .materials-card{display:inline-block;width:100%;break-inside:avoid;vertical-align:top;margin:0 0 16px;overflow:hidden;border:1px solid var(--line);border-radius:var(--r-surface);background:var(--surface);box-shadow:0 1px 3px #18181b08}
+.production-app .materials-card-preview{display:grid;place-items:center;width:100%;min-height:130px;padding:0;border:0;background:var(--surface-2);cursor:pointer}
+.production-app .materials-card-preview img,.production-app .materials-card-preview video{display:block;width:100%;max-height:440px;object-fit:cover}
+.production-app .materials-preview-placeholder{display:grid;place-items:center;width:100%;height:150px;color:var(--muted)}
+.production-app .materials-preview-placeholder svg{width:30px;height:30px}
+.production-app .materials-card-body{display:grid;gap:8px;padding:12px}
+.production-app .materials-card-meta{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:var(--text-meta)}
+.production-app .materials-card-title{padding:0;border:0;background:none;text-align:left;color:var(--ink);font-size:var(--text-title);font-weight:500;line-height:1.4;cursor:pointer}
+.production-app .materials-card-body p{margin:0;color:var(--muted);font-size:var(--text-support);line-height:1.5;overflow-wrap:anywhere}
+.production-app .materials-card-url{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;color:var(--muted);font-size:var(--text-meta);overflow-wrap:anywhere}
+.production-app .materials-category{width:max-content;max-width:100%;padding:3px 7px;border-radius:999px;background:var(--surface-2);font-size:var(--text-meta)}
+.production-app .materials-tags{display:flex;flex-wrap:wrap;gap:4px}
+.production-app .materials-tag{color:var(--muted);font-size:var(--text-meta)}
+.production-app .materials-card-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.production-app .materials-card-actions .btn{min-height:32px;padding:5px 8px;font-size:var(--text-support)}
+.production-app .materials-link-form{margin:0 0 20px;padding:20px}
+.production-app .materials-link-fields{display:grid;grid-template-columns:2fr 2fr 1fr 2fr;gap:12px}
+.production-app .materials-link-form[hidden]{display:none}
+.production-app .materials-dialog{width:min(860px,calc(100vw - 32px));max-height:calc(100svh - 32px);padding:0;border:1px solid var(--line);border-radius:var(--r-panel);background:var(--surface);color:var(--ink);box-shadow:0 24px 80px #0003;overflow:auto}
+.production-app .materials-dialog::backdrop{background:#18181b66}
+.production-app .materials-dialog-content{padding:20px}
+.production-app .materials-dialog-content>header,.production-app .materials-edit-form>header,.production-app .materials-reference-picker>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.production-app .materials-dialog-content h2,.production-app .materials-edit-form h2,.production-app .materials-reference-picker h2{margin:0;font-size:var(--text-section)}
+.production-app .materials-dialog-image,.production-app .materials-dialog-video{display:block;max-width:100%;max-height:70svh;margin:0 auto 16px;object-fit:contain}
+.production-app .materials-file-open{display:grid;justify-items:center;gap:12px;padding:48px 16px}
+.production-app .materials-file-open svg{width:48px;height:48px;color:var(--muted)}
+.production-app .materials-edit-form,.production-app .materials-reference-picker{padding:20px}
+.production-app .materials-reference-picker select{width:100%}
+.production-app .materials-card button:focus-visible,.production-app .materials-dialog button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media(max-width:900px){.production-app .materials-gallery{columns:3 200px}.production-app .materials-link-fields{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.production-app .materials-gallery{columns:2 145px;column-gap:10px}.production-app .materials-card{margin-bottom:10px}.production-app .materials-card-actions .btn{min-height:40px}.production-app .materials-toolbar{align-items:stretch}.production-app .materials-toolbar>.field{flex:1 1 130px}.production-app .materials-link-fields{grid-template-columns:1fr}.production-app .materials-dialog{max-height:calc(100svh - 24px)}}
+
+/* References use the same compact catalog cards while keeping the selected editor in context. */
+.production-app .reference-gallery-workspace{width:100%;max-width:none}
+.production-app .reference-gallery-workspace .reference-editor-slot:empty{display:none}
+.production-app .reference-gallery-workspace .reference-editor{margin:0 0 20px;padding:20px}
+.production-app .reference-gallery-workspace .reference-card{cursor:pointer}
+.production-app .reference-gallery-workspace .reference-card[aria-pressed=true]{background:var(--selected);outline:2px solid var(--blue);outline-offset:2px}
+.production-app .reference-gallery-workspace .reference-card .catalog-photo img{display:block;width:100%;height:100%;object-fit:cover;border-radius:8px}
+.production-app .reference-gallery-workspace .reference-card .catalog-photo>.icon{width:36px;height:36px;margin:auto}
