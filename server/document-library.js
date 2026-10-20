@@ -14,7 +14,8 @@ export function documentLibraryRoutes(db){
    // A response-loss retry is safe only when the submitted complete value matches.
    if(body===JSON.stringify(current.documents)){json(200,current);return true;}
    if(data.revision!==current.revision){json(409,{error:'Documents changed. Reload before editing.'});return true;}
-   db.prepare('INSERT INTO document_library VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET body=excluded.body,revision=excluded.revision').run(uid,body,current.revision+1);
+   const changed=current.revision===0?db.prepare('INSERT INTO document_library VALUES(?,?,1) ON CONFLICT(user_id) DO NOTHING').run(uid,body):db.prepare('UPDATE document_library SET body=?,revision=revision+1 WHERE user_id=? AND revision=?').run(body,uid,data.revision);
+   if(!changed.changes){json(409,{error:'Documents changed. Reload before editing.'});return true;}
    json(200,{documents:data.documents,revision:current.revision+1});return true;
   }
   json(405,{error:'Method not allowed'});return true;
