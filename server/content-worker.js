@@ -61,7 +61,7 @@ async function snapshot(uid,args){
  if(spec.detail&&!id&&args.resource==='catalog')return invoke(spec.service,uid,spec.collection+'?'+new URLSearchParams({q:args.query||'',offset:String(args.offset||0),limit:String(args.limit||25)}));
  if(spec.project){const current=readWorkspace(db,uid),project=[current.state,...current.state.projects||[]].find(p=>p.project.id===args.projectId);if(!project)throw Error('Project not found');return {documents:project.documents||[],revision:current.revision};}
  if(spec.annotation){if(!args.book||!Number.isSafeInteger(args.chapter)||args.chapter<1)throw Error('Book and chapter are required');return invoke(spec.service,uid,spec.collection+'?'+new URLSearchParams({book:args.book,chapter:String(args.chapter)}));}
- if(spec.entry&&args.noteId){const {note}=await invoke(spec.service,uid,'/api/scripture/notes/'+identity(args.noteId));return {entries:(note.qtJournal?.[spec.entry]||[]).map(item=>({...item,noteId:args.noteId}))};}
+ if(spec.entry&&args.noteId){const {note}=await invoke(spec.service,uid,'/api/scripture/notes/'+identity(args.noteId));return {revision:note.revision,entries:(note.qtJournal?.[spec.entry]||[]).map(item=>({...item,noteId:args.noteId}))};}
  if(spec.entry)return invoke(spec.service,uid,spec.collection+'?'+new URLSearchParams({kind:spec.entry,limit:String(args.limit||25),offset:String(args.offset||0),q:args.query||''}));
  if(spec.detail&&id)return invoke(spec.service,uid,base(spec,args)+'/'+identity(id));
  if(spec.detail&&args.resource==='boards')throw Error('Read a reference ID first');

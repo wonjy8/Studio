@@ -249,8 +249,9 @@ test('full content consent is owner-specific; documents and QT use preview/confi
  const stale=await propose({resource:'documents',id},{title:'Stale'});await apply(await propose({resource:'documents',id},{title:'Current'}));assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:stale.proposalId,confirmed:true})).data.result.structuredContent.error,'REVISION_CONFLICT');
  const sermon=await apply(await propose({resource:'notes'},{document:{title:'Partial title'}}));assert.equal(sermon.result.note.document.title,'Partial title');
  const qt=await apply(await propose({resource:'qt'},{date:'2026-10-20'}));const noteId=qt.result.note.document.id;
- const legacy=f.db.prepare('SELECT body FROM scripture_notes WHERE id=?').get(noteId),legacyNote=JSON.parse(legacy.body);delete legacyNote.qtJournal;f.db.prepare('UPDATE scripture_notes SET body=? WHERE id=?').run(JSON.stringify(legacyNote),noteId);
+ const legacy=f.db.prepare('SELECT body FROM scripture_notes WHERE id=?').get(noteId),legacyNote=JSON.parse(legacy.body);delete legacyNote.qtJournal;legacyNote.document.blocks[0].content=[{text:'Legacy reflection preserved'}];f.db.prepare('UPDATE scripture_notes SET body=? WHERE id=?').run(JSON.stringify(legacyNote),noteId);
  await apply(await propose({resource:'gratitude',noteId},{text:'Fictional thanks'}));
+ assert.equal(JSON.parse(f.db.prepare('SELECT body FROM scripture_notes WHERE id=?').get(noteId).body).qtJournal.word,'Legacy reflection preserved');
  const entries=await value({resource:'gratitude',noteId});assert.ok(entries.value.items.some(item=>item.text==='Fictional thanks'));
  const otherGrant=f.db.prepare('SELECT id FROM oauth_grants WHERE user_id=?').get('beta').id;f.db.prepare('INSERT INTO integration_content_consents VALUES(?,?,1,?)').run(otherGrant,'beta',Date.now());
  assert.equal((await read(other,{resource:'documents',id})).data.result.isError,true);assert.equal((await read(other,{resource:'qt',id:noteId})).data.result.isError,true);
