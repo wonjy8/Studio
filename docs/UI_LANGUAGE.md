@@ -92,7 +92,7 @@ Studio의 UI 원칙은 **Glanceable · Calm · Contextual · Connected · Shoot-
 - src/design-system/icons/TABLER-LICENSE.txt: Tabler 라이선스
 - src/design-system/icons/SIMPLE-ICONS-LICENSE.txt: Simple Icons 라이선스
 - src/domain/colors.js 및 src/styles.css: 아이덴티티 색상 이름과 값
-- src/rotation-cursor.svg: 회전 조작 커서
+- src/rotation-cursor.svg: Ionicons 8.0.13 `sync-outline` 기반 회전 조작 커서
 - 로고와 브랜드 표시는 별도 이미지 파일이 아닌 텍스트 및 SVG 컴포넌트로 구성된다.
 
 프로젝트 아이콘 원본은 Tabler Icons 3.34.1(MIT), KakaoTalk 아이콘은 Simple Icons 15.19.0(CC0)에서 가져온다. 라이선스 파일을 함께 유지하고 업스트림 업데이트 시 버전을 검토한다. 인터페이스 설명용 그래픽과 앱 내 조작 아이콘은 목적이 다르므로 혼용하지 않는다.
