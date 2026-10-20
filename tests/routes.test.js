@@ -44,3 +44,11 @@ test('task routes remain separate with task edit dialogs intact',()=>{
 test('documents replace the reference tab while old links remain readable; camera/equipment/mode routes enter the schedule',()=>{assert.equal(routePath({view:'references',project:{id:'p',name:'Name'}}),'/projects/p/name/documents');assert.equal(parseRoute('/projects/p/name/references').view,'references');for(const path of ['camera','equipment','shoot-mode']){const route=parseRoute('/projects/p/name/'+path);assert.equal(route.view,'schedule');assert.equal(route.scheduleView,'list');}});
 
 
+
+test('gratitude and prayer collections retain source QT deep links in account routes',()=>{
+ for(const [view,segment] of [['scripture-gratitude','gratitude'],['scripture-prayers','prayers']]){
+  const path=routePath({view,username:'crew',documentId:'qt-source'});
+  assert.equal(path,`/crew/scripture/${segment}?document=qt-source`);
+  assert.deepEqual(parseRoute(path),{valid:true,view,documentId:'qt-source',username:'crew'});
+ }
+});
