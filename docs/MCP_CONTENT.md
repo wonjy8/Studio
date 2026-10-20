@@ -49,3 +49,7 @@ Run `npm test`, `npm run check`, and `node --test tests/mcp.test.js tests/conten
 ## Exact existing-connection approval preparation
 
 Prefer the self-service button on each connection; no operator needs credentials or tokens. An authorized operator can prepare a single-target review with `DATA_DIR=... node tools/content-consent.js --user EXACT_USERNAME --connection EXACT_UUID`. This defaults to read-only and prints only account/connection identity, current scope and consent status. Add `--approve` only after verifying explicit owner approval for that exact account/connection. There is no all-users/all-grants migration mode. Do not infer the owner from project names. This change does not itself approve any production connection.
+
+## Reading connection diagnostics
+
+`capabilities.services[].access` is the fixed service requirement: `consent-required` remains present even after approval. Never interpret it as a failed or missing approval. Use `capabilities.connection.fullContentApproved`, `requiresOwnerConsent`, `canReadFullContent` and `canWriteFullContent`, which are computed for the exact authenticated grant, plus each service's `effectiveAccess`. These report grant-level capability, not authorization to every individual object; existing object checks still apply. `toolSchemaVersion` and `serverRevision` identify the running MCP response without exposing account IDs or tokens. A full-content-approved connection with only the six old tools needs ChatGPT metadata Refresh and a new conversation, not repeated Studio consent.

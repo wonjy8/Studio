@@ -13,7 +13,7 @@ export const contentServices=Object.freeze({
  handleMaterials:{access:'consent-required',consentVersion:1,content:['materials']},
  handleContacts:{access:'consent-required',consentVersion:1,content:['member-content','member-equipment']},
  handleRentalVendors:{access:'consent-required',consentVersion:1,content:['rental-vendors']},
- handleEquipmentCatalog:{access:'consent-required',consentVersion:1,content:['equipment-catalog']},
+ handleEquipmentCatalog:{access:'consent-required',readOnly:true,consentVersion:1,content:['equipment-catalog']},
  handleInventory:{access:'consent-required',consentVersion:1,content:['personal-equipment','organization-equipment','checkout','returns','history']},
  handleEquipmentSharing:{access:'excluded',reason:'Sharing and permission administration remain in the app.'},
  handleSiteRoles:{access:'excluded',reason:'Account, settings and administrator actions remain in the app.'},
@@ -33,4 +33,7 @@ export function requireContentAccess(service,grant,{write=false,consentVersion=0
  if(!scopes.includes(contract.scope||'studio:read')||(write&&!scopes.includes(contract.writeScope||'studio:write')))throw Error('Content consent is required.');
  return contract;
 }
-export function contentCapabilities(){return {version:contentContractVersion,resources:resourceManifest(),services:Object.entries(contentServices).map(([id,{access,content,operations}])=>({id,access,...(content?{content}:{}),...(operations?{operations:[...operations]}:{})}))};}
+export function contentCapabilities({scope='',consentVersion=0}={}){
+ const scopes=scope.split(' '),read=scopes.includes('studio:read'),write=scopes.includes('studio:write'),approved=consentVersion===1;
+ return {version:contentContractVersion,accessMeaning:'services.access describes a fixed requirement, not this connection approval status',connection:{fullContentConsentVersion:consentVersion,fullContentApproved:approved,requiresOwnerConsent:!approved,canReadFullContent:approved&&read,canWriteFullContent:approved&&read&&write},resources:resourceManifest(),services:Object.entries(contentServices).map(([id,{access,content,operations,readOnly}])=>({id,access,effectiveAccess:access==='excluded'?'excluded':!read?'unavailable':access==='consent-required'&&!approved?'consent-required':write&&!readOnly?'read-write':'read-only',...(content?{content}:{}),...(operations?{operations:[...operations]}:{})}))};
+}
