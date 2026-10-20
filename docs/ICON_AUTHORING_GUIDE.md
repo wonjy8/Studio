@@ -42,3 +42,9 @@ Studio에서 새 아이콘을 만들거나 기존 아이콘을 수정할 때 적
 - `src/design-system/primitives/icons.js` — 공통 SVG 렌더러와 내비게이션 아이콘 이름 연결
 - `src/design-system/primitives/layout-icons.js` — 배치도·조명 아이콘 이름 연결
 - `src/design-system/icons/ionicons.js` — Ionicons outline/filled SVG 경로
+
+## 내비게이션 상태 전환의 외곽 크기
+
+사이드바와 모바일 하단 메뉴는 공통 `navigationIcon` 렌더러를 사용한다. 같은 경로를 선형·채움형으로 쓰는 홈·십자가·기도 아이콘은 채움형에서도 바깥 반 선 두께를 보존한다. 자료 아이콘은 분리선 표현을 보존하면서 채색된 외곽과 중심을 맞추고, 책 아이콘은 원본 두 변형의 아래 끝 차이를 보정한다. SVG 캔버스와 버튼/터치 영역은 바꾸지 않는다. 나머지 일치하는 원본 경로는 그대로 사용한다.
+
+`tools/qa-navigation-icons.mjs`는 512px 캔버스에서 실제 채색 픽셀의 네 외곽선을 비교하고 데스크톱·모바일 크기의 전환 쌍을 촬영한다. 외곽만 맞춰도 내부 선과 무게가 달라 보일 수 있으므로 스크린샷을 함께 검토한다.
