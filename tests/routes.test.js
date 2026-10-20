@@ -52,3 +52,7 @@ test('gratitude and prayer collections retain source QT deep links in account ro
   assert.deepEqual(parseRoute(path),{valid:true,view,documentId:'qt-source',username:'crew'});
  }
 });
+
+test('home schedule and tasks keep independent account-scoped routes from project tabs',()=>{
+ for(const [view,part]of [['workspace-schedule','schedule'],['workspace-tasks','tasks']]){const path=routePath({view,username:'crew'});assert.equal(path,`/crew/dashboard/${part}`);assert.deepEqual(parseRoute(path),{valid:true,view,username:'crew'});assert.equal(parseRoute('/projects/p/name/'+part).view,part);}
+});
