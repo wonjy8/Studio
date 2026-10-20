@@ -190,3 +190,26 @@ test('manual callback repair requires owner approval, exact pending URI, expiry 
  assert.equal((await authorize({})).data.error,'client_revoked');
  assert.equal(f.db.prepare('SELECT count(*) AS n FROM oauth_callback_mismatches').get().n,0);
 });
+
+test('new shoot content supports proposal, confirmation, scoped layout, copy and tasks without exposing other stores',async t=>{
+ const f=await fixture(t),auth=await f.connect('alpha');
+ const change=async(commands)=>{
+  const current=(await f.rpc(auth,'studio_get_project',{projectId:'alpha-project'})).data.result.structuredContent;
+  const proposed=(await f.rpc(auth,'studio_propose_changes',{projectId:'alpha-project',revision:current.revision,commands})).data.result;
+  assert.notEqual(proposed.isError,true,JSON.stringify(proposed));
+  const before=(await f.rpc(auth,'studio_get_project',{projectId:'alpha-project'})).data.result.structuredContent;assert.equal(before.revision,current.revision);
+  const applied=(await f.rpc(auth,'studio_apply_changes',{proposalId:proposed.structuredContent.proposalId,confirmed:true})).data.result;assert.notEqual(applied.isError,true,JSON.stringify(applied));
+  return (await f.rpc(auth,'studio_get_project',{projectId:'alpha-project'})).data.result.structuredContent;
+ };
+ let current=await change([{operation:'add_shoot',values:{name:'Test shoot'}},{operation:'add_member',values:{name:'Test member'}},{operation:'add_equipment',values:{name:'Test camera',category:'camera'}}]);
+ const p=current.project,shootId=p.contents[0].id,memberId=p.members[0].id,gearId=p.gear[0].id;
+ current=await change([{operation:'configure_shoot',entityId:shootId,values:{memberIds:[memberId],gearIds:[gearId]}},{operation:'add_camera',shootId,values:{name:'Shoot camera',gearId}},{operation:'add_task',values:{name:'Prepare',shootId}},{operation:'update_project',values:{description:'Test description'}}]);
+ assert.equal(current.project.cameras.length,0);assert.equal(current.project.contents[0].configuration.cameras.length,1);assert.equal(current.project.tasks[0].shootId,shootId);
+ current=await change([{operation:'update_task',entityId:current.project.tasks[0].id,values:{completed:true}},{operation:'copy_shoot',entityId:shootId,values:{}}]);
+ assert.equal(current.project.contents.length,2);assert.equal(current.project.tasks.length,2);assert.equal(current.project.tasks[1].completed,false);assert.notEqual(current.project.tasks[1].shootId,shootId);
+ const revision=current.revision;
+ for(const commands of [[{operation:'configure_shoot',entityId:shootId,values:{memberIds:['beta-member']}}],[{operation:'add_camera',shootId:'beta-shoot',values:{name:'Invalid',gearId}}],[{operation:'add_task',values:{name:'Invalid',shootId:'beta-shoot'}}]]){
+  assert.equal((await f.rpc(auth,'studio_propose_changes',{projectId:'alpha-project',revision,commands})).data.result.isError,true);
+ }
+ current=await change([{operation:'configure_shoot',entityId:shootId,values:{gearIds:[]}}]);assert.equal(current.project.contents[0].configuration.cameras.length,0);assert.equal(current.project.contents[1].configuration.cameras.length,1);
+});
