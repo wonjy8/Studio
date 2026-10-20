@@ -30,3 +30,20 @@
 .document-comment-row button:first-child{width:auto;justify-content:flex-start;padding-left:var(--control-padding)}
 :is(.app-context-menu,.document-menu,.document-selection-menu) button>.icon{width:var(--control-icon-size);height:var(--control-icon-size);flex:none}
 .password-toggle:focus-visible,.reference-board-size:focus-visible,.document-bottom-add:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+
+/* Theme switch: fixed geometry, state text and native keyboard behavior. */
+.theme-mode-control{gap:12px}
+.theme-mode-control [data-theme-mode-label]{min-width:5em}
+button.theme-mode-toggle{position:relative;display:inline-flex;align-items:center;flex:0 0 76px;width:76px;min-width:76px;height:44px;min-height:44px;padding:4px;border:0;border-radius:999px;background:var(--selected);cursor:pointer;box-shadow:inset 0 0 0 1px var(--line)}
+.theme-mode-thumb{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;color:var(--bg);background:var(--accent);transform:translateX(0);transition:transform .18s ease,background .18s ease}
+.theme-mode-thumb>span{display:grid;place-items:center}
+.theme-mode-thumb .icon{width:22px;height:22px}
+.theme-mode-toggle .theme-mode-moon{display:none}
+button.theme-mode-toggle[aria-checked=true]{background:var(--selected)}
+.theme-mode-toggle[aria-checked=true] .theme-mode-thumb{transform:translateX(32px);background:var(--accent)}
+.theme-mode-toggle[aria-checked=true] .theme-mode-sun{display:none}
+.theme-mode-toggle[aria-checked=true] .theme-mode-moon{display:grid}
+.theme-mode-toggle:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+@media(prefers-reduced-motion:reduce){.theme-mode-thumb{transition:none}}
+
+.accent-choices{display:flex;flex-wrap:wrap;gap:8px}.accent-choice{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-control);cursor:pointer}.accent-choice:has(input:checked){background:var(--selected);border-color:var(--accent)}
