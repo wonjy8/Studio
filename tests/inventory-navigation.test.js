@@ -24,5 +24,21 @@ test('equipment workspace paths retain account scope and never become project ta
  assert.equal(parseRoute('/fictional.operator/inventory/unknown').valid,false);
 });
 test('equipment navigation includes the catalog and rental desks as entries and administrator uses a separate shield',()=>{
- const state=emptyWorkspace(),html=projectNavigation(state,'inventory',false,{isAdmin:true});for(const name of ['멤버 장비','조직 장비','장비 도감','대여소'])assert.ok(html.includes(name));assert.doesNotMatch(html,/전체 장비|반출 현황|반출·반납 내역|data-inventory-collections/);const sidebar=html.match(/<nav class="project-list" aria-label="장비 관리 메뉴">([\s\S]*?)<\/nav>/)[1];assert.equal((sidebar.match(/data-view=/g)||[]).length,4);assert.match(html,/aria-label="자료 워크스페이스"/);assert.match(html,/aria-label="관리자 워크스페이스"/);const admin=html.match(/<button[^>]*aria-label="관리자 워크스페이스"[\s\S]*?<\/button>/)?.[0];assert.ok(admin?.includes(ionIconPaths[ionIconAliases.shield].filled));assert.doesNotMatch(projectNavigation(state,'inventory',false,{}),/aria-label="관리자 워크스페이스"/);
+ const state=emptyWorkspace(),html=projectNavigation(state,'inventory',false,{isAdmin:true});for(const name of ['멤버 장비','조직 장비','장비 도감','대여소'])assert.ok(html.includes(name));assert.doesNotMatch(html,/전체 장비|반출 현황|반출·반납 내역|data-inventory-collections/);const sidebar=html.match(/<nav class="project-list" aria-label="장비 관리 메뉴">([\s\S]*?)<\/nav>/)[1];assert.equal((sidebar.match(/data-view=/g)||[]).length,4);assert.match(html,/aria-label="자료 워크스페이스"/);assert.match(html,/aria-label="관리자 워크스페이스"/);const admin=html.match(/<button[^>]*aria-label="관리자 워크스페이스"[\s\S]*?<\/button>/)?.[0];assert.ok(admin?.includes(ionIconPaths[ionIconAliases.shield].outline));assert.doesNotMatch(projectNavigation(state,'inventory',false,{}),/aria-label="관리자 워크스페이스"/);
+});
+
+test('scripture navigation uses matching happy and prayer hands pairs with filled selection only',()=>{
+ const state=emptyWorkspace(),gratitude=projectNavigation(state,'scripture-gratitude',false,{});
+ assert.ok(ionIconAliases.happy);assert.ok(ionIconAliases.prayerHands);assert.ok(ionIconAliases.cross);
+ assert.ok(ionIconPaths.happy.filled);assert.ok(ionIconPaths.happy.outline);
+ assert.ok(ionIconPaths['prayer-hands'].filled);assert.ok(ionIconPaths['prayer-hands'].outline);
+ assert.ok(ionIconPaths.cross.filled);assert.ok(ionIconPaths.cross.outline);
+ const selected=gratitude.match(/<button class="project-item active" data-view="scripture-gratitude"[\s\S]*?<\/button>/)?.[0];
+ const inactive=gratitude.match(/<button class="project-item " data-view="scripture-prayers"[\s\S]*?<\/button>/)?.[0];
+ assert.ok(selected?.includes(ionIconPaths.happy.filled));
+ assert.ok(inactive?.includes(ionIconPaths['prayer-hands'].outline));
+ const rail=gratitude.match(/<button class="rail-button active" data-view="scripture"[\s\S]*?<\/button>/)?.[0];
+ assert.ok(rail?.includes(ionIconPaths.book.filled));
+ const home=gratitude.match(/<button class="rail-button " data-view="workspace-home"[\s\S]*?<\/button>/)?.[0];
+ assert.ok(home?.includes(ionIconPaths.home.outline));
 });
