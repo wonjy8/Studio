@@ -12,7 +12,7 @@ const paths={
  audio:'<rect x="8" y="2" width="8" height="13" rx="4"/><path d="M5 10v2a7 7 0 0 0 14 0v-2m-7 9v3m-4 0h8"/>',
 
  // Fixed filled camcorder silhouette for the equipment workspace rail.
- camcorder:'<rect x="2" y="8" width="14" height="12" rx="2"/><path d="M17 11 22 8v12l-5-3ZM6 3h6a2 2 0 0 1 2 2v1h-2V5H6v1H4V5a2 2 0 0 1 2-2Z"/>,
+ camcorder:'<g fill="currentColor" stroke="none"><rect x="2" y="8" width="14" height="12" rx="2"/><path d="M17 11 22 8v12l-5-3ZM6 3h6a2 2 0 0 1 2 2v1h-2V5H6v1H4V5a2 2 0 0 1 2-2Z"/></g>',
  shield:'<path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6Z"/><path d="m8 12 3 3 5-6"/>',
  pencil:'<path d="m15 4 5 5M4 16 16 4a2 2 0 0 1 4 4L8 20l-5 1Z"/>',
  production:'<rect x="3" y="7" width="18" height="14" rx="3"/><path d="M3 11h18M4 7l3-4 4 4m-1-4 4 4m-1-4 4 4m-1-4 4 4"/>',
@@ -42,7 +42,7 @@ const filled={
  sd:'<path d="M8 3h10a2 2 0 0 1 2 2v16H4V7l4-4Z"/><path d="M9 4v5m4-5v5m4-5v5" fill="none" stroke="var(--bg,#fff)" stroke-width="1.7" stroke-linecap="round"/><path d="M8 14h8v4H8z" fill="var(--bg,#fff)"/>',
  tripod:'<path d="M8 3h8v5H8zM11 8h2v5h-2zM9 10 4 22h2l5-12zm6 0 5 12h-2l-5-12zm-4 3h2v9h-2zM7 17h10v1H7z"/>',
  audio:'<path d="M8 6a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0V6ZM5 10h2v2a5 5 0 0 0 10 0v-2h2v2a7 7 0 0 1-6 6.93V21h4v2H7v-2h4v-2.07A7 7 0 0 1 5 12v-2Z"/>',
- camcorder:'<g fill="currentColor" stroke="none"><rect x="2" y="8" width="14" height="12" rx="2"/><path d="M17 11 22 8v12l-5-3ZM6 3h6a2 2 0 0 1 2 2v1h-2V5H6v1H4V5a2 2 0 0 1 2-2Z"/></g>',
+ camcorder:'<rect x="2" y="8" width="14" height="12" rx="2"/><path d="M17 11 22 8v12l-5-3ZM6 3h6a2 2 0 0 1 2 2v1h-2V5H6v1H4V5a2 2 0 0 1 2-2Z"/>',
  shield:'<path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3Zm0 2.2 6 2.25V12c0 3.7-5.2 6.9-6 7.35C11.2 18.9 6 15.7 6 12V7.45l6-2.25Z" fill-rule="evenodd"/><path d="m8 12 3 3 5-6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
  pencil:'<path d="m15 4 5 5L8 20l-5 1 1-5L16 4a2 2 0 0 1 4 4Z"/>',
  production:'<path d="M3 7h18v14H3zM4 7l3-4 4 4m-1-4 4 4m-1-4 4 4m-1-4 4 4" />',
