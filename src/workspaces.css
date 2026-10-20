@@ -353,3 +353,11 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .qt-editor-toolbar [hidden],.qt-journal [hidden],.bible-annotation [hidden],.qt-scripture [hidden]{display:none!important}
 .qt-journal textarea,.bible-annotation textarea,.qt-prayer-person input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-control);padding:10px;line-height:1.6}
 @media(max-width:900px){.qt-journal textarea,.bible-annotation textarea,.qt-prayer-person input{font-size:16px}}
+
+.bible-reading-layout{min-width:0}
+.bible-reading-layout.is-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.bible-reading-layout.is-split>.scripture-reader{width:100%;max-width:none;margin:0;min-width:0}
+.bible-reading-layout.is-split>.scripture-reader+section{border-left:1px solid var(--line);padding-left:24px}
+.bible-reading-layout [data-bible-version]{max-width:100%;min-width:120px}
+.bible-reading-layout.is-split .scripture-search-field{flex-basis:100%}
+@media(max-width:760px){.bible-reading-layout.is-split{grid-template-columns:minmax(0,1fr);gap:24px}.bible-reading-layout.is-split>.scripture-reader+section{border-left:0;border-top:1px solid var(--line);padding-left:0;padding-top:24px}}
