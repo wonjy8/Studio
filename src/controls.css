@@ -1,0 +1,32 @@
+/* Shared action metrics load after feature styles. Navigation, calendar chips,
+   canvas resize/drag handles and list/card selectors retain their own roles. */
+:root{--control-height:36px;--control-padding:10px;--control-padding-y:6px;--control-gap:8px;--control-icon-size:18px;--icon-control-size:36px}
+@media(max-width:900px){:root{--control-height:44px;--icon-control-size:44px}}
+:is(.btn,.login-submit):not(.add-surface,[data-admin-org]),.production-app .btn:not(.add-surface,[data-admin-org]),.production-app .materials-card-actions .btn:not(.add-surface,[data-admin-org]){
+ min-height:var(--control-height);padding:var(--control-padding-y) var(--control-padding);box-sizing:border-box;
+ align-items:center;justify-content:center;gap:var(--control-gap);vertical-align:middle;
+ font-size:var(--text-body);line-height:1.25rem;white-space:normal;overflow-wrap:anywhere;max-width:100%;
+}
+:is(.btn,.login-submit):not(.add-surface,[data-admin-org])>.icon,.icon-button>.icon{
+ width:var(--control-icon-size);height:var(--control-icon-size);flex:none;display:block;
+}
+.icon-button,.production-app .icon-button{
+ width:var(--icon-control-size);height:var(--icon-control-size);min-width:var(--icon-control-size);min-height:var(--icon-control-size);
+ padding:0;align-items:center;justify-content:center;box-sizing:border-box;flex-shrink:0;
+}
+.actions:not([hidden]){display:flex;align-items:center;flex-wrap:wrap;gap:var(--control-gap)}
+:is(.inventory-form-actions,.managed-project-actions,.layout-actions,.schedule-add-actions,.sheet-actions,.reference-board-toolbar,.document-toolbar){align-items:center;gap:var(--control-gap);flex-wrap:wrap}
+.password-toggle{top:0;right:0;min-height:var(--control-height);height:var(--control-height);padding:var(--control-padding-y) var(--control-padding);line-height:1.25rem}
+/* Context menu rows are text actions; formatting/swatches and board arrows are
+   square icon actions. Keep their labels, colors and ordering unchanged. */
+:is(.app-context-menu,.document-menu) button,.document-selection-menu :is(.document-selection-type,.document-ai-disabled),.document-bottom-add,.reference-board-size,.reference-board-card-head>[data-board-remove]{
+ min-height:var(--control-height);padding:var(--control-padding-y) var(--control-padding);font-size:var(--text-body);line-height:1.25rem;
+}
+.document-selection-menu button,.document-format-grid button,.document-comment-row button,.document-color-grid.document-menu button,.reference-board-drag,.reference-board-card-actions button{
+ width:var(--icon-control-size);height:var(--icon-control-size);min-width:var(--icon-control-size);min-height:var(--icon-control-size);
+ align-items:center;justify-content:center;box-sizing:border-box;padding:0;flex-shrink:0;
+}
+.document-selection-menu :is(.document-selection-type,.document-ai-disabled){width:100%;height:auto;justify-content:space-between}
+.document-comment-row button:first-child{width:auto;justify-content:flex-start;padding-left:var(--control-padding)}
+:is(.app-context-menu,.document-menu,.document-selection-menu) button>.icon{width:var(--control-icon-size);height:var(--control-icon-size);flex:none}
+.password-toggle:focus-visible,.reference-board-size:focus-visible,.document-bottom-add:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
