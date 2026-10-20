@@ -71,18 +71,13 @@ test('equipment workspace camcorder uses the paired Ionicons outline and filled 
  assert.match(outline,/aria-hidden="true" focusable="false"/);
 });
 
-test('happy face follows the custom expressive line style with an inverted filled pair',()=>{
- const outline=icon('happy'),filled=icon('happy',{solid:true});
- assert.ok(outline.includes(ionIconPaths.happy.outline));
- assert.ok(filled.includes(ionIconPaths.happy.filled));
- assert.match(ionIconPaths.happy.outline,/fill:none;stroke:currentColor/);
- assert.match(ionIconPaths.happy.filled,/fill:currentColor;stroke:none/);
- assert.match(ionIconPaths.happy.filled,/stroke:#fff/);
- assert.match(ionIconPaths.happy.filled,/fill:#fff/);
- assert.doesNotMatch(ionIconPaths.happy.outline,/<circle cx="256"/);
- assert.match(ionIconPaths.happy.filled,/<circle cx="256"[^>]*style="fill:currentColor;stroke:none"/);
- assert.doesNotMatch(ionIconPaths.happy.outline,/m-103 15c38 59/);
- assert.doesNotMatch(ionIconPaths.happy.filled,/m-103 15c38 59/);
+
+test('gratitude thumbs-up icon uses paired Ionicons variants',()=>{
+ const outline=icon('thumbsUp'),filled=icon('thumbsUp',{solid:true});
+ assert.ok(ionIconAliases.thumbsUp);
+ assert.ok(outline.includes(ionIconPaths['thumbs-up'].outline));
+ assert.ok(filled.includes(ionIconPaths['thumbs-up'].filled));
+ assert.match(ionIconPaths['thumbs-up'].outline,/stroke:currentColor/);
  assert.notEqual(outline,filled);
 });
 
