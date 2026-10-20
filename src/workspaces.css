@@ -234,6 +234,7 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .app-context-menu button:hover,.app-context-menu button:focus-visible,.document-menu button:hover,.document-menu button.is-active,.document-rich-menu button[aria-expanded=true]{background:var(--surface-2)}
 .app-context-menu button:disabled{color:var(--muted);cursor:not-allowed;opacity:.55}
 .app-context-menu button .icon{width:22px;height:22px;flex:none;color:var(--muted)}
+.app-context-menu-icon-spacer{width:22px;height:22px;flex:none}
 .app-context-menu-rule{height:1px;margin:8px 4px;background:var(--line)}
 .app-context-menu-status:empty{display:none}
 .app-context-menu-status{padding:6px 10px;color:var(--muted);font-size:var(--text-support)}
