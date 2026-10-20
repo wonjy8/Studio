@@ -12,7 +12,7 @@ const paths={
  audio:'<rect x="8" y="2" width="8" height="13" rx="4"/><path d="M5 10v2a7 7 0 0 0 14 0v-2m-7 9v3m-4 0h8"/>',
 
  // Fixed filled camcorder silhouette for the equipment workspace rail.
- camcorder:'<rect x="2" y="8" width="14" height="12" rx="2"/><path d="M17 11 22 8v12l-5-3ZM6 3h6a2 2 0 0 1 2 2v1h-2V5H6v1H4V5a2 2 0 0 1 2-2Z"/>,
+ camcorder:'<g fill="currentColor" stroke="none"><rect x="2" y="8" width="14" height="12" rx="2"/><path d="M17 11 22 8v12l-5-3ZM6 3h6a2 2 0 0 1 2 2v1h-2V5H6v1H4V5a2 2 0 0 1 2-2Z"/></g>',
  shield:'<path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6Z"/><path d="m8 12 3 3 5-6"/>',
  pencil:'<path d="m15 4 5 5M4 16 16 4a2 2 0 0 1 4 4L8 20l-5 1Z"/>',
  production:'<rect x="3" y="7" width="18" height="14" rx="3"/><path d="M3 11h18M4 7l3-4 4 4m-1-4 4 4m-1-4 4 4m-1-4 4 4"/>',
@@ -65,6 +65,7 @@ const filled={
  close:'<path d="m7 4 5 5 5-5 3 3-5 5 5 5-3 3-5-5-5 5-3-3 5-5-5-5z"/>'
 };
 export function icon(name,{solid=false,outline=false}={}){
+ if(name==='camcorder'&&!outline){const silhouette=paths.camcorder||projectIconPaths.camcorder||filled.camcorder;return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${silhouette}</svg>`;}
  const filledCustom=!outline&&solid&&!filled[name]&&solidProjectIconPaths[name];
  if(filledCustom)return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor" stroke="none">${filledCustom}</svg>`;
  const custom=projectIconPaths[name]||editorIconPaths[name];
