@@ -65,10 +65,10 @@ const filled={
  close:'<path d="m7 4 5 5 5-5 3 3-5 5 5 5-3 3-5-5-5 5-3-3 5-5-5-5z"/>'
 };
 export function icon(name,{solid=false,outline=false}={}){
- const filledCustom=!outline&&solidProjectIconPaths[name];
+ const filledCustom=!outline&&solid&&!filled[name]&&solidProjectIconPaths[name];
  if(filledCustom)return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor" stroke="none">${filledCustom}</svg>`;
  const custom=projectIconPaths[name]||editorIconPaths[name];
- if(custom)return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="${name==='brand-kakaotalk'?'currentColor':'none'}" stroke="${name==='brand-kakaotalk'?'none':'currentColor'}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${custom}</svg>`;
+ if(custom&&!(solid&&filled[name]))return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="${name==='brand-kakaotalk'?'currentColor':'none'}" stroke="${name==='brand-kakaotalk'?'none':'currentColor'}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${custom}</svg>`;
  const fill=solid&&filled[name];
  return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="${fill?'currentColor':'none'}" stroke="${fill?'none':'currentColor'}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${fill||paths[name]||paths.production}</svg>`;
 }
