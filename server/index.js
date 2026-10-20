@@ -3,6 +3,7 @@ import {documentLibraryRoutes} from './document-library.js';
 import {equipmentCatalogRoutes} from './equipment-catalog.js';
 import {syncRepresentatives} from './project-representative.js';
 import {referenceLibraryRoutes,reconcileReferences} from './reference-library.js';
+import {referenceBoardRoutes} from './reference-boards.js';
 import {materialLibraryRoutes,registerMaterialFile,registerNewProjectDocuments} from './material-library.js';
 import {contactRoutes} from './contacts.js';
 import {rentalVendorRoutes} from './rental-vendors.js';
@@ -42,6 +43,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   const handleDocumentLibrary=documentLibraryRoutes(db);
   const handleEquipmentCatalog=equipmentCatalogRoutes(db);
   const handleInventory=inventoryRoutes(db),handleRentalVendors=rentalVendorRoutes(db),handleContacts=contactRoutes(db,{orgCanRead,equipmentProjectScope}),handleReferenceLibrary=referenceLibraryRoutes(db),handleMaterials=materialLibraryRoutes(db);
+  const handleReferenceBoards=referenceBoardRoutes(db);
   syncRepresentatives(db);
   let googleSheets;try{googleSheets=await googleSheetsService(db,{dir,origin,...google});}catch(error){db.close();throw error;}
   const handleEquipmentSharing=equipmentSharingRoutes(db);
@@ -103,6 +105,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleScripture({path,url,req,session,json,readJson,readBody:body,assertLiveMutation}))return;
       if(await handleDocumentLibrary({path,req,session,json,readJson}))return;
       if(await handleReferenceLibrary({path,req,session,json,readJson}))return;
+      if(await handleReferenceBoards({path,req,session,json,readJson}))return;
       if(await handleMaterials({path,req,res,session,json,readJson}))return;
       if(await handleContacts({path,req,session,json,readJson}))return;
       if(await handleRentalVendors({path,req,session,json,readJson}))return;
@@ -194,4 +197,4 @@ if(process.argv[1]===fileURLToPath(import.meta.url)) {
   server.listen(Number(process.env.PORT||8080),'0.0.0.0',()=>console.log('Studio listening'));
 }
 
-function pathForError(url){return url.startsWith('/oauth/')||url.startsWith('/api/connections')||url.startsWith('/api/google')||url.startsWith('/api/contacts')||url.startsWith('/api/admin/contacts')||url.startsWith('/api/reference-library')||url.startsWith('/api/material-equipment')||/^\/api\/projects\/[^/]+\/(contact-selection|reference-library)(?:[/?]|$)/.test(url);}
+function pathForError(url){return url.startsWith('/oauth/')||url.startsWith('/api/connections')||url.startsWith('/api/google')||url.startsWith('/api/contacts')||url.startsWith('/api/admin/contacts')||url.startsWith('/api/reference-library')||url.startsWith('/api/reference-boards')||url.startsWith('/api/material-equipment')||/^\/api\/projects\/[^/]+\/(contact-selection|reference-library)(?:[/?]|$)/.test(url);}
