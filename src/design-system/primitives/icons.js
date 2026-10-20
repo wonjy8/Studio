@@ -1,3 +1,4 @@
+import {editorIconPaths} from '../icons/editor-paths.js';
 import {solidProjectIconPaths} from '../icons/solid-paths.js';
 import {projectIconPaths} from '../icons/paths.js';
 // Original vector artwork, shared across navigation and project identity.
@@ -32,10 +33,10 @@ const paths={
  close:'<path d="m6 6 12 12M6 18 18 6"/>'
 };
 const filled={production:'<path d="M4 8h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2Zm5 4v6l6-3Z" fill-rule="evenodd"/><path d="m3 3 4-1 3 5H3Zm6-1h4l3 5h-4Zm6 0h4l3 5h-4Z"/>',play:'<path d="m7 3 14 9L7 21Z"/>',folder:'<path d="M2 5a2 2 0 0 1 2-2h6l3 4h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2Z"/>',book:'<path d="M2 3c4 0 7 1 9 3v16c-3-2-5-3-9-3Zm20 0c-4 0-7 1-9 3v16c3-2 5-3 9-3Z"/>',camera:'<path d="m8 3-2 3H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3l-2-3Zm4 6a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z" fill-rule="evenodd"/>',sparkle:'<path d="m12 1 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z"/>'};
-export function icon(name,{solid=false}={}){
- const filledCustom=solidProjectIconPaths[name];
+export function icon(name,{solid=false,outline=false}={}){
+ const filledCustom=!outline&&solidProjectIconPaths[name];
  if(filledCustom)return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor" stroke="none">${filledCustom}</svg>`;
- const custom=projectIconPaths[name];
+ const custom=projectIconPaths[name]||editorIconPaths[name];
  if(custom)return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="${name==='brand-kakaotalk'?'currentColor':'none'}" stroke="${name==='brand-kakaotalk'?'none':'currentColor'}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${custom}</svg>`;
  const fill=solid&&filled[name];
  return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="${fill?'currentColor':'none'}" stroke="${fill?'none':'currentColor'}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${fill||paths[name]||paths.production}</svg>`;

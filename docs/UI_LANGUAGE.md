@@ -87,6 +87,7 @@ Studio의 UI 원칙은 **Glanceable · Calm · Contextual · Connected · Shoot-
 - src/design-system/primitives/icons.js: 일반 내비게이션·조작 아이콘과 SVG 렌더러
 - src/design-system/primitives/layout-icons.js: 배치도 오브젝트 및 조명 도형
 - src/design-system/icons/catalog.js, paths.js, solid-paths.js: 프로젝트 아이콘 이름·분류·선/채움 경로
+- src/design-system/icons/editor-paths.js: 같은 Tabler 3.34.1 아이콘팩의 문서 편집용 선형 아이콘 추가분; 공통 렌더러에서 사용
 - src/design-system/icons/TABLER-LICENSE.txt: Tabler 라이선스
 - src/design-system/icons/SIMPLE-ICONS-LICENSE.txt: Simple Icons 라이선스
 - src/domain/colors.js 및 src/styles.css: 아이덴티티 색상 이름과 값
@@ -119,6 +120,29 @@ src/workspaces.css는 기능별 스타일 뒤에 로드되며 공통 워크스�
 
 ### Shoot Mode
 촬영 모드는 한 손 모바일 사용을 위해 큰 터치 목표, NOW/NEXT 계층, 최소한의 주변 UI, 현재 담당 정보, 대본·레퍼런스로 가는 한 번의 동작을 우선한다. 촬영에 영향을 주지 않는 관리 메타데이터는 숨긴다. 검증 질문: 현장에서 휴대전화를 든 사용자가 3초 안에 다음 행동을 파악할 수 있는가?
+
+### Document editing menus
+
+문서 편집 메뉴는 기존 워크스페이스와 같은 색상·타입·컨트롤 토큰을 사용한다. 메뉴 크기를 조정할 때 세로 선택 패널, 블록 작업 목록, 옆으로 열리는 하위 메뉴, 색상 격자라는 형태와 기존 작동 방식은 유지한다.
+
+| 항목 | 기준 |
+| --- | --- |
+| 블록·하위 메뉴 폭 | 280px, 화면 가장자리에서 최소 8px 안쪽 |
+| 선택 서식 패널 폭 | 264px, 서식 동작은 5열 2행 |
+| 색상 격자 폭 | 데스크톱 256px, 900px 이하 264px, 5열 유지 |
+| 표면 | --surface, --ink, --line, --r-surface(14px), --shadow; corner-shape 대체값 제공 |
+| 패널·행 간격 | 패널 8px, 색상 격자 데스크톱 12px; 행 가로 패딩 10px, 아이콘과 글자 간격 8px |
+| 메뉴 글자 | --text-body(13px), 두께 400, 행간 1.5 |
+| 그룹명·단축키 | --text-support(12px), --muted; 단어·글자 수는 --text-meta(11px) |
+| 메뉴 행·검색 입력 | 데스크톱 최소 36px, 900px 이하 최소 44px; --r-control(9px) |
+| 아이콘 버튼·색상 선택 영역 | 데스크톱 32×32px, 900px 이하 44×44px; 색상 견본은 32px 유지 |
+| 아이콘 | 기존 Tabler 3.34.1 선형 아이콘팩, 공통 icon() 렌더러, 22px와 1.7px 선; 색상 견본의 A는 글자색 미리보기 |
+
+블록 핸들 또는 우클릭으로 작업 메뉴를 연다. 검색, 전환, 색상, 복제, 이동, 삭제와 기존 클립보드·블록 추가·정렬 동작을 유지한다. 전환·색상 하위 메뉴는 옆에 배치하고 화면이 좁으면 반대쪽으로 조정한다. 텍스트 선택 메뉴는 선택한 범위를 유지한 채 서식을 적용하며 색상 격자는 패널 위에 붙인다. 최근 사용 색상은 최대 5개를 현재 실행 중인 편집 세션에서 표시한다. 문서의 텍스트·배경 색상은 콘텐츠 서식이므로 프로젝트 식별용 6색 팔레트와 구분한다.
+
+선택한 블록은 --selected 배경으로, 현재 서식 값은 체크 또는 견본 외곽선으로 표시한다. 방향키·Enter·Escape와 외부 클릭 동작을 유지하고, 키보드 포커스는 공통 2px 잉크색 외곽선·4px 오프셋을 사용한다. 아이콘 전용 동작에는 접근 가능한 이름과 툴팁을 둔다. 제공하지 않는 댓글·반응·편집 제안·수학 공식·AI 동작은 비활성 상태로 표시한다. 메뉴 변경으로 저장 방식, 문서 내용, 레퍼런스 연결이나 터치 드래그 지연을 바꾸지 않는다.
+
+구현 출처는 src/features/document-menus.js(메뉴·아이콘 매핑), src/features/documents.js(편집 동작 연결), src/workspaces.css(메뉴 스타일), src/design-system/primitives/icons.js 및 icons/editor-paths.js(공통 아이콘팩)다.
 
 ### Project and workspace settings
 프로젝트 설정은 넓은 화면에서 이름 → 색상·아이콘 → 설명을 왼쪽에 두고 촬영일 → 시간 → 장소를 오른쪽에 둔다. 작은 화면에서는 같은 순서로 세로 배치한다. 색상과 아이콘 설정은 라벨을 위쪽에 정렬하며 내부 세로 구분선을 만들지 않는다. 프로젝트 모양 선택에서는 아이콘을 왼쪽, 색상 팔레트를 오른쪽에 둔다.
