@@ -10,7 +10,6 @@ export function homeWorkspacePage({state,account}={}){
   .sort((a,b)=>(a.shoot.date||a.project.date||'').localeCompare(b.shoot.date||b.project.date||'')||String(a.shoot.time||'').localeCompare(String(b.shoot.time||'')));
  const tasks=projects.flatMap(item=>(item.tasks||[]).filter(task=>!task.completed).map(task=>({task,project:item.project,shoot:item.contents?.find(shoot=>shoot.id===task.shootId)})))
   .sort((a,b)=>(a.task.date||'9999').localeCompare(b.task.date||'9999')||a.project.name.localeCompare(b.project.name,'ko'));
- const name=account?.name||account?.username||'';
  return `<section class="home-workspace">
   <header class="home-workspace-heading"><div class="home-workspace-actions"><button class="btn" data-view="document-workspace">${icon('tabler-file-text')} 내 문서</button><button class="btn primary" data-action="add-project">${icon('plus')} 프로젝트 추가</button></div></header>
   <div class="home-workspace-metrics" aria-label="작업 요약">
