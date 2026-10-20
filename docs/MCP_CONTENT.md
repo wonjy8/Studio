@@ -12,7 +12,7 @@ Account, login, password, deletion, settings, integrations, invitations, permiss
 
 | Resource | Read | Add/update | Boundary |
 | --- | --- | --- | --- |
-| Original projects, shoots, members, gear, references, layout, tasks | Yes | Original propose/apply commands | Existing project consent; owned projects |
+| Original project tools plus paged `shoots`, `tasks`, `project_members`, `project_equipment`, `project_references` | Yes | Original propose/apply commands | Existing project consent for original tools; full-content consent for new resource tools; owned projects |
 | `shoot_configuration` | Yes | Selections, rentals, cameras, layout arrays | Owned project + shoot IDs, domain validation |
 | `documents`, `project_documents` | Summaries/detail/fields | Title/content | Preserve other documents |
 | `document_blocks`, `project_blocks`, `note_blocks` | Paged blocks | Append/update one stable block | `id` is parent document/note; `blockId` optional |
@@ -23,7 +23,7 @@ Account, login, password, deletion, settings, integrations, invitations, permiss
 | `references`, `boards` | Metadata/board detail | Content, owned file links, layout | Preserve all attachments and validate file ownership |
 | `materials` | Paged metadata | New link and metadata updates | Immutable existing link/file identity; no raw bytes or implicit preview fetch |
 | `members`, `member_equipment` | Own member-content records | Contact content/equipment | Account linkage hidden, preserved internally and never accepted as input |
-| `inventory`, `organizations` | Existing accessible items/organizations | Item add/update; organization metadata read-only | Existing organization role/canonical custody checks |
+| `inventory`, `organizations` | Existing accessible items/organization ID and name only | Item add/update; organization metadata read-only | Existing organization role/canonical custody checks |
 | `loans`, `returns` | Existing visible loan/return history | Issue loan / record return | Stable proposal request key; stock and current role validation |
 | `catalog` | Search/detail | Administrative edits excluded | Existing global catalog metadata only |
 | `vendors` | Search/detail | Add/update | Own vendor records |

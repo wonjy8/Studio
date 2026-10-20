@@ -1,3 +1,4 @@
+import {applyCommands} from '../src/domain/commands.js';
 import {requireContentAccess} from './content-contract.js';
 import {sharedProjectProjection} from './accounts.js';
 import {validateWorkspace} from '../src/domain/workspace.js';
@@ -48,6 +49,7 @@ async function invoke(service,uid,path,method='GET',body){
 function base(spec,args){return spec.member?'/api/contacts/'+identity(args.memberId)+'/equipment':spec.collection;}
 async function snapshot(uid,args){
  const spec=resourceSpec(args.resource),id=args.id;
+ if(spec.projectCollection){const current=readWorkspace(db,uid),project=[current.state,...current.state.projects||[]].find(p=>p.project.id===args.projectId);if(!project)throw Error('Project not found');return {items:project[spec.projectCollection]||[],revision:current.revision};}
  if(spec.blocks){if(!id)throw Error('Parent document/note id is required');return snapshot(uid,{...args,resource:spec.blocks});}
  if(args.resource==='shared_projects'){
   if(id){identity(id);identity(args.ownerId);if(!db.prepare('SELECT user_id FROM project_accounts WHERE owner_id=? AND project_id=? AND user_id=?').get(args.ownerId,id,uid))throw Error('Shared project not found');const p=[readWorkspace(db,args.ownerId).state,...readWorkspace(db,args.ownerId).state.projects||[]].find(p=>p.project.id===id);if(!p)throw Error('Shared project not found');return {project:sharedProjectProjection(p),readOnly:true};}
@@ -62,7 +64,7 @@ async function snapshot(uid,args){
  if(spec.entry)return invoke(spec.service,uid,spec.collection+'?'+new URLSearchParams({kind:spec.entry,limit:String(args.limit||25),offset:String(args.offset||0),q:args.query||''}));
  if(spec.detail&&id)return invoke(spec.service,uid,base(spec,args)+'/'+identity(id));
  if(spec.detail&&args.resource==='boards')throw Error('Read a reference ID first');
- if(args.resource==='bible'){const params=new URLSearchParams();for(const field of ['book','chapter','passage','version'])if(args[field]!==undefined)params.set(field,String(args[field]));return invoke(spec.service,uid,spec.collection+'?'+params);}
+ if(args.resource==='bible'){const params=new URLSearchParams();for(const field of ['book','chapter','passage','version'])if(args[field]!==undefined)params.set(field,String(args[field]));const {repository,...stored}=await invoke(spec.service,uid,spec.collection+'?'+params);return stored;}
  const value=await invoke(spec.service,uid,base(spec,args)+(spec.loan||spec.returns?'?status=all':''));
  if(args.resource==='members')value.contacts=value.contacts.map(({accountId,account,canLinkAccount,...item})=>item);
  return value;
@@ -73,7 +75,7 @@ function selected(spec,value,args){
  if(spec.detail&&args.id){if(spec.kind&&value.note?.kind!==spec.kind)throw Error('Note not found');return value.note||value.model||value.project||value;}
  if(spec.shoot)return value.configuration;
  if(!spec.key)return value;
- let items=value[spec.key]||[];if(spec.kind)items=items.filter(item=>item.kind===spec.kind);
+ let items=value[spec.key]||[];if(args.resource==='organizations')items=items.map(({id,name})=>({id,name}));if(spec.kind)items=items.filter(item=>item.kind===spec.kind);
  if(args.id){const item=items.find(item=>item.id===args.id);if(!item)throw Error('Content not found');return item;}
  return items;
 }
@@ -82,6 +84,8 @@ async function mutate(uid,args,values,before,requestId){
  const spec=resourceSpec(args.resource);if(spec.readOnly)throw Error('Read-only content; manage catalog/translation administration in Studio');
  if(!values||typeof values!=='object'||Array.isArray(values)||Object.keys(values).some(key=>!spec.fields.includes(key)))throw Error('Unsupported content fields');
  const id=args.id,old=id?selected(spec,before,args):null;
+ if(spec.commandType){const current=readWorkspace(db,uid),change=applyCommands(current.state,args.projectId,[{operation:(id?'update_':'add_')+spec.commandType,...(id?{entityId:id}:{}),values}]);if(!validateWorkspace(change.state))throw Error('Invalid project content');const saved=writeWorkspace(db,uid,change.state,current.revision),project=[change.state,...change.state.projects||[]].find(p=>p.project.id===args.projectId),item=id?project[spec.projectCollection].find(item=>item.id===id):project[spec.projectCollection].find(item=>!before.items.some(prior=>prior.id===item.id));return {revision:saved.revision,item};}
+
  if(spec.blocks){
   const document=beforeDocument(spec,before,args),blocks=document.blocks;
   if(args.blockId&&!blocks.some(item=>item.id===args.blockId))throw Error('Block not found');
@@ -142,6 +146,7 @@ async function run(message){
   const before=await snapshot(uid,args),stamp=hash(before);
   if(kind==='read'){
    let value=selected(spec,before,args);
+   if(!args.id&&args.resource==='shoots')value=value.map(({configuration,...shoot})=>({...shoot,hasConfiguration:!!configuration}));
    if(args.field){
     if(!args.id||!spec.fields.includes(args.field.split('.')[0])||args.field.split('.').length>2|| (args.field.includes('.')&&!['qtJournal.word','qtJournal.application','qtJournal.gratitude','qtJournal.prayers','qtJournal.memos','document.blocks'].includes(args.field)))throw Error('Read an allowed content field');
     value=args.field.split('.').reduce((item,key)=>item?.[key],value);

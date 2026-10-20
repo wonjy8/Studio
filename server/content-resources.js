@@ -1,6 +1,13 @@
+import {commandFields} from '../src/domain/commands.js';
 // Finite semantic resources. No caller-supplied route, SQL, account or HTTP method.
 const spec=(service,collection,key,fields,options={})=>({service,collection,key,fields,...options});
 export const contentResources=Object.freeze({
+ shoots:spec('projects',null,'items',commandFields.shoot,{projectCollection:'contents',commandType:'shoot'}),
+ tasks:spec('projects',null,'items',commandFields.task,{projectCollection:'tasks',commandType:'task'}),
+ project_members:spec('projects',null,'items',commandFields.member,{projectCollection:'members',commandType:'member'}),
+ project_equipment:spec('projects',null,'items',commandFields.equipment,{projectCollection:'gear',commandType:'equipment'}),
+ project_references:spec('projects',null,'items',commandFields.reference,{projectCollection:'refs',commandType:'reference'}),
+
  document_blocks:spec('handleDocumentLibrary','/api/document-library',null,['type','content','checked','align','color','background','indent','url','caption','referenceId'],{blocks:'documents'}),
  project_blocks:spec('projects',null,null,['type','content','checked','align','color','background','indent','url','caption','referenceId'],{blocks:'project_documents',project:true}),
  note_blocks:spec('handleScripture','/api/scripture/notes',null,['type','content','checked','align','color','background','indent','url','caption','referenceId'],{blocks:'notes',detail:true}),
@@ -28,4 +35,4 @@ export const contentResources=Object.freeze({
 });
 export function resourceSpec(name){if(!Object.hasOwn(contentResources,name))throw Error('Unsupported content resource');return contentResources[name];}
 export const contentResourceNames=Object.keys(contentResources);
-export function resourceManifest(){return contentResourceNames.map(id=>({id,service:contentResources[id].service,fields:contentResources[id].fields,readOnly:!!contentResources[id].readOnly,requiresParent:contentResources[id].member?'memberId':contentResources[id].project?'projectId':undefined}));}
+export function resourceManifest(){return contentResourceNames.map(id=>({id,service:contentResources[id].service,fields:contentResources[id].fields,readOnly:!!contentResources[id].readOnly,requiresParent:contentResources[id].member?'memberId':(contentResources[id].project||contentResources[id].shoot||contentResources[id].projectCollection)?'projectId':undefined}));}

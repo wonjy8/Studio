@@ -262,6 +262,10 @@ test('content adapters reuse validators for materials, references, members, inve
  const read=async target=>{const r=(await f.rpc(auth,'studio_read_content',target)).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
  const propose=async(target,values)=>{const current=await read(target);const r=(await f.rpc(auth,'studio_propose_content',{...target,revision:current.revision,valuesJson:JSON.stringify(values)})).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
  const change=async(target,values)=>{const p=await propose(target,values);const r=(await f.rpc(auth,'studio_apply_changes',{proposalId:p.proposalId,confirmed:true})).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent.result;};
+ const task=(await change({resource:'tasks',projectId:'alpha-project'},{name:'Paged task'})).item;
+ await change({resource:'tasks',projectId:'alpha-project',id:task.id},{completed:true});
+ const shoot=(await change({resource:'shoots',projectId:'alpha-project'},{name:'Paged shoot'})).item;
+ await change({resource:'shoot_configuration',projectId:'alpha-project',id:shoot.id},{rentals:[{id:'rental-test',name:'Rental plan',category:'other',owner:'',assignee:'',status:'check',isRental:true,quantity:1}]});
  const ref=(await change({resource:'references'},{name:'Fictional reference',notes:'test'})).reference;
  assert.equal((await read({resource:'references',id:ref.id})).value.name,'Fictional reference');
  await change({resource:'boards',id:ref.id},{items:[{key:'text:fictional',kind:'text',text:'Board note',title:'Test',x:0,y:0,w:4,h:4}]});
@@ -302,6 +306,7 @@ test('organization content uses existing role checks; loans/returns, expiry and 
  const propose=async(auth,target,values)=>{const data=await read(auth,target);return (await f.rpc(auth,'studio_propose_content',{...target,revision:data.revision,valuesJson:JSON.stringify(values)})).data.result;};
  const change=async(target,values)=>{const p=await propose(owner,target,values);assert.notEqual(p.isError,true,JSON.stringify(p));const applied=(await f.rpc(owner,'studio_apply_changes',{proposalId:p.structuredContent.proposalId,confirmed:true})).data.result;assert.notEqual(applied.isError,true,JSON.stringify(applied));return applied.structuredContent.result;};
  const gear=(await change({resource:'inventory'},{name:'Org kit',category:'other',ownership:'organization',organizationId:'test-org',trackingMode:'bulk',quantity:2})).item;
+ const orgs=await read(viewer,{resource:'organizations'});assert.deepEqual(Object.keys(orgs.value.items[0]).sort(),['id','name']);
  const seen=await read(viewer,{resource:'inventory',id:gear.id});assert.equal(seen.value.id,gear.id);
  assert.equal((await propose(viewer,{resource:'inventory',id:gear.id},{name:'Forbidden'})).isError,true);
  const loan=(await change({resource:'loans'},{borrower:'Fictional borrower',dueAt:'2099-01-01T12:00:00Z',lines:[{equipmentId:gear.id,quantity:1}]})).loan;
