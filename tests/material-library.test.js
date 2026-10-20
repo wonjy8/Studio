@@ -57,3 +57,10 @@ test('Materials navigation groups documents under All Materials and keeps refere
  const html=projectNavigation(emptyWorkspace(),'materials',false,{});
  assert.match(html,/모든 자료/);assert.match(html,/레퍼런스/);assert.doesNotMatch(html,/data-view="document-workspace"/);
 });
+
+test('selection deletion preconditions reject stale and foreign items while preserving used reference links',async t=>{
+ const {call,base,db}=await fixture(t),created=await call('materials','POST',{url:'http://127.0.0.1:1/fictional-selection',title:'Selection link',category:'',tags:[],description:''}),item=created.body.item;assert.ok(Number.isSafeInteger(item.updatedAt));
+ const remove=async(uid,stamp)=>fetch(base+'/api/materials/'+item.id,{method:'DELETE',headers:{Origin:'http://localhost',Cookie:'studio_session='+uid,'If-Match':String(stamp)}});
+ assert.equal((await remove('b',item.updatedAt)).status,404);db.prepare('UPDATE materials SET updated_at=updated_at+1 WHERE id=?').run(item.id);assert.equal((await remove('a',item.updatedAt)).status,409);assert.ok(db.prepare('SELECT id FROM materials WHERE id=?').get(item.id));const current=(await call('materials')).body.items.find(row=>row.id===item.id);assert.equal((await remove('a',current.updatedAt)).status,200);
+ const used=await call('reference-library','POST',{name:'Used selection link',notes:'',url:'http://127.0.0.1:1/fictional-used',tags:'',collection:'',images:[],files:[]});assert.equal(used.status,201);const linked=(await call('materials')).body.items.find(row=>row.url==='http://127.0.0.1:1/fictional-used');assert.ok(linked);assert.equal((await fetch(base+'/api/materials/'+linked.id,{method:'DELETE',headers:{Origin:'http://localhost',Cookie:'studio_session=a','If-Match':String(linked.updatedAt)}})).status,422);assert.ok(db.prepare('SELECT id FROM materials WHERE id=?').get(linked.id));
+});
