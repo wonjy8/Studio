@@ -535,6 +535,7 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 
 .project-list>.sidebar-group-divider{height:1px;background:var(--line);margin:8px 10px;pointer-events:none}
 
+.google-service-status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.google-service-status>div{display:grid;gap:4px;min-width:0;padding:12px;border:1px solid var(--line);border-radius:var(--r-control)}.google-service-status span{color:var(--muted)}.google-service-status p{margin:0;overflow-wrap:anywhere}.unified-google>.google-service-settings{border-top:1px solid var(--line)}.unified-google .home-workspace-panel{padding:0;border:0;margin:0;background:transparent}.unified-google .home-workspace-panel>.section-head{display:none}.unified-google>h3{margin-bottom:12px}.google-service-settings>summary{font-weight:500}@media(max-width:600px){.google-service-status{grid-template-columns:1fr}.google-service-status>div{grid-template-columns:64px minmax(0,1fr)}.google-service-status p{grid-column:1/-1}}
 /* Fixed workspace navigation; only project lists can be reordered. */
 .workspace-rail-divider{width:24px;min-height:1px;background:var(--line);flex:none;margin:0 auto}
 @media(min-width:901px){
