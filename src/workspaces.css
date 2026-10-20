@@ -248,3 +248,8 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .scripture-search-field{flex:1;min-width:140px}.scripture-import-label:focus-within{outline:2px solid var(--ink);outline-offset:4px}.scripture-workspace dt,.scripture-workspace dd{min-width:0;overflow-wrap:anywhere}
 /* Color swatches retain icon targets when shared context-menu rows are styled. */
 .document-color-grid.document-menu button{padding:0;min-height:32px;width:32px;height:32px;justify-self:center}@media(max-width:900px){.document-color-grid.document-menu button{min-height:44px;width:44px;height:44px}}
+
+/* A scripture note can appear in several categories without being duplicated. */
+.scripture-category-tabs,.scripture-note-categories{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2,8px);margin-block:var(--space-3,12px)}
+.scripture-note-categories[hidden]{display:none}
+.scripture-category-tabs button[aria-pressed="true"],.scripture-note-categories button[aria-pressed="true"]{background:var(--selected);color:var(--ink);border-color:var(--line);font-weight:500}
