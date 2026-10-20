@@ -248,3 +248,40 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .scripture-search-field{flex:1;min-width:140px}.scripture-import-label:focus-within{outline:2px solid var(--ink);outline-offset:4px}.scripture-workspace dt,.scripture-workspace dd{min-width:0;overflow-wrap:anywhere}
 /* Color swatches retain icon targets when shared context-menu rows are styled. */
 .document-color-grid.document-menu button{padding:0;min-height:32px;width:32px;height:32px;justify-self:center}@media(max-width:900px){.document-color-grid.document-menu button{min-height:44px;width:44px;height:44px}}
+
+
+/* Home workspace: a calm overview, with personal documents close at hand. */
+.home-workspace{max-width:1200px;margin:0 auto;min-width:0}
+.home-workspace-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:24px}
+.home-workspace-heading h2{margin:0 0 6px;font-size:var(--text-page);font-weight:500;line-height:1.3}
+.home-workspace-heading .eyebrow{margin:0 0 8px;color:var(--muted);font-size:var(--text-support)}
+.home-workspace-heading .sub{margin:0}
+.home-workspace-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.home-workspace-actions .btn,.home-workspace-personal>.btn{display:inline-flex;align-items:center;gap:8px}
+.home-workspace-actions .icon,.home-workspace-personal>.btn .icon{width:18px;height:18px}
+.home-workspace-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.home-workspace-metric{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:72px;padding:16px;border:1px solid var(--line);border-radius:var(--r-surface);background:var(--surface)}
+.home-workspace-metric span{color:var(--muted);font-size:var(--text-support)}
+.home-workspace-metric strong{font-size:var(--text-page);font-weight:500}
+.home-workspace-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.home-workspace-panel{min-width:0;padding:17px;border:1px solid var(--line);border-radius:var(--r-surface);background:var(--surface)}
+.home-workspace-panel .section-head{margin-bottom:12px}
+.home-workspace-panel .section-head h2{margin:0;font-size:var(--text-section);font-weight:500}
+.home-workspace-projects,.home-workspace-list{display:grid;gap:4px}
+.home-workspace-project{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:8px 10px;border:0;border-radius:var(--r-control);background:transparent;color:var(--ink);text-align:left;font:inherit;cursor:pointer}
+.home-workspace-project:hover{background:var(--surface-2)}
+.home-workspace-project .project-glyph{width:36px;height:36px;flex:0 0 36px}
+.home-workspace-project-copy,.home-workspace-row-copy{display:grid;gap:3px;flex:1;min-width:0}
+.home-workspace-project-copy strong,.home-workspace-row-copy strong{overflow-wrap:anywhere;font-size:var(--text-body);font-weight:500}
+.home-workspace-project-copy small,.home-workspace-row-copy small{color:var(--muted);font-size:var(--text-support);overflow-wrap:anywhere}
+.home-workspace-project>.icon{width:18px;height:18px;color:var(--muted)}
+.home-workspace-row{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 4px;border-bottom:1px solid var(--line)}
+.home-workspace-row:last-child{border-bottom:0}
+.home-workspace-date{width:74px;flex:0 0 74px;color:var(--muted);font-size:var(--text-support)}
+.home-workspace-task-mark{width:16px;height:16px;flex:0 0 16px;border:1.5px solid var(--muted);border-radius:5px}
+.home-workspace-personal>.section-head>.icon{width:20px;height:20px;color:var(--muted)}
+.home-workspace-personal>p{margin:0 0 16px;line-height:1.6}
+.home-workspace-panel .empty{padding:12px 4px;text-align:left}
+.home-workspace-project:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+@media(max-width:760px){.home-workspace-heading{align-items:flex-start;flex-direction:column}.home-workspace-columns{grid-template-columns:minmax(0,1fr)}.home-workspace-metrics{gap:8px}.home-workspace-metric{align-items:flex-start;flex-direction:column;min-height:76px;padding:12px}.home-workspace-metric strong{font-size:20px}.home-workspace-panel{padding:16px}}
+@media(max-width:420px){.home-workspace-metrics{grid-template-columns:1fr}.home-workspace-metric{align-items:center;flex-direction:row;min-height:54px}}
