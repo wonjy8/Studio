@@ -1,11 +1,10 @@
 import {icon} from '../design-system/primitives/icons.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
-import {dateKey} from '../domain/calendar.js';
+import {dateKey,addDays} from '../domain/calendar.js';
 
 export function homeWorkspacePage({state,account}={}){
  const projects=[state,...(state?.projects||[])].filter(item=>item?.project&&!item.project.placeholder);
- const today=dateKey(),nextWeek=new Date(today+'T00:00:00');nextWeek.setDate(nextWeek.getDate()+7);
- const end=nextWeek.toISOString().slice(0,10);
+ const today=dateKey(),end=addDays(today,7);
  const shoots=projects.flatMap(item=>(item.contents||[]).map(shoot=>({shoot,project:item.project})))
   .filter(({shoot,project})=>{const date=shoot.date||project.date||'';return date>=today&&date<=end;})
   .sort((a,b)=>(a.shoot.date||a.project.date||'').localeCompare(b.shoot.date||b.project.date||'')||String(a.shoot.time||'').localeCompare(String(b.shoot.time||'')));
