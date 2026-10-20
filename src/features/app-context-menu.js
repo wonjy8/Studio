@@ -7,6 +7,7 @@ function editableTarget(target){
   return target?.closest('input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),textarea,[contenteditable="true"]')||null;
 }
 function selectedText(target){
+  if(target instanceof HTMLInputElement&&target.type==='password')return '';
   if(target instanceof HTMLInputElement||target instanceof HTMLTextAreaElement){
     try{return target.value.slice(target.selectionStart,target.selectionEnd);}catch{return '';}
   }
@@ -126,7 +127,7 @@ function handleContextMenu(event){
   if(link)items.push({label:'링크 주소 복사',icon:'tabler-link',action:'copy-link'});
   if(imageTarget)items.push({label:'이미지 주소 복사',icon:'tabler-photo',action:'copy-image'});
   if(editable&&navigator.clipboard?.readText)items.push({label:'붙여넣기',icon:'tabler-clipboard',action:'paste'});
-  if(editable||!text)items.push({label:'모두 선택',icon:'tabler-select-all',action:'select-all'});
+  items.push({label:'모두 선택',icon:'tabler-select-all',action:'select-all'});
   if(items.length)items.push({separator:true});
   items.push({label:'새로고침',icon:'tabler-refresh',action:'reload'});
   items.push({label:'맨 위로',icon:'tabler-arrow-bar-to-up',action:'top'});
