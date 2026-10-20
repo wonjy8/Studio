@@ -253,3 +253,18 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .scripture-category-tabs,.scripture-note-categories{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2,8px);margin-block:var(--space-3,12px)}
 .scripture-note-categories[hidden]{display:none}
 .scripture-category-tabs button[aria-pressed="true"],.scripture-note-categories button[aria-pressed="true"]{background:var(--selected);color:var(--ink);border-color:var(--line);font-weight:500}
+
+/* Chapter reading uses a continuous page; the compact note quotation picker stays unchanged. */
+.scripture-reader{max-width:880px;margin-inline:auto}
+.scripture-chapter-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:24px 0 20px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.scripture-chapter-heading[hidden]{display:none}
+.scripture-chapter-heading h2{margin:0;font-size:var(--text-page);font-weight:500}
+.scripture-chapter-navigation{display:flex;gap:8px}
+.scripture-workspace .scripture-reader [data-bible-verses]{max-height:none;overflow:visible;margin-bottom:24px}
+.scripture-reader .scripture-verse{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;padding:12px;border:0;border-radius:var(--r-control);cursor:pointer;font-size:var(--text-section);line-height:1.95;overflow-wrap:anywhere}
+.scripture-reader .scripture-verse-number{font-family:inherit;font-size:var(--text-support);font-weight:500;color:var(--muted);text-align:right;padding-top:5px}
+.scripture-reader .scripture-verse-text{font-family:Georgia,'Noto Serif KR','AppleMyungjo','Batang',serif}
+.scripture-reader .scripture-verse:has(input:checked){background:var(--selected)}
+.scripture-reader .scripture-verse:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:4px}
+.scripture-reader .scripture-verse:has(.sub){display:flex;font-size:var(--text-body)}
+@media(max-width:760px){.scripture-reader .scripture-verse{grid-template-columns:20px minmax(0,1fr);gap:8px;padding-inline:4px}.scripture-chapter-heading{margin-top:16px}}
