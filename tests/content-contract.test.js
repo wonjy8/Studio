@@ -34,3 +34,7 @@ test('trusted persisted consent enables content while scope and excluded service
  assert.ok(requireContentAccess('handleDocumentLibrary',{scope:'studio:read studio:write'},{consentVersion:1,write:true}));
  assert.throws(()=>requireContentAccess('handleAccounts',{scope:'studio:read studio:write'},{consentVersion:1,write:true}));
 });
+test('future editable fields cannot silently add credential, account or permission controls',()=>{
+ const forbidden=new Set(['accountId','userId','ownerId','scope','password','permissions','roleId','inviterId','operators','account','settings','admin','token','grantId']);
+ for(const resource of resourceManifest())for(const field of resource.fields)assert.equal(forbidden.has(field),false,'Explicit security review required for '+resource.id+'.'+field);
+});
