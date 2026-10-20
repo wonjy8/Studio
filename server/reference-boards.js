@@ -34,6 +34,6 @@ export function referenceBoardRoutes(db){
   if(media.some(item=>!seen.has(item.key))){json(400,{error:'The board must keep all attached materials'});return true;}
   for(let i=0;i<clean.length;i++)for(let j=0;j<i;j++)if(overlaps(clean[i],clean[j])){json(400,{error:'Board items cannot overlap'});return true;}
   const now=Date.now();db.prepare('INSERT INTO reference_boards(user_id,reference_id,body,updated_at) VALUES(?,?,?,?) ON CONFLICT(user_id,reference_id) DO UPDATE SET body=excluded.body,updated_at=excluded.updated_at').run(uid,referenceId,JSON.stringify({items:clean}),now);
-  json(200,{items,updatedAt:now});return true;
+  const savedByKey=new Map(clean.map(item=>[item.key,item]));const resultItems=[...media.map(asset=>({...asset,...savedByKey.get(asset.key)})),...clean.filter(item=>item.kind==='text')];json(200,{items:resultItems,updatedAt:now});return true;
  };
 }
