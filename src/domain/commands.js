@@ -3,7 +3,7 @@ import {emptyWorkspace} from './workspace.js';
 import {prepareProjects,allProjects,switchProject,addProject} from './projects.js';
 import {addCamera,addLayoutObject,moveLayoutItem} from './layout.js';
 export const commandOperations=['add_shoot','update_shoot','add_member','update_member','add_equipment','update_equipment','add_reference','update_reference','update_project','add_project','add_camera','add_layout_object','move_layout','configure_shoot','copy_shoot','add_task','update_task'];
-const allowed={shoot:['date','name','time','location','status','completed'],member:['name','role','call'],equipment:['catalogModelId','isRental','name','category','owner','assignee','status','ownerMemberId','assigneeMemberId'],reference:['name','notes'],task:['name','completed','flagged','shootId','date','time'],project:['name','description','date','time','location','icon','color']};
+export const commandFields={shoot:['date','name','time','location','status','completed','script','scriptFile'],member:['name','role','call'],equipment:['catalogModelId','isRental','name','category','owner','assignee','status','ownerMemberId','assigneeMemberId'],reference:['name','notes','url','tags','collection'],task:['name','completed','flagged','shootId','date','time'],project:['name','description','date','time','location','icon','color']};
 export function applyCommands(input,projectId,commands,{prepareLayout=true}={}){
  if(!Array.isArray(commands)||commands.length<1||commands.length>20)throw Error('변경은 한 번에 1~20개까지 가능합니다.');
  let state=prepareProjects(structuredClone(input||emptyWorkspace()),{layout:prepareLayout});
@@ -40,7 +40,7 @@ export function applyCommands(input,projectId,commands,{prepareLayout=true}={}){
   if(operation==='add_layout_object'){const item=addLayoutObject(state,values);impact.push('배치 추가: '+item.name);continue;}
   if(operation==='move_layout'){moveLayoutItem(state,entityId,values.x,values.y,values.rotation);impact.push('배치 위치 변경');continue;}
   const type=operation.replace(/^(add|update)_/,'');
-  const fields=allowed[type];if(!fields||Object.keys(values).some(k=>!fields.includes(k)))throw Error('허용하지 않는 필드입니다.');
+  const fields=commandFields[type];if(!fields||Object.keys(values).some(k=>!fields.includes(k)))throw Error('허용하지 않는 필드입니다.');
   if(type==='project'){if(values.name!==undefined&&(typeof values.name!=='string'||!values.name.trim()))throw Error('프로젝트 이름이 필요합니다.');Object.assign(state.project,values);impact.push('프로젝트 정보 변경');continue;}
   const key={shoot:'contents',member:'members',equipment:'gear',reference:'refs',task:'tasks'}[type];
   let item,previousName,previousItem;

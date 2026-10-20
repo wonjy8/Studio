@@ -1,3 +1,4 @@
+import {commandFields} from '../src/domain/commands.js';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -18,11 +19,11 @@ async function fixture(t){
   const verifier=token(),challenge=createHash('sha256').update(verifier).digest('base64url');const params={client_id:client.client_id,redirect_uri:callback,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource,scope,state:'fictional-state'};
   const r=await call('/oauth/authorize?'+new URLSearchParams(params));assert.equal(r.status,302);return {id:new URL(r.headers.get('location')).searchParams.get('connect'),verifier,params};
  };
- const consent=async(p,uid='alpha',allowWrite=true,approve=true)=>{
-  const r=await call('/api/connections/authorize','POST',{requestId:p.id,approve,allowWrite},{Origin:origin,Cookie:cookies[uid]});assert.equal(r.status,200);return new URL((await r.json()).redirect);
+ const consent=async(p,uid='alpha',allowWrite=true,approve=true,allowFullContent=false)=>{
+  const r=await call('/api/connections/authorize','POST',{requestId:p.id,approve,allowWrite,allowFullContent},{Origin:origin,Cookie:cookies[uid]});assert.equal(r.status,200);return new URL((await r.json()).redirect);
  };
- const connect=async(uid='alpha',write=true)=>{
-  const client=await register(),p=await pending(client);const redirect=await consent(p,uid,write);assert.equal(redirect.searchParams.get('state'),'fictional-state');
+ const connect=async(uid='alpha',write=true,fullContent=false)=>{
+  const client=await register(),p=await pending(client);const redirect=await consent(p,uid,write,true,fullContent);assert.equal(redirect.searchParams.get('state'),'fictional-state');
   const r=await form({client_id:client.client_id,redirect_uri:callback,grant_type:'authorization_code',code:redirect.searchParams.get('code'),code_verifier:p.verifier});assert.equal(r.status,200);return {...await r.json(),client};
  };
  const rpc=async(auth,name,args={},extra={})=>{
@@ -56,7 +57,7 @@ test('MCP account isolation, read-only scopes, confirmed writes, revisions, repl
  assert.equal((await f.rpc(writer,'initialize')).data.result.protocolVersion,'2025-11-25');
  assert.equal((await f.call('/api/workspace','GET',undefined,{Authorization:'Bearer '+writer.access_token})).status,401);
  assert.equal((await f.call('/api/files/11111111-1111-1111-1111-111111111111','GET',undefined,{Authorization:'Bearer '+writer.access_token})).status,401);
- const readTools=(await f.rpc(reader,'tools/list')).data.result.tools;assert.equal(readTools.length,4);assert.ok(readTools.every(t=>t.annotations.readOnlyHint));
+ const readTools=(await f.rpc(reader,'tools/list')).data.result.tools;assert.equal(readTools.length,5);assert.ok(readTools.every(t=>t.annotations.readOnlyHint));
  assert.equal((await f.rpc(reader,'studio_propose_changes',{projectId:'beta-project',revision:1,commands:[]})).data.error.code,-32602);
  assert.equal((await f.rpc(writer,'tools/list',{}, {Origin:'https://evil.invalid'})).response.status,403);
  const list=(await f.rpc(writer,'studio_list_projects')).data.result.structuredContent;assert.equal(list.projects.length,1);assert.equal(list.projects[0].id,'alpha-project');
@@ -80,7 +81,7 @@ test('app registration can discover static tools without access to any productio
  const f=await fixture(t);
  const rpc=async(method,params={})=>f.call('/mcp','POST',{jsonrpc:'2.0',id:1,method,params});
  const initialized=await rpc('initialize',{protocolVersion:'2025-11-25'});assert.equal(initialized.status,200);
- const listed=await (await rpc('tools/list')).json();assert.equal(listed.result.tools.length,6);assert.ok(listed.result.tools.every(t=>t.securitySchemes[0].type==='oauth2'));
+ const listed=await (await rpc('tools/list')).json();assert.equal(listed.result.tools.length,9);assert.ok(listed.result.tools.every(t=>t.securitySchemes[0].type==='oauth2'));
  assert.equal(JSON.stringify(listed).includes('Fictional alpha'),false);assert.equal(JSON.stringify(listed).includes('alpha-project'),false);
  for(const name of ['studio_list_projects','studio_get_project','studio_apply_changes']){
   const r=await rpc('tools/call',{name,arguments:{projectId:'alpha-project',confirmed:true}});const data=await r.json();assert.equal(data.result.isError,true);assert.match(data.result._meta['mcp/www_authenticate'][0],/resource_metadata/);
@@ -117,6 +118,7 @@ test('all published tool object schemas declare concrete properties for function
  };
  for(const tool of tools)visit(tool.inputSchema,tool.name);
  const values=tools.find(t=>t.name==='studio_propose_changes').inputSchema.properties.commands.items.properties.values;
+ for(const fields of Object.values(commandFields))for(const field of fields)assert.ok(Object.hasOwn(values.properties,field),'MCP schema missing command field: '+field);
  assert.equal(values.properties.name.type,'string');assert.equal(values.properties.completed.type,'boolean');assert.equal(values.properties.x.type,'number');assert.ok(values.properties.category.enum.includes('sd'));
 });
 test('manual clients require administrator consent and secret auth, never disclose saved secrets, and revoke all grants',async t=>{
@@ -212,4 +214,123 @@ test('new shoot content supports proposal, confirmation, scoped layout, copy and
   assert.equal((await f.rpc(auth,'studio_propose_changes',{projectId:'alpha-project',revision,commands})).data.result.isError,true);
  }
  current=await change([{operation:'configure_shoot',entityId:shootId,values:{gearIds:[]}}]);assert.equal(current.project.contents[0].configuration.cameras.length,0);assert.equal(current.project.contents[1].configuration.cameras.length,1);
+});
+
+test('content capability discovery does not enable pending consent or excluded tools',async t=>{
+ const f=await fixture(t),auth=await f.connect('alpha');
+ const listed=(await f.rpc(auth,'studio_list_projects')).data.result.structuredContent;
+ assert.equal(listed.capabilities.version,2);
+ assert.deepEqual(listed.capabilities.services.filter(service=>service.access==='enabled').map(service=>service.id),['projects']);
+ for(const name of ['handleScripture','handleDocumentLibrary','handleInventory','handleAccounts','handleSiteRoles','settings','admin']){
+  const result=await f.rpc(auth,name,{userId:'beta',path:'/api/account'});assert.equal(result.data.error.code,-32602);
+ }
+ assert.equal(f.db.prepare('SELECT revision FROM workspaces WHERE user_id=?').get('alpha').revision,1);
+});
+
+test('full content consent is owner-specific; documents and QT use preview/confirm/conflict/cancel isolation',async t=>{
+ const f=await fixture(t),writer=await f.connect('alpha'),other=await f.connect('beta');
+ const read=(auth,args)=>f.rpc(auth,'studio_read_content',args);
+ assert.equal((await read(writer,{resource:'documents'})).data.result.isError,true);
+ const connections=await (await f.call('/api/connections','GET',undefined,{Cookie:f.cookies.alpha})).json(),grantId=connections.connections[0].id;
+ assert.equal(connections.connections[0].contentConsentVersion,0);
+ assert.equal((await f.call('/api/connections/'+grantId+'/content-consent','POST',{approve:true,version:1},{Origin:f.origin,Cookie:f.cookies.beta})).status,404);
+ assert.equal((await f.call('/api/connections/'+grantId+'/content-consent','POST',{approve:false,version:1},{Origin:f.origin,Cookie:f.cookies.alpha})).status,400);
+ assert.equal((await f.call('/api/connections/'+grantId+'/content-consent','POST',{approve:true,version:1},{Origin:f.origin,Cookie:f.cookies.alpha})).status,200);
+ assert.equal((await read(other,{resource:'documents'})).data.result.isError,true);
+ const value=async args=>{const r=(await read(writer,args)).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
+ const propose=async(args,fields)=>{const before=await value(args),r=(await f.rpc(writer,'studio_propose_content',{...args,revision:before.revision,valuesJson:JSON.stringify(fields)})).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
+ const apply=async p=>{const r=(await f.rpc(writer,'studio_apply_changes',{proposalId:p.proposalId,confirmed:true})).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
+ const p=await propose({resource:'documents'},{title:'Fictional private doc'});assert.equal((await value({resource:'documents'})).value.total,0);
+ assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:p.proposalId,confirmed:false})).data.result.isError,true);
+ assert.equal((await f.rpc(other,'studio_apply_changes',{proposalId:p.proposalId,confirmed:true})).data.result.isError,true);
+ await apply(p);assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:p.proposalId,confirmed:true})).data.result.isError,true);
+ let docs=await value({resource:'documents'});assert.equal(docs.value.total,1);const id=docs.value.items[0].id;
+ const cancelled=await propose({resource:'documents',id},{title:'Cancelled'});assert.equal((await f.rpc(writer,'studio_cancel_proposal',{proposalId:cancelled.proposalId})).data.result.structuredContent.cancelled,true);assert.equal((await f.rpc(writer,'studio_cancel_proposal',{proposalId:cancelled.proposalId})).data.result.structuredContent.cancelled,false);assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:cancelled.proposalId,confirmed:true})).data.result.isError,true);
+ const stale=await propose({resource:'documents',id},{title:'Stale'});await apply(await propose({resource:'documents',id},{title:'Current'}));assert.equal((await f.rpc(writer,'studio_apply_changes',{proposalId:stale.proposalId,confirmed:true})).data.result.structuredContent.error,'REVISION_CONFLICT');
+ const qt=await apply(await propose({resource:'qt'},{date:'2026-10-20'}));const noteId=qt.result.note.document.id;
+ await apply(await propose({resource:'gratitude',noteId},{text:'Fictional thanks'}));
+ const entries=await value({resource:'gratitude',noteId});assert.ok(entries.value.items.some(item=>item.text==='Fictional thanks'));
+ const otherGrant=f.db.prepare('SELECT id FROM oauth_grants WHERE user_id=?').get('beta').id;f.db.prepare('INSERT INTO integration_content_consents VALUES(?,?,1,?)').run(otherGrant,'beta',Date.now());
+ assert.equal((await read(other,{resource:'documents',id})).data.result.isError,true);assert.equal((await read(other,{resource:'qt',id:noteId})).data.result.isError,true);
+ for(const resource of ['account','settings','admin','__proto__'])assert.equal((await read(writer,{resource})).data.result.isError,true);
+ assert.equal((await f.rpc(writer,'studio_propose_content',{resource:'members',revision:(await value({resource:'members'})).revision,valuesJson:JSON.stringify({name:'Forbidden',accountId:'beta'})})).data.result.isError,true);
+});
+
+test('content adapters reuse validators for materials, references, members, inventory and permission revocation',async t=>{
+ const f=await fixture(t),auth=await f.connect('alpha'),readOnly=await f.connect('beta',false);
+ const grant=f.db.prepare('SELECT id FROM oauth_grants WHERE user_id=?').get('alpha');f.db.prepare('INSERT INTO integration_content_consents VALUES(?,?,1,?)').run(grant.id,'alpha',Date.now());
+ const read=async target=>{const r=(await f.rpc(auth,'studio_read_content',target)).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
+ const propose=async(target,values)=>{const current=await read(target);const r=(await f.rpc(auth,'studio_propose_content',{...target,revision:current.revision,valuesJson:JSON.stringify(values)})).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
+ const change=async(target,values)=>{const p=await propose(target,values);const r=(await f.rpc(auth,'studio_apply_changes',{proposalId:p.proposalId,confirmed:true})).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent.result;};
+ const task=(await change({resource:'tasks',projectId:'alpha-project'},{name:'Paged task'})).item;
+ await change({resource:'tasks',projectId:'alpha-project',id:task.id},{completed:true});
+ const shoot=(await change({resource:'shoots',projectId:'alpha-project'},{name:'Paged shoot'})).item;
+ await change({resource:'shoot_configuration',projectId:'alpha-project',id:shoot.id},{rentals:[{id:'rental-test',name:'Rental plan',category:'other',owner:'',assignee:'',status:'check',isRental:true,quantity:1}]});
+ const ref=(await change({resource:'references'},{name:'Fictional reference',notes:'test'})).reference;
+ assert.equal((await read({resource:'references',id:ref.id})).value.name,'Fictional reference');
+ await change({resource:'boards',id:ref.id},{items:[{key:'text:fictional',kind:'text',text:'Board note',title:'Test',x:0,y:0,w:4,h:4}]});
+ const material=(await change({resource:'materials'},{url:'https://example.invalid/test',title:'Test material',description:'test',tags:[]})).item;
+ await change({resource:'materials',id:material.id},{title:'Updated material'});
+ const member=(await change({resource:'members'},{name:'Test member'})).contact;
+ const gear=(await change({resource:'member_equipment',memberId:member.id},{name:'Member lens',category:'lens',quantity:2})).equipment;
+ await change({resource:'member_equipment',memberId:member.id,id:gear.id},{notes:'Updated'});
+ const inventory=(await change({resource:'inventory'},{name:'Fictional inventory',category:'other',quantity:2,trackingMode:'bulk'})).item;
+ await change({resource:'inventory',id:inventory.id},{storageLocation:'Set A'});
+ await change({resource:'vendors'},{name:'Fictional vendor',notes:'Test'});
+ await change({resource:'project_documents',projectId:'alpha-project'},{title:'Project document'});
+ await change({resource:'annotations',book:'창세기',chapter:1,verse:1},{memo:'Test private memo'});
+ assert.equal((await read({resource:'annotations',book:'창세기',chapter:1})).value.items[0].memo,'Test private memo');
+ const userGrant=f.db.prepare('SELECT id FROM oauth_grants WHERE user_id=?').get('beta');f.db.prepare('INSERT INTO integration_content_consents VALUES(?,?,1,?)').run(userGrant.id,'beta',Date.now());
+ assert.equal((await f.rpc(readOnly,'studio_read_content',{resource:'references',id:ref.id})).data.result.isError,true);
+ assert.equal((await f.rpc(readOnly,'studio_read_content',{resource:'member_equipment',memberId:member.id})).data.result.isError,true);
+ assert.equal((await f.rpc(readOnly,'studio_propose_content',{resource:'documents',revision:'0'.repeat(64),valuesJson:'{}'})).data.error.code,-32602);
+ const pending=await propose({resource:'vendors'},{name:'Revoked proposal'});f.db.prepare('DELETE FROM integration_content_consents WHERE grant_id=?').run(grant.id);
+ assert.equal((await f.rpc(auth,'studio_apply_changes',{proposalId:pending.proposalId,confirmed:true})).data.result.isError,true);
+});
+
+test('new OAuth consent binds full content only to the approved grant and preserves read-only scope',async t=>{
+ const f=await fixture(t),legacy=await f.connect('alpha'),full=await f.connect('alpha',false,true);
+ assert.equal((await f.rpc(legacy,'studio_read_content',{resource:'documents'})).data.result.isError,true);
+ const read=(await f.rpc(full,'studio_read_content',{resource:'documents'})).data.result;assert.notEqual(read.isError,true,JSON.stringify(read));
+ assert.equal((await f.rpc(full,'studio_propose_content',{resource:'documents',revision:read.structuredContent.revision,valuesJson:'{"title":"No write"}'})).data.error.code,-32602);
+ const token=await (await f.form({client_id:full.client.client_id,grant_type:'refresh_token',refresh_token:full.refresh_token})).json();
+ assert.notEqual((await f.rpc(token,'studio_read_content',{resource:'documents'})).data.result.isError,true);
+ assert.equal(f.db.prepare('SELECT count(*) n FROM integration_content_consents').get().n,1);
+});
+
+test('organization content uses existing role checks; loans/returns, expiry and shared project read-only access stay isolated',async t=>{
+ const f=await fixture(t),owner=await f.connect('alpha',true,true),viewer=await f.connect('beta',true,true);
+ f.db.prepare('INSERT INTO inventory_organizations VALUES(?,?,?,?)').run('test-org','alpha','Fictional org',Date.now());
+ f.db.prepare('INSERT INTO inventory_memberships VALUES(?,?,?,1)').run('test-org','alpha','owner');f.db.prepare('INSERT INTO inventory_memberships VALUES(?,?,?,1)').run('test-org','beta','viewer');
+ const read=async(auth,target)=>{const r=(await f.rpc(auth,'studio_read_content',target)).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
+ const propose=async(auth,target,values)=>{const data=await read(auth,target);return (await f.rpc(auth,'studio_propose_content',{...target,revision:data.revision,valuesJson:JSON.stringify(values)})).data.result;};
+ const change=async(target,values)=>{const p=await propose(owner,target,values);assert.notEqual(p.isError,true,JSON.stringify(p));const applied=(await f.rpc(owner,'studio_apply_changes',{proposalId:p.structuredContent.proposalId,confirmed:true})).data.result;assert.notEqual(applied.isError,true,JSON.stringify(applied));return applied.structuredContent.result;};
+ const gear=(await change({resource:'inventory'},{name:'Org kit',category:'other',ownership:'organization',organizationId:'test-org',trackingMode:'bulk',quantity:2})).item;
+ const orgs=await read(viewer,{resource:'organizations'});assert.deepEqual(Object.keys(orgs.value.items[0]).sort(),['id','name']);
+ const seen=await read(viewer,{resource:'inventory',id:gear.id});assert.equal(seen.value.id,gear.id);
+ assert.equal((await propose(viewer,{resource:'inventory',id:gear.id},{name:'Forbidden'})).isError,true);
+ const loan=(await change({resource:'loans'},{borrower:'Fictional borrower',dueAt:'2099-01-01T12:00:00Z',lines:[{equipmentId:gear.id,quantity:1}]})).loan;
+ await change({resource:'returns',id:loan.id},{note:'Returned',lines:[{lineId:loan.lines[0].id,quantity:1}]});
+ const expired=await propose(owner,{resource:'vendors'},{name:'Expired'});f.db.prepare('UPDATE integration_content_proposals SET expires=0 WHERE id=?').run(expired.structuredContent.proposalId);assert.equal((await f.rpc(owner,'studio_apply_changes',{proposalId:expired.structuredContent.proposalId,confirmed:true})).data.result.isError,true);
+ const pending=await propose(owner,{resource:'inventory',id:gear.id},{name:'No longer permitted'});f.db.prepare('UPDATE inventory_memberships SET active=0 WHERE org_id=? AND user_id=?').run('test-org','alpha');
+ assert.equal((await f.rpc(owner,'studio_apply_changes',{proposalId:pending.structuredContent.proposalId,confirmed:true})).data.result.isError,true);
+ assert.equal((await f.rpc(viewer,'studio_read_content',{resource:'shared_projects',ownerId:'alpha',id:'alpha-project'})).data.result.isError,true);
+ f.db.prepare('INSERT INTO project_accounts VALUES(?,?,?,?,?)').run('alpha','alpha-project','beta','member-test',Date.now());
+ assert.equal((await read(viewer,{resource:'shared_projects',ownerId:'alpha',id:'alpha-project'})).value.project.id,'alpha-project');
+ assert.equal((await propose(viewer,{resource:'shared_projects',ownerId:'alpha',id:'alpha-project'},{name:'Cannot edit shared'})).isError,true);
+});
+
+test('paged document blocks update one item, preserve neighboring content and stay bounded',async t=>{
+ const f=await fixture(t),auth=await f.connect('alpha',true,true);
+ const read=async target=>{const r=(await f.rpc(auth,'studio_read_content',target)).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent;};
+ const change=async(target,values)=>{const revision=(await read(target)).revision,p=(await f.rpc(auth,'studio_propose_content',{...target,revision,valuesJson:JSON.stringify(values)})).data.result;assert.notEqual(p.isError,true,JSON.stringify(p));const r=(await f.rpc(auth,'studio_apply_changes',{proposalId:p.structuredContent.proposalId,confirmed:true})).data.result;assert.notEqual(r.isError,true,JSON.stringify(r));return r.structuredContent.result;};
+ const doc=(await change({resource:'documents'},{title:'Block test'})).document;
+ const initial=(await read({resource:'document_blocks',id:doc.id})).value.items[0];
+ const added=(await change({resource:'document_blocks',id:doc.id},{type:'paragraph',content:[{text:'Preserved neighbor'}]})).block;
+ await change({resource:'document_blocks',id:doc.id,blockId:initial.id},{content:[{text:'Updated first'}]});
+ let page=await read({resource:'document_blocks',id:doc.id,limit:1});assert.equal(page.value.items.length,1);assert.equal(page.value.nextOffset,1);
+ page=await read({resource:'documents',id:doc.id,field:'blocks',offset:1,limit:1});assert.equal(page.value.items[0].id,added.id);assert.equal(page.value.items[0].content[0].text,'Preserved neighbor');
+ assert.equal((await read({resource:'documents',id:doc.id})).value.blockCount,2);
+ const denied=(await f.rpc(auth,'studio_read_content',{resource:'documents',id:doc.id,field:'__proto__.password'})).data.result;assert.equal(denied.isError,true);
+ const duplicate=await read({resource:'catalog',limit:1,offset:1});assert.equal(duplicate.value.items.length,1);assert.ok(duplicate.value.nextOffset>=2);
 });

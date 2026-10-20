@@ -3,9 +3,9 @@ const isSafePosition=item=>Number.isInteger(item.x)&&item.x>=0&&item.x<columnCou
 const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 const fileIdFromUrl=value=>value.match(/^\/api\/files\/([a-f0-9-]{36})$/)?.[1]||'';
 const validLink=value=>{try{return ['http:','https:'].includes(new URL(value).protocol);}catch{return false;}};
-export function referenceBoardRoutes(db){
+export function referenceBoardRoutes(db,{initialize=true}={}){if(initialize){
  db.exec('CREATE TABLE IF NOT EXISTS reference_boards(user_id TEXT NOT NULL REFERENCES users(id),reference_id TEXT NOT NULL,body TEXT NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(user_id,reference_id))');
- return async({path,req,session,json,readJson})=>{
+ }return async({path,req,session,json,readJson})=>{
   const match=path.match(/^\/api\/reference-boards\/([A-Za-z0-9_-]{1,80})$/);if(!match)return false;
   if(!session){json(401,{error:'Login required'});return true;}
   const uid=session.user_id,referenceId=match[1],row=db.prepare('SELECT body FROM reference_library WHERE id=? AND user_id=?').get(referenceId,uid);
