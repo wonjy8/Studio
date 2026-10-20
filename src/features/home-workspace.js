@@ -1,3 +1,4 @@
+import {googleTasksPanel} from './google-tasks.js';
 import {personalCalendarPanel} from './google-calendar.js';
 import {icon} from '../design-system/primitives/icons.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
@@ -14,6 +15,7 @@ export function homeWorkspacePage({state,account}={}){
  return `<section class="home-workspace">
   <section class="home-workspace-panel home-qt-panel" data-home-qt aria-label="오늘 QT"><p class="sub" role="status">오늘 QT를 불러오는 중…</p></section>
   ${personalCalendarPanel()}
+  ${googleTasksPanel()}
   <div class="home-workspace-metrics" aria-label="작업 요약">
    <article class="home-workspace-metric"><span>프로젝트</span><strong>${projects.length}</strong></article>
    <article class="home-workspace-metric"><span>앞으로 7일 촬영</span><strong>${shoots.length}</strong></article>

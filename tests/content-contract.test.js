@@ -6,7 +6,7 @@ import {contentServices,contentCapabilities,requireContentAccess} from '../serve
 import {commandOperations} from '../src/domain/commands.js';
 test('every app service requires an explicit content exposure decision',async()=>{
  const app=await readFile(new URL('../server/index.js',import.meta.url),'utf8');
- const services=[...app.matchAll(/if\(await (handle[A-Za-z]+)\(/g)].map(match=>match[1]);
+ const services=[...app.matchAll(/if\(await (handle[A-Za-z]+)\(/g),...app.matchAll(/if\(await ([A-Za-z]+)\.routes\(/g)].map(match=>match[1]);
  assert.ok(services.length>=16);
  for(const service of services)assert.ok(Object.hasOwn(contentServices,service),'Classify new app service: '+service);
  for(const contract of Object.values(contentServices))assert.ok(['enabled','consent-required','excluded'].includes(contract.access));
