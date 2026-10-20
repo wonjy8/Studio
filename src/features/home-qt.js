@@ -24,7 +24,8 @@ export async function bindHomeQt({onOpen}){
   try{
    const data=await request('scripture/notes');if(!alive())return;const existing=data.notes.find(item=>item.kind==='qt'&&item.date===today);
    if(!existing){
-    root.innerHTML=`${addSurface({title:'오늘 QT 만들기',description:today,attributes:'data-home-qt-create',className:'home-qt-empty'})}<p class="sub" data-home-qt-status role="status"></p>`;
+    let passage='';try{passage=(await request('scripture/qt?date='+encodeURIComponent(today))).reading?.passage||'';}catch{}if(!alive())return;
+    root.innerHTML=`${addSurface({title:'오늘 QT 만들기',description:[today,passage||'본문 확인 불가'].join(' · '),attributes:'data-home-qt-create',className:'home-qt-empty'})}<p class="sub" data-home-qt-status role="status"></p>`;
     root.querySelector('[data-home-qt-create]').onclick=async event=>{const button=event.currentTarget;button.disabled=true;try{const result=await request('scripture/qt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:today})});if(alive())onOpen(result.note.document.id);}catch(e){error(e.message);if(alive())button.disabled=false;}};return;
    }
    const result=await request('scripture/notes/'+existing.document.id);if(!alive())return;note=result.note;
