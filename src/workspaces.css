@@ -594,3 +594,26 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 }
 
 .bible-testament{font-size:var(--text-body);font-weight:500;margin:12px 6px 8px;color:var(--ink)}.bible-book-category{font-size:var(--text-support);font-weight:400;margin:12px 6px 4px;color:var(--muted)}
+
+/* Clear Bible hierarchy, independent of the chosen app accent. */
+.bible-passage-dialog{--passage-blue:#174ea6;--passage-blue-bg:#e5efff}
+:root[data-theme="dark"] .bible-passage-dialog{--passage-blue:#bfd8ff;--passage-blue-bg:#203c65}
+.bible-testament{font-size:var(--text-title);font-weight:650;color:var(--ink);margin:16px 6px 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.bible-book-category{font-size:var(--text-body);font-weight:600;color:var(--ink);margin:16px 6px 8px}
+.bible-passage-columns .btn[aria-pressed=true]{color:var(--passage-blue);background:var(--passage-blue-bg);border-radius:var(--r-control)}
+.bible-jump-highlight{background:#e5efff!important;box-shadow:inset 0 0 0 1px #8bb8ff;border-radius:var(--r-control);scroll-margin-block:100px}
+:root[data-theme="dark"] .bible-jump-highlight{background:#203c65!important}
+.bible-secondary-verse{border-left:0;padding-left:0}
+.bible-secondary-verse .scripture-verse-text,.bible-secondary-verse .scripture-scalable-text,[data-bible-panel="right"] .scripture-verse-text,[data-bible-panel="right"] .scripture-scalable-text{color:var(--bible-secondary-ink,#54545d)}
+:root[data-theme="dark"]{--bible-secondary-ink:#bcbcc5}
+@media(max-width:900px){
+ :root{--workspace-gutter:24px;--page-gutter:24px}
+ .production-app .project-sidebar{padding-left:max(var(--workspace-gutter),env(safe-area-inset-left,0px));padding-right:max(var(--workspace-gutter),env(safe-area-inset-right,0px))}
+}
+.bible-reading-layout.is-split>.scripture-reader+section{border-left:0}
+
+.bible-aligned-row.is-selected{display:flow-root}.bible-secondary-verse.is-selected:not(.selection-end){margin-bottom:0;padding-bottom:16px}
+/* Clip descendant fills symmetrically at the run's four outer corners. */
+.bible-aligned-row.is-selected{overflow:clip}
+.scripture-reader .bible-aligned-row.is-selected .scripture-verse{background:transparent;border-radius:0}
+.bible-aligned-row.is-selected [data-annotation-index]{display:flow-root;background:var(--bg)}
