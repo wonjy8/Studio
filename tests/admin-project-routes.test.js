@@ -10,3 +10,13 @@ test('managed project URL keeps actor namespace and compound target identity wit
  assert.equal(parseRoute('/fictional-actor/admin/projects?managedOwner=..&managedProject=same-project').managedProject,undefined);
  const state={project:{id:'fictional-own',name:'Fictional Own'},projects:[]};const session={isAdmin:true,canManageProjects:true};assert.match(projectNavigation(state,'admin-projects',false,session),/data-view="admin-projects"[^>]*aria-current="page"/);assert.doesNotMatch(projectNavigation(state,'admin-projects',false,{isAdmin:true}),/data-view="admin-projects"/);assert.doesNotMatch(appShell({state,view:'admin-projects',body:'',session}),/aria-label="프로젝트 메뉴"/);
 });
+test('administrator settings retain legacy deep links and hide the entire privileged group from members',()=>{
+ const state={project:{id:'p',name:'Fictional'},projects:[]};
+ for(const [path,view]of [['users','admin'],['invitations','admin-invitations'],['organizations','admin-organizations'],['projects','admin-projects']]){
+  for(const prefix of ['','/fictional'])assert.equal(parseRoute(prefix+'/admin/'+path).view,view);
+  assert.equal(routePath({view,username:'fictional'}),'/fictional/settings/'+path);
+  const html=projectNavigation(state,view,false,{isAdmin:true,canManageProjects:true});assert.match(html,/aria-label="설정 메뉴"/);assert.match(html,/data-view="settings" aria-label="설정"[^>]*aria-pressed="true"/);assert.doesNotMatch(html,/관리자 워크스페이스/);
+ }
+ const member=projectNavigation(state,'settings',false,{});assert.doesNotMatch(member,/data-admin-settings-divider|data-view="admin/);
+ const admin=projectNavigation(state,'settings',false,{isAdmin:true,canManageProjects:true});assert.ok(admin.indexOf('data-settings-section="data"')<admin.indexOf('data-admin-settings-divider'));assert.ok(admin.indexOf('data-admin-settings-divider')<admin.indexOf('data-view="admin"'));
+});
