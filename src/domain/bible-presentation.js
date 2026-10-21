@@ -4,6 +4,8 @@ export function groupBibleBooks(books){
  return ['구약','신약'].map((label,index)=>({label,books:books.filter(item=>{const position=bibleBooks.indexOf(item.book);return position>=0&&(position<39)===(index===0);}).sort((a,b)=>bibleBooks.indexOf(a.book)-bibleBooks.indexOf(b.book))})).filter(group=>group.books.length);
 }
 
+export function categorizeBibleBooks(books){const ranges=[['구약','율법서',0,5],['구약','역사서',5,17],['구약','시가서',17,22],['구약','대선지서',22,27],['구약','소선지서',27,39],['신약','복음서',39,43],['신약','역사서',43,44],['신약','바울서신',44,57],['신약','일반서신',57,65],['신약','예언서',65,66]];return ranges.map(([testament,label,start,end])=>({testament,label,books:books.filter(item=>{const index=bibleBooks.indexOf(item.book);return index>=start&&index<end;}).sort((a,b)=>bibleBooks.indexOf(a.book)-bibleBooks.indexOf(b.book))})).filter(group=>group.books.length);}
+
 // Keep the stored CSV unchanged; extract only explicit headings and note definitions.
 export function presentBibleVerse(value){
  const headings=[],notes=[];
