@@ -616,10 +616,17 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .scripture-reader .bible-aligned-row.is-selected .scripture-verse{background:transparent;border-radius:0}
 .bible-aligned-row.is-selected [data-annotation-index]{display:flow-root;background:var(--bg)}
 
-/* Independent of the pill: blur app content through the entire viewport edge. */
+/* The nav and its backdrop share compositor-driven bottom anchors. */
 .mobile-navigation-backdrop{display:none;pointer-events:none}
 @media(max-width:900px){
- .mobile-navigation-backdrop{display:block;position:fixed;z-index:35;left:0;right:0;top:var(--mobile-backdrop-top,calc(100vh - 120px));bottom:calc(-96px - var(--mobile-backdrop-extra,0px));pointer-events:none;background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--bg) 28%,transparent) 64px);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);mask-image:linear-gradient(to bottom,transparent,#000 32px);-webkit-mask-image:linear-gradient(to bottom,transparent,#000 32px)}
- @supports(height:100lvh){.mobile-navigation-backdrop{bottom:calc(-1 * max(96px,calc(100lvh - 100svh),env(safe-area-inset-bottom,0px)) - var(--mobile-backdrop-extra,0px))}}
- .mobile-navigation-backdrop[hidden],body.mobile-keyboard-open .mobile-navigation-backdrop,body:has(.production-app .workspace-sidebar.is-open) .mobile-navigation-backdrop,body:has(.modal-wrap) .mobile-navigation-backdrop,body:has(dialog[open]) .mobile-navigation-backdrop{display:none}
+ :root{--mobile-nav-height:56px;--mobile-nav-bottom-gap:12px;--mobile-nav-backdrop-rise:48px;--mobile-nav-backdrop-overscan:160px;background-color:var(--bg)}
+ body{background-color:var(--bg)}
+ .production-app .workspace-rail{height:var(--mobile-nav-height);min-height:var(--mobile-nav-height);box-shadow:none;bottom:calc(var(--mobile-nav-bottom-gap) + env(safe-area-inset-bottom,0px))}
+ .mobile-navigation-backdrop{display:block;position:fixed;z-index:35;left:0;right:0;bottom:calc(-1 * var(--mobile-nav-backdrop-overscan));height:calc(var(--mobile-nav-height) + var(--mobile-nav-bottom-gap) + env(safe-area-inset-bottom,0px) + var(--mobile-nav-backdrop-rise) + var(--mobile-nav-backdrop-overscan));pointer-events:none}
+ .mobile-navigation-backdrop::before,.mobile-navigation-backdrop::after{content:'';position:absolute;inset:0;pointer-events:none}
+ .mobile-navigation-backdrop::before{z-index:0;backdrop-filter:var(--mobile-nav-backdrop-filter,blur(20px));-webkit-backdrop-filter:var(--mobile-nav-backdrop-filter,blur(20px));mask-image:linear-gradient(to bottom,transparent,#000 var(--mobile-nav-backdrop-rise));-webkit-mask-image:linear-gradient(to bottom,transparent,#000 var(--mobile-nav-backdrop-rise))}
+ /* Unmasked tint reaches the exact canvas color at the pill's bottom. */
+ .mobile-navigation-backdrop::after{z-index:1;background:linear-gradient(to bottom,transparent,var(--bg) calc(var(--mobile-nav-backdrop-rise) + var(--mobile-nav-height)))}
+ @supports(height:100lvh){:root{--mobile-nav-backdrop-overscan:max(160px,calc(100lvh - 100svh),env(safe-area-inset-bottom,0px))}}
+ .mobile-navigation-backdrop[hidden],body:not(:has(.production-app .workspace-rail)) .mobile-navigation-backdrop,body.mobile-keyboard-open .mobile-navigation-backdrop,body:has(.production-app .workspace-sidebar.is-open) .mobile-navigation-backdrop,body:has(.modal-wrap) .mobile-navigation-backdrop,body:has(dialog[open]) .mobile-navigation-backdrop{display:none}
 }
