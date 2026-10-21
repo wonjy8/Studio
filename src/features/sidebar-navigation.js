@@ -3,13 +3,13 @@ import {refreshMobileNavigationBackdrop} from './mobile-navigation-backdrop.js';
 import {normalizeSidebarPreferences,orderSidebarItems,mergeSidebarOrder} from '../domain/sidebar-preferences.js';
 const groupNames={'프로젝트 목록':'projects','공유 프로젝트':'shared'};
 const itemKey=button=>button.dataset.project?'project:'+button.dataset.project:button.dataset.openShared?'shared:'+button.dataset.openShared:button.dataset.settingsSection?'setting:'+button.dataset.settingsSection:button.dataset.view||button.dataset.action;
-export function createSidebarNavigation({account,setMobileOpen}){
+export function createSidebarNavigation({account,setMobileOpen,onHome}){
  const storageKey='studio.sidebar.v1:'+account,mobile=matchMedia('(max-width:900px)');let preferences;
  try{preferences=normalizeSidebarPreferences(JSON.parse(localStorage.getItem(storageKey)));}catch{preferences=normalizeSidebarPreferences(null);}
  let pendingOpen=null,gesture=null,suppressed=null,keyboardBaseline=window.innerHeight;
  const persist=()=>{try{localStorage.setItem(storageKey,JSON.stringify(preferences));}catch{/* Keep the current session usable when browser storage is unavailable. */}};
  const sidebar=()=>document.querySelector('.workspace-sidebar');
- const mobileNavigation=createMobileWorkspaceNavigation({sidebar,mobile,setMobileOpen});
+ const mobileNavigation=createMobileWorkspaceNavigation({sidebar,mobile,setMobileOpen,onHome});
  const items=group=>[...group.querySelectorAll('[data-sidebar-key]')].filter(item=>item.closest('[data-sidebar-sort]')===group);
  const activeRail=()=>sidebar()?.querySelector('.workspace-rail .rail-button.active');
  function sync(){
@@ -47,6 +47,7 @@ export function createSidebarNavigation({account,setMobileOpen}){
   if(item&&event.detail!==0&&suppressed&&performance.now()<suppressed.until&&item.dataset.sidebarKey===suppressed.key){event.preventDefault();event.stopImmediatePropagation();suppressed=null;return;}
   if(mobile.matches&&event.target.closest('[data-project],[data-open-shared]'))mobileNavigation.prepareEnter();
   const button=event.target.closest('.workspace-rail .rail-button');if(!button)return;
+  if(mobile.matches&&button.dataset.view==='workspace-home'){pendingOpen=null;mobileNavigation.prepareHome();return;}
   if(mobile.matches&&button.dataset.action!=='production'){if(button.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();mobileNavigation.enter();return;}pendingOpen=null;mobileNavigation.prepareEnter();return;}
   if(mobile.matches&&button.dataset.action==='production')mobileNavigation.prepareEnter();
   if(button.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();if(mobile.matches)setMobileOpen(true);else{preferences.collapsed=!preferences.collapsed;persist();sync();}return;}

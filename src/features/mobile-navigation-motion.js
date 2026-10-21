@@ -4,7 +4,7 @@ export function createMobileNavigationMotion({sidebar,mobile}){
  let previous=null,pending=null,drag=null,suppressedUntil=0;
  const scope='.workspace-rail,.mobile-workspace-pill';
  const buttons=nav=>[...nav.querySelectorAll(':scope > button')];
- const selectable=button=>button&&!button.disabled&&!button.closest('[inert]')&&!button.hasAttribute('data-mobile-more')&&Boolean(button.matches('.rail-button,[data-mobile-destination]'));
+ const selectable=button=>button&&!button.disabled&&!button.closest('[inert]')&&!button.hasAttribute('data-mobile-admin')&&Boolean(button.matches('.rail-button,[data-mobile-destination]'));
  const navFor=button=>button?.closest(scope);
  const group=nav=>nav.classList.contains('workspace-rail')?'root':nav.getAttribute('aria-label');
  const visible=nav=>nav&&nav.isConnected&&nav.getClientRects().length>0&&!nav.closest('[inert]');
@@ -17,7 +17,7 @@ export function createMobileNavigationMotion({sidebar,mobile}){
   if(drag&&!drag.source.isConnected)finish(false);
   if(!mobile.matches){for(const animation of animations.values())animation.cancel();animations.clear();previous=null;pending=null;return;}
   const nav=[...(sidebar()?.querySelectorAll(scope)||[])].find(visible);if(!nav)return;
-  const selected=active(nav),key=selected?.dataset.mobileDestination||selected?.dataset.sidebarKey||selected?.dataset.mobileMore!==undefined&&'more',currentGroup=group(nav),changed=previous&&(previous.group!==currentGroup||previous.key!==key);
+  const selected=active(nav),key=selected?.dataset.mobileDestination||selected?.dataset.sidebarKey||selected?.dataset.mobileAdmin!==undefined&&'admin',currentGroup=group(nav),changed=previous&&(previous.group!==currentGroup||previous.key!==key);
   const currentBox=place(nav,selected,{from:previous?.group===currentGroup?previous.box:null,motion:Boolean(changed&&previous?.group===currentGroup)});
   if(changed&&previous.group!==currentGroup){for(const [index,svg]of [...nav.querySelectorAll('button .icon')].entries())animate('enter-'+index,svg,[{opacity:0,transform:'translateY(3px) scale(.96)'},{opacity:1,transform:'none'}],160);}
   else if(changed&&selected)animate('icon',selected.querySelector('.icon'),[{transform:'translateY(1px) scale(.94)'},{transform:'translateY(-2px) scale(1.04)',offset:.55},{transform:'none'}]);
