@@ -588,8 +588,6 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 @media(max-width:900px){
  .production-app .workspace-rail{height:56px;min-height:56px}
  .production-app .workspace-rail .rail-label{display:none}
- .production-app::after{content:'';position:fixed;z-index:35;left:0;right:0;bottom:0;height:calc(92px + env(safe-area-inset-bottom,0px));pointer-events:none;background:linear-gradient(to bottom,transparent,var(--bg));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);mask-image:linear-gradient(to bottom,transparent,#000 55%);-webkit-mask-image:linear-gradient(to bottom,transparent,#000 55%)}
- .production-app:has(.workspace-sidebar.is-open)::after,.production-app:has(>.modal-wrap)::after,body:has(dialog[open]) .production-app::after,.mobile-keyboard-open .production-app::after{display:none}
  .bible-reader-toolbar{gap:8px}.bible-reader-toolbar [data-reader-versions]{max-width:100%;white-space:normal;text-align:left}
 }
 
@@ -617,3 +615,11 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .bible-aligned-row.is-selected{overflow:clip}
 .scripture-reader .bible-aligned-row.is-selected .scripture-verse{background:transparent;border-radius:0}
 .bible-aligned-row.is-selected [data-annotation-index]{display:flow-root;background:var(--bg)}
+
+/* Independent of the pill: blur app content through the entire viewport edge. */
+.mobile-navigation-backdrop{display:none;pointer-events:none}
+@media(max-width:900px){
+ .mobile-navigation-backdrop{display:block;position:fixed;z-index:35;left:0;right:0;top:var(--mobile-backdrop-top,calc(100vh - 120px));bottom:calc(-96px - var(--mobile-backdrop-extra,0px));pointer-events:none;background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--bg) 28%,transparent) 64px);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);mask-image:linear-gradient(to bottom,transparent,#000 32px);-webkit-mask-image:linear-gradient(to bottom,transparent,#000 32px)}
+ @supports(height:100lvh){.mobile-navigation-backdrop{bottom:calc(-1 * max(96px,calc(100lvh - 100svh),env(safe-area-inset-bottom,0px)) - var(--mobile-backdrop-extra,0px))}}
+ .mobile-navigation-backdrop[hidden],body.mobile-keyboard-open .mobile-navigation-backdrop,body:has(.production-app .workspace-sidebar.is-open) .mobile-navigation-backdrop,body:has(.modal-wrap) .mobile-navigation-backdrop,body:has(dialog[open]) .mobile-navigation-backdrop{display:none}
+}
