@@ -23,7 +23,7 @@ export const contentResources=Object.freeze({
  annotations:spec('handleScripture','/api/scripture/annotations','annotations',['color','background','memo','ranges'],{annotation:true}),
  bible:spec('handleScripture','/api/scripture/bible',null,[],{readOnly:true}),
  references:spec('handleReferenceLibrary','/api/reference-library','references',['name','notes','url','tags','collection','images','files']),
- boards:spec('handleReferenceBoards','/api/reference-boards',null,['items'],{detail:true}),
+ boards:spec('handleReferenceBoards','/api/reference-boards',null,['items','layout'],{detail:true}),
  materials:spec('handleMaterials','/api/materials','items',['url','title','description','category','tags']),
  members:spec('handleContacts','/api/contacts','contacts',['name','role','phone','email','notes']),
  member_equipment:spec('handleContacts',null,'equipment',['name','category','quantity','code','serial','notes','catalogModelId'],{member:true}),

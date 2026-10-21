@@ -274,6 +274,16 @@ test('content adapters reuse validators for materials, references, members, inve
  const ref=(await change({resource:'references'},{name:'Fictional reference',notes:'test'})).reference;
  assert.equal((await read({resource:'references',id:ref.id})).value.name,'Fictional reference');
  await change({resource:'boards',id:ref.id},{items:[{key:'text:fictional',kind:'text',text:'Board note',title:'Test',x:0,y:0,w:4,h:4}]});
+ const boardBefore=(await read({resource:'boards',id:ref.id})).value,layout=structuredClone(boardBefore.layout);layout.modules[0].title='Module title';
+ await change({resource:'boards',id:ref.id},{layout});assert.equal((await read({resource:'boards',id:ref.id})).value.layout.modules[0].title,'Module title');
+ const pendingBoard=await propose({resource:'boards',id:ref.id},{layout});
+ await change({resource:'boards',id:ref.id},{items:boardBefore.items.map(item=>({...item,text:'Latest board note'}))});
+ assert.equal((await f.rpc(auth,'studio_apply_changes',{proposalId:pendingBoard.proposalId,confirmed:true})).data.result.isError,true);
+ const currentBoard=(await read({resource:'boards',id:ref.id})).value;assert.equal(currentBoard.items[0].text,'Latest board note');assert.equal(currentBoard.layout.modules[0].title,'Module title');
+ const malformedLayout=structuredClone(layout);malformedLayout.flow.push(malformedLayout.flow[0]);const boardRevision=(await read({resource:'boards',id:ref.id})).revision;
+ assert.equal((await f.rpc(auth,'studio_propose_content',{resource:'boards',id:ref.id,revision:boardRevision,valuesJson:JSON.stringify({layout:malformedLayout})})).data.result.isError,true);
+ assert.equal((await f.rpc(readOnly,'studio_read_content',{resource:'boards',id:ref.id})).data.result.isError,true);
+
  const material=(await change({resource:'materials'},{url:'https://example.invalid/test',title:'Test material',description:'test',tags:[]})).item;
  await change({resource:'materials',id:material.id},{title:'Updated material'});
  const member=(await change({resource:'members'},{name:'Test member'})).contact;
