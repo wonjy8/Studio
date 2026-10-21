@@ -66,7 +66,7 @@ if(sessionInfo.passwordChangeRequired){const root=document.querySelector('#app')
 if(await connectionConsent())await new Promise(()=>{});
 let routeAccessDenied=false;
 let state,view='home',modal=null,saving=false,failed=false,sidebarOpen=false,lastProjectView='home',scheduleView='calendar',calendarMonth='',calendarMode='month',calendarDate=dateKey(),settingsSection='account',sharedSnapshot=null,sharedSnapshotId=null;
-const sidebarNavigation=createSidebarNavigation({account:sessionInfo.account.id,setMobileOpen:(open,options)=>setSidebarOpen(open,options)});
+const sidebarNavigation=createSidebarNavigation({account:sessionInfo.account.id,onHome:()=>navigate('workspace-home'),setMobileOpen:(open,options)=>setSidebarOpen(open,options)});
 const sharedSnapshots=new Map();let sharedProjects=[],activeSharedProject=null,sharedOpenGeneration=0,sharedListError='',sharedListLoading=true,sharedListGeneration=0;
 try {state=await loadWorkspace()||emptyWorkspace();} catch {document.querySelector('#app').textContent='프로젝트를 불러오지 못했습니다. 새로고침해 주세요.';throw Error('Workspace unavailable');}
 state=prepareProjects(state);

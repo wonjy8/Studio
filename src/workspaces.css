@@ -662,3 +662,14 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
  [data-mobile-dragging]>button.active:not(.is-mobile-nav-preview){color:var(--muted)!important}
  [data-mobile-dragging]>.is-mobile-nav-preview{color:var(--accent)!important}
 }
+
+.mobile-home-label{display:none}
+@media(max-width:900px){
+ .desktop-home-label{display:none}.mobile-home-label{display:inline}
+ .project-sidebar [aria-label="홈 메뉴"] [data-view=workspace-schedule],.project-sidebar [aria-label="홈 메뉴"] [data-view=workspace-tasks]{display:none}
+ .project-sidebar [aria-label="홈 메뉴"] [data-view=workspace-home]{background:var(--selected);color:var(--accent)}
+ .mobile-workspace-navigation:has([data-single-tab]){justify-content:center}
+ .mobile-workspace-pill[data-single-tab]{flex:0 0 var(--mobile-nav-height);width:var(--mobile-nav-height)}
+ [data-mobile-admin-settings] .project-sidebar [data-settings-section],[data-mobile-admin-settings] .project-sidebar [data-admin-settings-divider]{display:none}
+}
+@media(min-width:360px) and (max-width:900px){:root{--workspace-gutter:28px;--page-gutter:28px}}

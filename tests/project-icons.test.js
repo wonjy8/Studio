@@ -108,3 +108,8 @@ test('prayer hands use upright joined palms and diagonal cuffs in both variants'
   assert.ok(icon('link').includes(ionIconPaths.link.outline));assert.ok(icon('link',{solid:true}).includes(ionIconPaths.link.filled));
   assert.match(icon('link'),/viewBox="0 0 512 512"/);
  });
+
+test('database glyph includes paired cylindrical SVG variants',()=>{
+ assert.equal(ionIconAliases.database,'server');assert.match(ionIconPaths.server.outline,/<ellipse/);
+ assert.ok(icon('database').includes(ionIconPaths.server.outline));assert.ok(icon('database',{solid:true}).includes(ionIconPaths.server.filled));
+});
