@@ -651,12 +651,13 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
  .production-app:has(>.modal-wrap) .mobile-workspace-navigation,.mobile-keyboard-open .mobile-workspace-navigation,body:has(dialog[open]) .mobile-workspace-navigation{visibility:hidden;pointer-events:none}
 }
 
+[data-mobile-nav-indicator]{display:none}
 @media(max-width:900px){
  /* Reserve horizontal tab gestures; vertical scrolling and edge gestures remain native. */
  .production-app .workspace-rail,.mobile-workspace-pill{touch-action:pan-y}
  [data-mobile-motion]>button{position:relative;z-index:1;touch-action:pan-y;user-select:none;-webkit-user-select:none}
  [data-mobile-motion]>button.active{background:transparent!important}
- [data-mobile-nav-indicator]{position:absolute;z-index:0;left:0;top:0;border-radius:9999px;background:var(--selected);pointer-events:none}
+ [data-mobile-nav-indicator]{display:block;position:absolute;z-index:0;left:0;top:0;border-radius:9999px;background:var(--selected);pointer-events:none}
  [data-mobile-nav-indicator][hidden]{display:none}
  [data-mobile-dragging]>button.active:not(.is-mobile-nav-preview){color:var(--muted)!important}
  [data-mobile-dragging]>.is-mobile-nav-preview{color:var(--accent)!important}
