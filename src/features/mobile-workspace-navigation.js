@@ -1,8 +1,10 @@
+import {createMobileNavigationMotion} from './mobile-navigation-motion.js';
 import {navigationIcon as icon} from '../design-system/primitives/icons.js';
 // Mobile chrome projects existing authorized destinations; their original handlers
 // still own navigation, draft guards and permissions. No editor DOM is replaced.
 export function createMobileWorkspaceNavigation({sidebar,mobile,setMobileOpen}){
  let level=history.state?.mobileNavigationLevel||(/^\/(?:login|signin|signup|index\.html)?$/.test(location.pathname)?'root':'children'),pending=false,pendingTimer=null,targets=new WeakMap();
+ const motion=createMobileNavigationMotion({sidebar,mobile});
  const rootRail=()=>sidebar()?.querySelector('.workspace-rail');
  const chrome=()=>sidebar()?.querySelector('[data-mobile-workspace-navigation]');
  function prepareEnter(){pending=true;clearTimeout(pendingTimer);pendingTimer=setTimeout(()=>{pending=false;},0);}
@@ -30,6 +32,7 @@ export function createMobileWorkspaceNavigation({sidebar,mobile,setMobileOpen}){
   const children=mobile.matches&&level==='children'&&Boolean(wrap)&&!productionList,blocked=mobile.matches&&(document.body.classList.contains('mobile-keyboard-open')||Boolean(document.querySelector('.modal-wrap,dialog[open]')));
   rail.hidden=children;rail.inert=children||blocked;rail.setAttribute('aria-hidden',String(children||blocked));
   if(wrap){wrap.hidden=!children;wrap.inert=!children||blocked;wrap.setAttribute('aria-hidden',String(!children||blocked));wrap.querySelector('[data-mobile-more]')?.setAttribute('aria-expanded',String(node.classList.contains('is-open')));const selected=wrap.querySelector('[aria-current=page]');if(children&&selected){const pill=selected.parentElement,left=selected.offsetLeft,right=left+selected.offsetWidth;if(left<pill.scrollLeft)pill.scrollLeft=left;else if(right>pill.scrollLeft+pill.clientWidth)pill.scrollLeft=right-pill.clientWidth;}}
+  motion.refresh();
  }
  function click(event){
   const target=event.target.closest('[data-mobile-nav-back],[data-mobile-more],[data-mobile-destination]');if(!target||!mobile.matches)return;event.preventDefault();event.stopImmediatePropagation();
