@@ -643,7 +643,7 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
  html[data-theme=dark] .mobile-workspace-back,html[data-theme=dark] .mobile-workspace-pill{background:rgba(30,30,33,.97)}
  .mobile-workspace-back{flex:none;width:var(--mobile-nav-height);height:var(--mobile-nav-height);padding:0;display:grid;place-items:center;color:var(--ink)}
  .mobile-workspace-back .icon{transform:rotate(180deg)}
- .mobile-workspace-pill{flex:1;min-width:0;height:var(--mobile-nav-height);display:flex;align-items:stretch;gap:0;padding:5px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;touch-action:pan-x}
+ .mobile-workspace-pill{position:relative;flex:1;min-width:0;height:var(--mobile-nav-height);display:flex;align-items:stretch;gap:0;padding:5px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;touch-action:pan-x}
  .mobile-workspace-tab{flex:1 0 44px;min-width:44px;min-height:44px;padding:0 4px;display:grid;place-items:center;border:0;border-radius:9999px;color:var(--muted);background:transparent}
  .mobile-workspace-tab.active{background:var(--selected);color:var(--accent)}
  .mobile-workspace-tab .icon,.mobile-workspace-back .icon{width:22px;height:22px}
