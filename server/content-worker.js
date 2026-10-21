@@ -131,6 +131,10 @@ async function mutate(uid,args,values,before,requestId){
  if(args.resource==='inventory'&&id&&['ownership','organizationId'].some(key=>Object.hasOwn(values,key)&&values[key]!==current[key]))throw Error('Inventory custody changes must be performed in Studio');
  if(args.resource==='materials'&&id&&Object.hasOwn(values,'url')&&values.url!==current.url)throw Error('Existing material URLs are immutable. Add a new link instead.');
  const payload={...cleanFields(spec,current||{}),...values,...(id&&current?.revision!==undefined?{revision:current.revision}:{})};
+ if(args.resource==='boards'){
+  payload.updatedAt=current?.updatedAt??null;
+  if(values.items&&!values.layout&&payload.layout){payload.layout=structuredClone(payload.layout);const known=new Set((current?.items||[]).map(item=>item.key));for(const item of values.items){if(known.has(item.key))continue;const moduleId='module-'+randomUUID();payload.layout.modules.push({id:moduleId,title:item.title||'',width:100,items:[item.key]});payload.layout.flow.push({type:'module',id:moduleId});}}
+ }
  if(args.resource==='members'&&current?.accountId)payload.accountId=current.accountId; // preserve, never accept account linkage from MCP
  const collection=args.resource==='inventory'?'/api/inventory/items':base(spec,args);
  return invoke(spec.service,uid,collection+(id?'/'+identity(id):''),id?'PUT':'POST',payload);
