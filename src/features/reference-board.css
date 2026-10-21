@@ -29,3 +29,12 @@
 @media(max-width:900px){.reference-board-shell{padding:12px}.reference-board-toolbar .btn{min-height:44px}.reference-board-canvas{grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:72px}.reference-board-card{grid-area:auto!important;min-height:220px}.reference-board-card-body{min-height:140px}.reference-board-card-actions button{min-width:38px;min-height:38px}}
 @media(max-width:560px){.reference-board-canvas{grid-template-columns:1fr;grid-auto-rows:auto}.reference-board-card{min-height:260px;grid-column:1!important;grid-row:auto!important}.reference-board-image,.reference-board-video{max-height:360px}.reference-board-text .reference-board-card-body{min-height:220px}.reference-board-copy{height:160px}}
 .reference-board-card-head .collection-select{position:static;width:32px;min-height:32px;border:0;background:transparent;flex-shrink:0}.reference-board-card-head .collection-select input{width:18px;height:18px}@media(max-width:900px){.reference-board-card-head .collection-select{width:44px;min-height:44px}}
+/* Width drives previews; legacy grid coordinates stay in saved data. */
+.reference-board-canvas{grid-auto-rows:auto;min-height:240px;align-items:start}
+.reference-board-card{grid-row:auto!important;overflow:visible;grid-template-rows:auto auto auto}
+.reference-board-card-body{overflow:visible;min-width:0;align-items:flex-start}
+.reference-board-image,.reference-board-video{width:100%;height:auto;max-height:none}
+.reference-board-copy{height:auto}
+.reference-board-copy textarea{height:auto;min-height:120px;resize:vertical;overflow-wrap:anywhere}
+@media(max-width:900px){.reference-board-canvas{grid-auto-rows:auto}.reference-board-card-body{min-height:0}}
+@media(max-width:560px){.reference-board-image,.reference-board-video{max-height:none}.reference-board-copy{height:auto}}
