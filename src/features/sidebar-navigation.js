@@ -1,3 +1,4 @@
+import {refreshMobileNavigationBackdrop} from './mobile-navigation-backdrop.js';
 import {normalizeSidebarPreferences,orderSidebarItems,mergeSidebarOrder} from '../domain/sidebar-preferences.js';
 const groupNames={'프로젝트 목록':'projects','공유 프로젝트':'shared'};
 const itemKey=button=>button.dataset.project?'project:'+button.dataset.project:button.dataset.openShared?'shared:'+button.dataset.openShared:button.dataset.settingsSection?'setting:'+button.dataset.settingsSection:button.dataset.view||button.dataset.action;
@@ -10,7 +11,7 @@ export function createSidebarNavigation({account,setMobileOpen}){
  const items=group=>[...group.querySelectorAll('[data-sidebar-key]')].filter(item=>item.closest('[data-sidebar-sort]')===group);
  const activeRail=()=>sidebar()?.querySelector('.workspace-rail .rail-button.active');
  function sync(){
-  const node=sidebar();if(!node)return;const expanded=mobile.matches?node.classList.contains('is-open'):!preferences.collapsed,panel=node.querySelector('.project-sidebar');
+  refreshMobileNavigationBackdrop();const node=sidebar();if(!node)return;const expanded=mobile.matches?node.classList.contains('is-open'):!preferences.collapsed,panel=node.querySelector('.project-sidebar');
   const rail=node.querySelector('.workspace-rail'),railHidden=mobile.matches&&(document.body.classList.contains('mobile-keyboard-open')||Boolean(document.querySelector('.modal-wrap')));rail.inert=railHidden;rail.setAttribute('aria-hidden',String(railHidden));
   const main=document.querySelector('.production-app > .main');if(main)main.inert=mobile.matches&&expanded;
   document.querySelector('.production-app')?.classList.toggle('sidebar-collapsed',preferences.collapsed);
@@ -88,7 +89,7 @@ export function createSidebarNavigation({account,setMobileOpen}){
   const active=document.activeElement,editing=active?.matches('input:not([type=checkbox]):not([type=radio]),textarea,[contenteditable=true]'),height=window.visualViewport?.height||window.innerHeight;
   if(!editing)keyboardBaseline=height;
   const hidden=mobile.matches&&Boolean(editing)&&keyboardBaseline-height>120;
-  document.body.classList.toggle('mobile-keyboard-open',hidden);
+  document.body.classList.toggle('mobile-keyboard-open',hidden);refreshMobileNavigationBackdrop();
   const rail=sidebar()?.querySelector('.workspace-rail');if(rail){rail.inert=hidden;rail.setAttribute('aria-hidden',String(hidden));}
  }
  window.addEventListener('focusin',keyboard);window.addEventListener('focusout',()=>setTimeout(keyboard,0));window.visualViewport?.addEventListener('resize',keyboard);window.addEventListener('resize',keyboard);
