@@ -25,6 +25,8 @@ export function icon(name,{solid=false,outline=false}={}){
 // Most upstream Ionicons already match. Studio's shared-path symbols need the
 // outline's outer half-stroke retained, rather than a larger CSS icon box.
 const navigationCorrections={
+ // Link's native filled stroke is wider: retain the outline envelope and center.
+ link:'transform="matrix(.9741379 0 0 .95 6.6207 12.8)"',
  'workspace-home':'stroke="currentColor" stroke-width="32"',
  cross:'stroke="currentColor" stroke-width="32"',
  'prayer-hands':'stroke="currentColor" stroke-width="32"',

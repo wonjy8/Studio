@@ -102,3 +102,9 @@ test('prayer hands use upright joined palms and diagonal cuffs in both variants'
  assert.ok(outline.includes(ionIconPaths['prayer-hands'].outline));
  assert.ok(filled.includes(ionIconPaths['prayer-hands'].filled));
 });
+
+ test('connection chain icon registers both real Ionicons variants instead of fallback artwork',()=>{
+  assert.equal(ionIconAliases.link,'link');assert.notEqual(ionIconPaths.link.outline,ionIconPaths.link.filled);
+  assert.ok(icon('link').includes(ionIconPaths.link.outline));assert.ok(icon('link',{solid:true}).includes(ionIconPaths.link.filled));
+  assert.match(icon('link'),/viewBox="0 0 512 512"/);
+ });
