@@ -12,7 +12,7 @@ test('organization collection URLs retain account, section and history identity'
   assert.equal(routeBelongsToAccount(route,{username:'outsider'}),false);
  }
  for(const path of ['/inventory/organizations/bad%2Fid/items','/inventory/organizations/a/unknown','/inventory/organizations/a/items/extra'])assert.equal(parseRoute(path).valid,false);
- const admin=routePath({view:'admin-organizations',username:'fictional.admin'});assert.equal(admin,'/fictional.admin/admin/organizations');assert.equal(parseRoute(admin).view,'admin-organizations');
+ const admin=routePath({view:'admin-organizations',username:'fictional.admin'});assert.equal(admin,'/fictional.admin/settings/organizations');assert.equal(parseRoute(admin).view,'admin-organizations');
  const ordinary=projectNavigation(emptyWorkspace(),'home',false,{});assert.doesNotMatch(ordinary,/data-view="admin-organizations"/);
  const html=appShell({state:emptyWorkspace(),view:'admin-organizations',body:'',session:{isAdmin:true}});assert.match(html,/data-view="admin"/);assert.doesNotMatch(html,/data-view="admin-organizations"/);assert.doesNotMatch(html,/class="project-tabs"/);
 });
@@ -24,7 +24,7 @@ test('equipment workspace paths retain account scope and never become project ta
  assert.equal(parseRoute('/fictional.operator/inventory/unknown').valid,false);
 });
 test('equipment navigation includes the catalog and rental desks as entries and administrator uses a separate shield',()=>{
- const state=emptyWorkspace(),html=projectNavigation(state,'inventory',false,{isAdmin:true});for(const name of ['멤버 장비','조직 장비','장비 도감','대여소'])assert.ok(html.includes(name));assert.doesNotMatch(html,/전체 장비|반출 현황|반출·반납 내역|data-inventory-collections/);const sidebar=html.match(/<nav class="project-list" aria-label="장비 관리 메뉴"[^>]*>([\s\S]*?)<\/nav>/)[1];assert.equal((sidebar.match(/data-view=/g)||[]).length,4);assert.match(html,/aria-label="자료 워크스페이스"/);assert.match(html,/aria-label="관리자 워크스페이스"/);const admin=html.match(/<button[^>]*aria-label="관리자 워크스페이스"[\s\S]*?<\/button>/)?.[0];assert.ok(admin?.includes(ionIconPaths[ionIconAliases.shield].outline));assert.doesNotMatch(projectNavigation(state,'inventory',false,{}),/aria-label="관리자 워크스페이스"/);
+ const state=emptyWorkspace(),html=projectNavigation(state,'inventory',false,{isAdmin:true});for(const name of ['멤버 장비','조직 장비','장비 도감','대여소'])assert.ok(html.includes(name));assert.doesNotMatch(html,/전체 장비|반출 현황|반출·반납 내역|data-inventory-collections/);const sidebar=html.match(/<nav class="project-list" aria-label="장비 관리 메뉴"[^>]*>([\s\S]*?)<\/nav>/)[1];assert.equal((sidebar.match(/data-view=/g)||[]).length,4);assert.match(html,/aria-label="자료 워크스페이스"/);assert.doesNotMatch(html,/aria-label="관리자 워크스페이스"/);assert.doesNotMatch(projectNavigation(state,'inventory',false,{}),/aria-label="관리자 워크스페이스"/);
 });
 
 test('scripture navigation uses a thumbs-up for gratitude and keeps paired icon variants',()=>{
