@@ -47,3 +47,7 @@ button.theme-mode-toggle[aria-checked=true]{background:var(--selected)}
 @media(prefers-reduced-motion:reduce){.theme-mode-thumb{transition:none}}
 
 .accent-choices{display:flex;flex-wrap:wrap;gap:8px}.accent-choice{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-control);cursor:pointer}.accent-choice:has(input:checked){background:var(--selected);border-color:var(--accent)}
+
+/* Low specificity keeps deliberate canvas/drag gesture contracts intact. */
+:where(html[data-mobile-page-zoom="locked"],html[data-mobile-page-zoom="locked"] body,html[data-mobile-page-zoom="locked"] body *){touch-action:pan-x pan-y}
+:where(html[data-mobile-page-zoom="locked"]) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]):not(.document-title),textarea,select){font-size:max(16px,1em)}
