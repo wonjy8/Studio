@@ -1,3 +1,4 @@
+import {createMobileWorkspaceNavigation} from './mobile-workspace-navigation.js';
 import {refreshMobileNavigationBackdrop} from './mobile-navigation-backdrop.js';
 import {normalizeSidebarPreferences,orderSidebarItems,mergeSidebarOrder} from '../domain/sidebar-preferences.js';
 const groupNames={'프로젝트 목록':'projects','공유 프로젝트':'shared'};
@@ -8,6 +9,7 @@ export function createSidebarNavigation({account,setMobileOpen}){
  let pendingOpen=null,gesture=null,suppressed=null,keyboardBaseline=window.innerHeight;
  const persist=()=>{try{localStorage.setItem(storageKey,JSON.stringify(preferences));}catch{/* Keep the current session usable when browser storage is unavailable. */}};
  const sidebar=()=>document.querySelector('.workspace-sidebar');
+ const mobileNavigation=createMobileWorkspaceNavigation({sidebar,mobile,setMobileOpen});
  const items=group=>[...group.querySelectorAll('[data-sidebar-key]')].filter(item=>item.closest('[data-sidebar-sort]')===group);
  const activeRail=()=>sidebar()?.querySelector('.workspace-rail .rail-button.active');
  function sync(){
@@ -18,6 +20,7 @@ export function createSidebarNavigation({account,setMobileOpen}){
   if(mobile.matches){const active=activeRail();if(active){const left=active.offsetLeft,right=left+active.offsetWidth;if(left<rail.scrollLeft)rail.scrollLeft=left;else if(right>rail.scrollLeft+rail.clientWidth)rail.scrollLeft=right-rail.clientWidth;}}
   panel.id='workspace-secondary-sidebar';panel.inert=!expanded;panel.setAttribute('aria-hidden',String(!expanded));
   for(const button of node.querySelectorAll('.rail-button')){button.setAttribute('aria-pressed',String(button.classList.contains('active')));button.setAttribute('aria-controls',panel.id);button.setAttribute('aria-expanded',String(expanded&&button.classList.contains('active')));}
+  mobileNavigation.sync();
  }
  function bottomSlots(rail){const entries=[...rail.querySelectorAll('.rail-button')],count=Number(rail.dataset.bottomSlots||0);entries.forEach((button,index)=>button.toggleAttribute('data-sidebar-bottom-start',count>0&&index===entries.length-count));}
  function prepare(group,name){
@@ -33,7 +36,7 @@ export function createSidebarNavigation({account,setMobileOpen}){
   for(const group of node.querySelectorAll('.project-sidebar nav.project-list')){const name=groupNames[group.getAttribute('aria-label')];if(name)prepare(group,name);}
   if(!node.querySelector('[data-sidebar-sort-status]')){const status=document.createElement('span');status.className='sr-only';status.dataset.sidebarSortStatus='';status.setAttribute('role','status');status.setAttribute('aria-live','polite');node.append(status);}
   if(pendingOpen&&activeRail()?.dataset.sidebarKey===pendingOpen){pendingOpen=null;if(mobile.matches)setMobileOpen(true,{replace:true});}
-  sync();
+  mobileNavigation.refresh();sync();
  }
  function saveOrder(group,ordered){
   const name=group.dataset.sidebarSort;preferences.orders[name]=mergeSidebarOrder(preferences.orders[name],ordered.map(item=>item.dataset.sidebarKey));persist();for(const item of ordered)group.append(item);
@@ -42,7 +45,10 @@ export function createSidebarNavigation({account,setMobileOpen}){
   if(gesture?.started){event.preventDefault();event.stopImmediatePropagation();return;}
   const item=event.target.closest('[data-sidebar-key]');
   if(item&&event.detail!==0&&suppressed&&performance.now()<suppressed.until&&item.dataset.sidebarKey===suppressed.key){event.preventDefault();event.stopImmediatePropagation();suppressed=null;return;}
+  if(mobile.matches&&event.target.closest('[data-project],[data-open-shared]'))mobileNavigation.prepareEnter();
   const button=event.target.closest('.workspace-rail .rail-button');if(!button)return;
+  if(mobile.matches&&button.dataset.action!=='production'){if(button.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();mobileNavigation.enter();return;}pendingOpen=null;mobileNavigation.prepareEnter();return;}
+  if(mobile.matches&&button.dataset.action==='production')mobileNavigation.prepareEnter();
   if(button.classList.contains('active')){event.preventDefault();event.stopImmediatePropagation();if(mobile.matches)setMobileOpen(true);else{preferences.collapsed=!preferences.collapsed;persist();sync();}return;}
   pendingOpen=button.dataset.sidebarKey;if(!mobile.matches){preferences.collapsed=false;persist();}sync();
  }
@@ -90,10 +96,10 @@ export function createSidebarNavigation({account,setMobileOpen}){
   if(!editing)keyboardBaseline=height;
   const hidden=mobile.matches&&Boolean(editing)&&keyboardBaseline-height>120;
   document.body.classList.toggle('mobile-keyboard-open',hidden);refreshMobileNavigationBackdrop();
-  const rail=sidebar()?.querySelector('.workspace-rail');if(rail){rail.inert=hidden;rail.setAttribute('aria-hidden',String(hidden));}
+  sync();
  }
  window.addEventListener('focusin',keyboard);window.addEventListener('focusout',()=>setTimeout(keyboard,0));window.visualViewport?.addEventListener('resize',keyboard);window.addEventListener('resize',keyboard);
  window.addEventListener('blur',()=>finish(false));mobile.addEventListener('change',()=>{sync();keyboard();});
  const observer=new MutationObserver(()=>{if(gesture&&!gesture.item.isConnected)finish(false);});observer.observe(document.getElementById('app'),{childList:true,subtree:true});
- return {refresh,sync};
+ return {refresh,sync,historyState:mobileNavigation.historyState,focusCurrent:mobileNavigation.focusCurrent};
 }

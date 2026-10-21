@@ -630,3 +630,23 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
  @supports(height:100lvh){:root{--mobile-nav-backdrop-overscan:max(160px,calc(100lvh - 100svh),env(safe-area-inset-bottom,0px))}}
  .mobile-navigation-backdrop[hidden],body:not(:has(.production-app .workspace-rail)) .mobile-navigation-backdrop,body.mobile-keyboard-open .mobile-navigation-backdrop,body:has(.production-app .workspace-sidebar.is-open) .mobile-navigation-backdrop,body:has(.modal-wrap) .mobile-navigation-backdrop,body:has(dialog[open]) .mobile-navigation-backdrop{display:none}
 }
+
+/* Hierarchical mobile navigation reuses destinations and compositor anchors. */
+.mobile-workspace-navigation{display:none}
+@media(max-width:900px){
+ .production-app .workspace-rail{border-radius:9999px;corner-shape:round;padding-inline:6px;scrollbar-width:none}
+ .production-app .workspace-rail[hidden]{display:none}
+ .production-app .workspace-rail .rail-button{border-radius:9999px}
+ .mobile-workspace-navigation{position:fixed;z-index:40;bottom:calc(var(--mobile-nav-bottom-gap) + env(safe-area-inset-bottom,0px));left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));max-width:560px;height:var(--mobile-nav-height);margin-inline:auto;display:flex;align-items:stretch;gap:8px}
+ .mobile-workspace-navigation[hidden]{display:none}
+ .mobile-workspace-back,.mobile-workspace-pill{border:1px solid var(--line);background:rgba(255,255,255,.97);border-radius:9999px;corner-shape:round;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+ html[data-theme=dark] .mobile-workspace-back,html[data-theme=dark] .mobile-workspace-pill{background:rgba(30,30,33,.97)}
+ .mobile-workspace-back{flex:none;width:var(--mobile-nav-height);height:var(--mobile-nav-height);padding:0;display:grid;place-items:center;color:var(--ink)}
+ .mobile-workspace-back .icon{transform:rotate(180deg)}
+ .mobile-workspace-pill{position:relative;flex:1;min-width:0;height:var(--mobile-nav-height);display:flex;align-items:stretch;gap:0;padding:5px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;touch-action:pan-x}
+ .mobile-workspace-tab{flex:1 0 44px;min-width:44px;min-height:44px;padding:0 4px;display:grid;place-items:center;border:0;border-radius:9999px;color:var(--muted);background:transparent}
+ .mobile-workspace-tab.active{background:var(--selected);color:var(--accent)}
+ .mobile-workspace-tab .icon,.mobile-workspace-back .icon{width:22px;height:22px}
+ .production-app:has(.mobile-workspace-navigation:not([hidden])) .project-tabs{display:none}
+ .production-app:has(>.modal-wrap) .mobile-workspace-navigation,.mobile-keyboard-open .mobile-workspace-navigation,body:has(dialog[open]) .mobile-workspace-navigation{visibility:hidden;pointer-events:none}
+}
