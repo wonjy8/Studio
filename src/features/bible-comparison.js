@@ -19,14 +19,14 @@ export function bindBibleComparison(layout,state={selected:new Set(),anchor:null
  function schedule(){if(disposed)return;cancelAnimationFrame(frame);frame=requestAnimationFrame(align);}
  function align(){
   if(!layout.isConnected){dispose();return;}
-  restore();
+  restore();update();
   const list=[...panels.keys()].filter(panel=>panel.isConnected);
   // Padding from a previous pairing must not survive version or viewport changes.
   const rows=list.flatMap(panel=>[...panel.querySelectorAll('[data-bible-row]')]);
   for(const row of rows){row.style.minHeight='';row.querySelector('.bible-row-heading').style.minHeight='';}
   for(const panel of list)panel.querySelector('[data-bible-verses]').style.paddingTop='';
   if(list.length!==2)return;
-  if(mobile.matches){const secondaryLabel=list[1].querySelector('[data-bible-version]')?.selectedOptions[0]?.textContent||'대조 번역';const primary=list[0].querySelector('[data-bible-verses]');const secondary=list[1].querySelector('[data-bible-verses]'),rowsRight=new Map([...secondary.querySelectorAll('[data-bible-row]')].map(row=>[row.dataset.bibleRow,row]));for(const row of primary.querySelectorAll('[data-bible-row]')){const pair=rowsRight.get(row.dataset.bibleRow);if(!pair)continue;const label=document.createElement('span');label.className='bible-comparison-label';label.dataset.comparisonLabel='';label.textContent=secondaryLabel;pair.prepend(label);pair.classList.add('bible-secondary-verse');moved.set(pair,{container:secondary,next:pair.nextSibling});row.after(pair);}return;}
+  if(mobile.matches){const primary=list[0].querySelector('[data-bible-verses]');const secondary=list[1].querySelector('[data-bible-verses]'),rowsRight=new Map([...secondary.querySelectorAll('[data-bible-row]')].map(row=>[row.dataset.bibleRow,row]));for(const row of primary.querySelectorAll('[data-bible-row]')){const pair=rowsRight.get(row.dataset.bibleRow);if(!pair)continue;pair.classList.add('bible-secondary-verse');moved.set(pair,{container:secondary,next:pair.nextSibling});row.after(pair);}update();return;}
   const containers=list.map(panel=>panel.querySelector('[data-bible-verses]'));
   const top=Math.max(...containers.map(node=>node.getBoundingClientRect().top));
   for(const node of containers)node.style.paddingTop=(top-node.getBoundingClientRect().top)+'px';
