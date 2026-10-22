@@ -37,6 +37,7 @@ export function createMobileWorkspaceNavigation({sidebar,mobile,setMobileOpen,on
  }
  function click(event){
   const target=event.target.closest('[data-mobile-nav-back],[data-mobile-admin],[data-mobile-destination]');if(!target||!mobile.matches)return;if(target.hasAttribute('data-mobile-nav-back')){prepareEnter('root');return;}event.preventDefault();event.stopImmediatePropagation();
+  if(target.dataset.mobileDestination==='school-semesters'&&target.getAttribute('aria-current')==='page'){setMobileOpen(!sidebar()?.classList.contains('is-open'));return;}
   if(target.hasAttribute('data-mobile-admin'))setMobileOpen(!sidebar()?.classList.contains('is-open'));
   else{targets.get(target)?.click();focusCurrent();}
  }
