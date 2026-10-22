@@ -1,4 +1,4 @@
-import {setupContentConsent,fullContentConsentVersion} from './content-service.js';
+import {setupContentConsent,fullContentConsentVersion,schoolConsentVersion,schoolConsentScope} from './content-service.js';
 import {accountActive,passwordChangeRequired} from './accounts.js';
 import {isAdmin} from './invitations.js';
 import {createHash,randomUUID,timingSafeEqual} from 'node:crypto';
@@ -150,7 +150,12 @@ export function oauthService(db,origin){
     json(200,{ok:true});return true;
    }
    if(path==='/api/connections'&&req.method==='GET'){
-    cleanup();json(200,{endpoint:resource,connections:db.prepare('SELECT g.id,g.scope,g.created_at,g.refresh_expires,COALESCE(c.version,0) contentConsentVersion FROM oauth_grants g LEFT JOIN integration_content_consents c ON c.grant_id=g.id AND c.user_id=g.user_id WHERE g.user_id=? AND g.revoked=0 ORDER BY g.created_at DESC').all(session.user_id)});return true;
+    cleanup();json(200,{endpoint:resource,connections:db.prepare("SELECT g.id,g.scope,g.created_at,g.refresh_expires,COALESCE(c.version,0) contentConsentVersion,COALESCE(s.version,0) schoolConsentVersion FROM oauth_grants g LEFT JOIN integration_content_consents c ON c.grant_id=g.id AND c.user_id=g.user_id LEFT JOIN integration_school_consents s ON s.grant_id=g.id AND s.user_id=g.user_id AND s.scope='school-content-v1' WHERE g.user_id=? AND g.revoked=0 ORDER BY g.created_at DESC").all(session.user_id)});return true;
+   }
+   const schoolGrantId=path.match(/^\/api\/connections\/([a-f0-9-]{36})\/school-consent$/)?.[1];
+   if(schoolGrantId&&req.method==='POST'){
+    const data=await readJson(4096);if(!data||Object.keys(data).some(k=>!['approve','version','scope'].includes(k))||typeof data.approve!=='boolean'||data.version!==schoolConsentVersion||data.scope!==schoolConsentScope)throw fail('학교 콘텐츠 범위를 확인하고 직접 승인해 주세요.');
+    transaction(()=>{liveSession(session);const grant=db.prepare('SELECT id FROM oauth_grants WHERE id=? AND user_id=? AND revoked=0 AND refresh_expires>?').get(schoolGrantId,session.user_id,Date.now());if(!grant)throw fail('Connection not found',404);if(data.approve)db.prepare('INSERT INTO integration_school_consents VALUES(?,?,?,?,?,?) ON CONFLICT(grant_id) DO UPDATE SET version=excluded.version,scope=excluded.scope,generation=excluded.generation,approved_at=excluded.approved_at').run(schoolGrantId,session.user_id,schoolConsentVersion,schoolConsentScope,randomUUID(),Date.now());else db.prepare('DELETE FROM integration_school_consents WHERE grant_id=? AND user_id=?').run(schoolGrantId,session.user_id);db.prepare("DELETE FROM integration_content_proposals WHERE grant_id=? AND user_id=? AND json_extract(body,'$.args.resource') LIKE 'school_%'").run(schoolGrantId,session.user_id);});json(200,{ok:true,schoolConsentVersion:data.approve?schoolConsentVersion:0});return true;
    }
    const contentGrantId=path.match(/^\/api\/connections\/([a-f0-9-]{36})\/content-consent$/)?.[1];
    if(contentGrantId&&req.method==='POST'){
