@@ -183,7 +183,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           if(!validateWorkspace(data.state))return json(400,{error:'Invalid workspace'});
           try{const previous=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(uid),saved=writeWorkspace(db,uid,linkedWorkspace(db,uid,data.state),data.revision);registerNewProjectDocuments(db,uid,saved.state,previous?JSON.parse(previous.body):null);calendar.kick(uid);tasksGoogle.kick(uid);return json(200,saved);}catch(e){return json(e.status||500,{error:e.message});}
         }
-        if(await handleDocumentFiles({path,req,res,session,json,body}))return;
+        if(await handleDocumentFiles({path,req,res,session,json,body,readJson}))return;
         if((path==='/api/files'||path==='/api/school/files')&&req.method==='POST') {
           const schoolPrivate=path==='/api/school/files';
           const type=req.headers['content-type'];

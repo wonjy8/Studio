@@ -5,7 +5,7 @@ const all=(db,table,where='',...args)=>has(db,table)?db.prepare(`SELECT * FROM $
 export function setupCompleteDeletion(db){db.exec('CREATE TABLE IF NOT EXISTS inventory_history_redactions(kind TEXT NOT NULL,record_id TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(kind,record_id))');}
 function snapshot(db,actor,target){
  const tokens=new Set([target]);const include=(table,where,...args)=>{const rows=all(db,table,where,...args);for(const row of rows)for(const key of ['id','client_id','grant_id','org_id','organization_id','equipment_id','contact_id'])if(typeof row[key]==='string')tokens.add(row[key]);return rows;};
- for(const table of ['files','contacts','reference_library','reference_boards','oauth_grants','google_sheet_links'])include(table,'user_id=?',target);
+ for(const table of ['files','document_files','contacts','reference_library','reference_boards','oauth_grants','google_sheet_links'])include(table,'user_id=?',target);
  include('oauth_manual_clients','owner_id=?',target);for(const row of all(db,'oauth_grants'))if(tokens.has(row.client_id))tokens.add(row.id);include('inventory_organizations','owner_id=?',target);include('inventory_memberships','user_id=?',target);include('equipment_items','owner_id=?',target);
  for(const row of all(db,'contact_equipment'))if(tokens.has(row.contact_id))tokens.add(row.id);
  for(const row of all(db,'inventory_loan_lines'))if(tokens.has(row.equipment_id)){tokens.add(row.id);tokens.add(row.loan_id);}
@@ -14,7 +14,7 @@ function snapshot(db,actor,target){
  const hash=createHash('sha256');hash.update(JSON.stringify([actor,target,'complete-v2']));
  for(const {name}of db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name<>'connection_diagnostics' ORDER BY name").all()){
   hash.update(name);for(const row of db.prepare('SELECT * FROM "'+name.replaceAll('"','""')+'" ORDER BY rowid').iterate()){
-   if(name==='files'&&row.user_id!==target)continue;const value=JSON.stringify(row,(_key,value)=>value instanceof Uint8Array?{bytes:value.byteLength,hash:createHash('sha256').update(value).digest('hex')}:value);
+   if(['files','document_files'].includes(name)&&row.user_id!==target)continue;const value=JSON.stringify(row,(_key,value)=>value instanceof Uint8Array?{bytes:value.byteLength,hash:createHash('sha256').update(value).digest('hex')}:value);
    if(name==='site_settings'||[...tokens].some(token=>value.includes(token)))hash.update(value);
   }
  }return hash.digest('hex');
@@ -26,7 +26,7 @@ export function completeDeletionPreview(db,actorId,uid){
  const highest=db.prepare("SELECT value FROM site_settings WHERE key='super_admin_user_id'").get()?.value,blockers=[];
  if(uid===actorId)blockers.push({kind:'self_account',count:1});if(uid===highest)blockers.push({kind:'highest_protected',count:1});
  const count=(table,key)=>all(db,table,key+'=?',uid).length;
- const impact={projects:all(db,'workspaces','user_id=?',uid).reduce((sum,row)=>{const s=JSON.parse(row.body);return sum+(s.project.placeholder?0:1)+(s.projects?.length||0);},0),files:count('files','user_id'),fileBytes:all(db,'files','user_id=?',uid).reduce((sum,f)=>sum+f.bytes.byteLength,0),profile:count('account_profiles','user_id')>0,sessions:count('sessions','user_id'),connections:count('oauth_grants','user_id')+count('google_accounts','user_id'),equipment:all(db,'equipment_items','owner_id=?',uid).filter(row=>db.prepare('SELECT ownership FROM inventory_metadata WHERE equipment_id=?').get(row.id)?.ownership!=='organization').length,contacts:count('contacts','user_id'),references:count('reference_library','user_id'),organizations:count('inventory_organizations','owner_id')};
+ const impact={projects:all(db,'workspaces','user_id=?',uid).reduce((sum,row)=>{const s=JSON.parse(row.body);return sum+(s.project.placeholder?0:1)+(s.projects?.length||0);},0),files:count('files','user_id')+count('document_files','user_id'),fileBytes:[...all(db,'files','user_id=?',uid),...all(db,'document_files','user_id=?',uid)].reduce((sum,f)=>sum+f.bytes.byteLength,0),profile:count('account_profiles','user_id')>0,sessions:count('sessions','user_id'),connections:count('oauth_grants','user_id')+count('google_accounts','user_id'),equipment:all(db,'equipment_items','owner_id=?',uid).filter(row=>db.prepare('SELECT ownership FROM inventory_metadata WHERE equipment_id=?').get(row.id)?.ownership!=='organization').length,contacts:count('contacts','user_id'),references:count('reference_library','user_id'),organizations:count('inventory_organizations','owner_id')};
  return {target,allowed:!blockers.length,blockers,impact,scope:'account-and-private-data',deletionMode:'complete',retainedHistory:{legacyDeletionAudit:0},expectedSnapshot:snapshot(db,actorId,uid)};
 }
 export function purgeCompleteAccount(db,actorId,uid){
@@ -89,7 +89,7 @@ export function purgeCompleteAccount(db,actorId,uid){
  const clients=all(db,'oauth_manual_clients','owner_id=?',uid).map(row=>row.client_id),grants=all(db,'oauth_grants').filter(row=>row.user_id===uid||clients.includes(row.client_id)).map(row=>row.id);
  for(const row of all(db,'integration_proposals'))if(row.user_id===uid||grants.includes(row.grant_id))db.prepare('DELETE FROM integration_proposals WHERE id=?').run(row.id);
  for(const client of clients){for(const table of ['oauth_grants','oauth_codes','oauth_requests','oauth_callback_mismatches','oauth_manual_clients'])run(db,table,`DELETE FROM ${table} WHERE client_id=?`,client);db.prepare('DELETE FROM oauth_clients WHERE id=?').run(client);}
- for(const table of ['scripture_version_verses','scripture_versions','scripture_annotations','scripture_notes','scripture_verses','scripture_bibles','document_library','deleted_projects','material_migration_backups','contacts','reference_boards','reference_library','rental_vendors','google_sheet_links','google_oauth_states','google_accounts','oauth_codes','oauth_grants','sessions','password_changes','account_profiles','account_status','files','workspaces','site_role_memberships'])run(db,table,`DELETE FROM ${table} WHERE ${table==='deleted_projects'?'owner_id':'user_id'}=?`,uid);
+ for(const table of ['scripture_version_verses','scripture_versions','scripture_annotations','scripture_notes','scripture_verses','scripture_bibles','document_library','deleted_projects','material_migration_backups','contacts','reference_boards','reference_library','rental_vendors','google_sheet_links','google_oauth_states','google_accounts','oauth_codes','oauth_grants','sessions','password_changes','account_profiles','account_status','document_file_uploads','document_files','files','workspaces','site_role_memberships'])run(db,table,`DELETE FROM ${table} WHERE ${table==='deleted_projects'?'owner_id':'user_id'}=?`,uid);
  run(db,'site_settings',"DELETE FROM site_settings WHERE value=? AND key IN ('site_role_first_login_user_id','admin_user_id')",uid);
  db.prepare('DELETE FROM users WHERE id=?').run(uid);
  db.prepare('INSERT INTO admin_audit VALUES(?,?,?,?,?,?)').run(randomUUID(),actorId,'deleted-account','delete-permanently-complete','',Date.now());

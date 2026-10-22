@@ -964,3 +964,5 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 .document-paper .type-quote .document-editable{border-left-color:color-mix(in srgb,var(--ink) 55%,transparent)}
 @media screen{@container(max-width:640px){.document-paper{--document-h4-size:17px}}}
 @media print{.document-paper .type-h4{break-after:avoid}}
+.document-image-cleanup-list{max-height:180px;overflow:auto;padding-left:20px;overflow-wrap:anywhere}.document-image-cleanup-list small{color:var(--muted)}
+.document-image-cleanup [hidden]{display:none!important}
