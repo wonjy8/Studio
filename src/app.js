@@ -1,3 +1,4 @@
+import './typed-arrows.js';
 import {schoolWorkspacePage,bindSchoolWorkspace,schoolCanLeave,bindSchoolTaskSummary} from './features/school-workspace.js';
 import {bindWorkspaceCalendar} from './features/workspace-calendar.js';
 import {selectionToolbar,selectionControl} from './features/collection-selection.js';
