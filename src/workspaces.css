@@ -860,3 +860,11 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 .school-sidebar-list details[open]>summary .school-semester-chevron{transform:rotate(90deg)}
 .school-sidebar-list summary>.school-semester-name{font-size:var(--text-section);font-weight:500}
 @media(max-width:900px){.production-app .project-sidebar .school-semesters-heading{min-height:44px}}
+
+/* Course rows own one fixed emoji slot, independent of project-settings controls. */
+.school-course-entry [data-course-emoji-picker]{flex:0 0 40px;width:40px;min-width:40px;gap:0}
+@media(min-width:901px){
+ :root{--rail:56px}
+ .production-app .workspace-rail .rail-button{flex:0 0 40px;width:40px;height:40px;padding:0}
+ .production-app .workspace-rail .rail-button .icon{width:24px;height:24px}
+}
