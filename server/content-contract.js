@@ -2,7 +2,7 @@ import {resourceManifest} from './content-resources.js';
 import {commandOperations} from '../src/domain/commands.js';
 // This registry classifies app services, not arbitrary URLs or database tables.
 // New services must make an explicit consent/permission decision before MCP exposure.
-export const contentContractVersion=4;
+export const contentContractVersion=5;
 export const contentServices=Object.freeze({
  handleSchool:{access:'consent-required',consentVersion:1,consentScope:'school-content-v1',content:['school-semesters','school-courses','school-syllabus','lecture-notes','course-modules','school-tasks','school-events','credit-requirements']},
  projects:{access:'enabled',scope:'studio:read',writeScope:'studio:write',operations:commandOperations},
