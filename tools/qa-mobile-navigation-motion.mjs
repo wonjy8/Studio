@@ -15,7 +15,7 @@ try{for(const [width,role,reduced]of [[320,'admin',false],[390,'member',false],[
  const reset=()=>page.evaluate(()=>window.__motions=[]);
  const direction=async expected=>{const records=await page.evaluate(()=>window.__motions);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.equal(records.some(r=>r.fixed),false);if(reduced)assert.equal(records.length,0);else{const last=records.filter(r=>r.page).at(-1);assert.ok(last,'page transition exists');assert.equal(last.frames[0].transform,`translateX(${expected*18}px)`);assert.ok(last.duration>=150&&last.duration<=200);}};
  const center=async locator=>{const r=await locator.boundingBox();return {x:r.x+r.width/2,y:r.y+r.height/2};};
- const start=async locator=>{const p=await center(locator);await page.mouse.move(p.x,p.y);await page.mouse.down();return p;};
+ const start=async locator=>{await locator.scrollIntoViewIfNeeded();const p=await center(locator);await page.mouse.move(p.x,p.y);await page.mouse.down();return p;};
  const move=async locator=>{const p=await center(locator);await page.mouse.move(p.x,p.y,{steps:8});return p;};
  await reset();await tab('app').click();await page.waitForURL('**/settings/app');await direction(1);if(!reduced){const records=await page.evaluate(()=>window.__motions);assert.ok(records.some(r=>r.indicator&&r.frames[0].transform!==r.frames[1].transform));assert.ok(records.some(r=>r.icon));}assert.equal(await page.locator('[data-mobile-nav-indicator]:visible').evaluate(n=>n.inert&&getComputedStyle(n).pointerEvents==='none'),true);
  await reset();await tab('data').click();await tab('app').click();await direction(-1);

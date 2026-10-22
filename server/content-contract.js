@@ -4,6 +4,7 @@ import {commandOperations} from '../src/domain/commands.js';
 // New services must make an explicit consent/permission decision before MCP exposure.
 export const contentContractVersion=3;
 export const contentServices=Object.freeze({
+ handleSchool:{access:'excluded',reason:'Private school records require a separate explicit MCP content decision.'},
  projects:{access:'enabled',scope:'studio:read',writeScope:'studio:write',operations:commandOperations},
  sharedProjects:{access:'consent-required',consentVersion:1,content:['shared-project-projection'],readOnly:true},
  handleScripture:{access:'consent-required',consentVersion:1,content:['notes','qt','gratitude','prayers','verse-annotations','bible']},

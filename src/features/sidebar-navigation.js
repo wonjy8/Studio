@@ -6,6 +6,7 @@ const itemKey=button=>button.dataset.project?'project:'+button.dataset.project:b
 export function createSidebarNavigation({account,setMobileOpen,onHome}){
  const storageKey='studio.sidebar.v1:'+account,mobile=matchMedia('(max-width:900px)');let preferences;
  try{preferences=normalizeSidebarPreferences(JSON.parse(localStorage.getItem(storageKey)));}catch{preferences=normalizeSidebarPreferences(null);}
+ let lastRailNode=null,lastRailKey=null;
  let pendingOpen=null,gesture=null,suppressed=null,keyboardBaseline=window.innerHeight;
  const persist=()=>{try{localStorage.setItem(storageKey,JSON.stringify(preferences));}catch{/* Keep the current session usable when browser storage is unavailable. */}};
  const sidebar=()=>document.querySelector('.workspace-sidebar');
@@ -17,7 +18,7 @@ export function createSidebarNavigation({account,setMobileOpen,onHome}){
   const rail=node.querySelector('.workspace-rail'),railHidden=mobile.matches&&(document.body.classList.contains('mobile-keyboard-open')||Boolean(document.querySelector('.modal-wrap')));rail.inert=railHidden;rail.setAttribute('aria-hidden',String(railHidden));
   const main=document.querySelector('.production-app > .main');if(main)main.inert=mobile.matches&&expanded;
   document.querySelector('.production-app')?.classList.toggle('sidebar-collapsed',preferences.collapsed);
-  if(mobile.matches){const active=activeRail();if(active){const left=active.offsetLeft,right=left+active.offsetWidth;if(left<rail.scrollLeft)rail.scrollLeft=left;else if(right>rail.scrollLeft+rail.clientWidth)rail.scrollLeft=right-rail.clientWidth;}}
+  if(mobile.matches){const active=activeRail();if(active&&(lastRailNode!==rail||lastRailKey!==active.dataset.sidebarKey)){lastRailNode=rail;lastRailKey=active.dataset.sidebarKey;const left=active.offsetLeft,right=left+active.offsetWidth;if(left<rail.scrollLeft)rail.scrollLeft=left;else if(right>rail.scrollLeft+rail.clientWidth)rail.scrollLeft=right-rail.clientWidth;}}
   panel.id='workspace-secondary-sidebar';panel.inert=!expanded;panel.setAttribute('aria-hidden',String(!expanded));
   for(const button of node.querySelectorAll('.rail-button')){button.setAttribute('aria-pressed',String(button.classList.contains('active')));button.setAttribute('aria-controls',panel.id);button.setAttribute('aria-expanded',String(expanded&&button.classList.contains('active')));}
   mobileNavigation.sync();
@@ -100,7 +101,7 @@ export function createSidebarNavigation({account,setMobileOpen,onHome}){
   sync();
  }
  window.addEventListener('focusin',keyboard);window.addEventListener('focusout',()=>setTimeout(keyboard,0));window.visualViewport?.addEventListener('resize',keyboard);window.addEventListener('resize',keyboard);
- window.addEventListener('blur',()=>finish(false));mobile.addEventListener('change',()=>{sync();keyboard();});
+ window.addEventListener('blur',()=>finish(false));mobile.addEventListener('change',()=>{lastRailNode=null;sync();keyboard();});
  const observer=new MutationObserver(()=>{if(gesture&&!gesture.item.isConnected)finish(false);});observer.observe(document.getElementById('app'),{childList:true,subtree:true});
  return {refresh,sync,historyState:mobileNavigation.historyState,focusCurrent:mobileNavigation.focusCurrent};
 }
