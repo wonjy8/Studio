@@ -687,3 +687,14 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 :root{--scripture-highlight-background-1:#f6f6f7;--scripture-highlight-background-2:#e9f0fb;--scripture-highlight-background-4:#faeeee;--scripture-highlight-background-5:#edf5ef;--scripture-highlight-background-6:#fcf0e6;--scripture-highlight-background-7:#f6f0eb;--scripture-highlight-background-8:#fbf7e9;--scripture-highlight-background-9:#faeef4;--scripture-highlight-color-1:#737780;--scripture-highlight-color-2:#365f9c;--scripture-highlight-color-4:#9b4f53;--scripture-highlight-color-5:#39745a;--scripture-highlight-color-6:#8e633b;--scripture-highlight-color-7:#8c6656;--scripture-highlight-color-8:#806322;--scripture-highlight-color-9:#9d547a}
 html[data-theme=dark]{--scripture-highlight-color-1:#b2b3bb;--scripture-highlight-color-2:#b4c9eb;--scripture-highlight-color-4:#e7b5bb;--scripture-highlight-color-5:#bad6c6;--scripture-highlight-color-6:#e3c5a7;--scripture-highlight-color-7:#d6b9aa;--scripture-highlight-color-8:#e5d4a2;--scripture-highlight-color-9:#e0b9cd}
 .scripture-back-arrow .icon{transform:rotate(180deg)}
+/* School uses the shared modal surface; each section owns its content gutter. */
+.school-dialog{padding:0;box-sizing:border-box;overflow:auto}
+.school-dialog form{display:flex;flex-direction:column;gap:0;min-width:0}
+.school-dialog-header{padding:24px 24px 16px}
+.school-dialog-body{display:grid;gap:16px;padding:0 24px;min-width:0}
+.school-dialog-footer{padding:20px 24px 24px;margin:0}
+.school-dialog [data-school-form-error]{padding:0 24px;margin:12px 0 0;overflow-wrap:anywhere}
+.school-dialog [data-school-form-error]:empty{margin:0}
+.school-dialog .field{min-width:0;overflow-wrap:anywhere}
+.school-dialog input,.school-dialog select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+@media(max-width:900px){.school-dialog-header{padding:20px 20px 16px}.school-dialog-body{padding:0 20px}.school-dialog-footer{padding:20px}.school-dialog [data-school-form-error]{padding-inline:20px}}
