@@ -11,3 +11,4 @@ test('optional note emoji survives page validation and supports grapheme sequenc
  for(const emoji of ['notes','📝📚','<script>',42]){assert.equal(validCourseEmoji(emoji),false);entry.emoji=emoji;assert.equal(validCoursePage(course.page,course.documents),false);}
  delete entry.emoji;assert.equal(validCoursePage(course.page,course.documents),true);assert.equal(entry.width,100);
 });
+test('course entry icons use the existing catalog while retaining legacy emoji and note data',()=>{const c={documents:[]};initializeCoursePage(c);c.page.entries[0].emoji='📝';c.page.entries[0].icon='book';assert.equal(validCoursePage(c.page,c.documents),true);assert.equal(c.page.entries[0].emoji,'📝');c.page.entries[0].icon='not-a-real-icon';assert.equal(validCoursePage(c.page,c.documents),false);});
