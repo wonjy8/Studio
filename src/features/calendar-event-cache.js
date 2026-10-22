@@ -1,0 +1,16 @@
+// Memory-only, bounded, minimal display data. A fresh permission check is required
+// before callers may activate a context or display any entry.
+export function createCalendarEventCache({now=()=>Date.now(),ttl=300000,maxEntries=24,maxBytes=2000000}={}){
+ let context='',generation=0;const entries=new Map(),pending=new Map(),epochs=new Map();
+ const key=target=>JSON.stringify([target.calendarId,target.start,target.end,target.timeZone]);
+ const clear=()=>{generation++;entries.clear();pending.clear();epochs.clear();context='';};
+ const activate=(namespace,identity)=>{const next=JSON.stringify([namespace,identity]);if(context!==next){clear();context=next;}};
+ const purge=()=>{for(const [id,row]of entries)if(now()-row.savedAt>ttl)entries.delete(id);while(entries.size>maxEntries||[...entries.values()].reduce((n,r)=>n+r.bytes,0)>maxBytes)entries.delete(entries.keys().next().value);};
+ const peek=target=>{purge();const row=entries.get(key(target));return row?{value:structuredClone(row.value),savedAt:row.savedAt}:null;};
+ const invalidate=calendarId=>{if(!calendarId){generation++;pending.clear();entries.clear();return;}epochs.set(calendarId,(epochs.get(calendarId)||0)+1);for(const [id]of pending)if(JSON.parse(id)[0]===calendarId)pending.delete(id);for(const [id,row]of entries)if(row.calendarId===calendarId)entries.delete(id);};
+ async function load(target,loader,{force=false}={}){const id=key(target),saved=peek(target);if(!force&&saved&&now()-saved.savedAt<30000)return saved;if(pending.has(id))return pending.get(id);const version=generation,active=context,epoch=epochs.get(target.calendarId)||0;const promise=(async()=>{const result=await loader();if(result.failedRanges?.length&&saved&&version===generation&&active===context&&epoch===(epochs.get(target.calendarId)||0))return {...saved,stale:true,value:{...saved.value,warnings:result.warnings||[],failedRanges:result.failedRanges}};const value={events:(result.events||[]).map(e=>Object.fromEntries(['id','title','allDay','start','end','calendarId','calendarName','calendarColor','url'].filter(k=>e[k]!==undefined).map(k=>[k,structuredClone(e[k])]))),warnings:result.warnings||[],failedRanges:result.failedRanges||[]},row={value,savedAt:now(),calendarId:target.calendarId};row.bytes=JSON.stringify(row).length*2;if(version!==generation||active!==context||epoch!==(epochs.get(target.calendarId)||0))return {value:{events:[],warnings:result.warnings||[],failedRanges:result.failedRanges||[]},invalidated:true};if(version===generation&&active===context&&epoch===(epochs.get(target.calendarId)||0)&&context){entries.delete(id);entries.set(id,row);purge();}return {value:structuredClone(value),savedAt:row.savedAt};})();pending.set(id,promise);try{return await promise;}finally{if(pending.get(id)===promise)pending.delete(id);}}
+ const retain=ids=>{const allowed=new Set(ids);for(const row of entries.values())if(!allowed.has(row.calendarId))invalidate(row.calendarId);};
+ return {activate,peek,load,invalidate,retain,clear,prune:purge};
+}
+export const calendarEventCache=createCalendarEventCache();
+if(typeof window!=='undefined'){window.addEventListener('studio:calendar-cache-clear',()=>calendarEventCache.clear());window.addEventListener('pagehide',()=>window.dispatchEvent(new Event('studio:calendar-cache-clear')));setInterval(()=>calendarEventCache.prune(),60000);}
