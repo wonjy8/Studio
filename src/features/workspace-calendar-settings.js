@@ -1,8 +1,9 @@
+import {calendarTargetCanLeave} from './calendar-target-select.js';
 import {sharedCalendarButton} from './shared-project-calendar.js';
 import {request} from '../integrations/api.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
 let active=null;
-export const workspaceSettingsCanLeave=()=>!active?.isConnected;
+export const workspaceSettingsCanLeave=()=>calendarTargetCanLeave()&&!active?.isConnected;
 export function bindWorkspaceSettings({namespace=''}={}){const triggers=[...document.querySelectorAll('[data-workspace-settings]')];triggers.forEach(trigger=>trigger.onclick=()=>openWorkspaceSettings(trigger,namespace));const first=triggers[0];if(!first?.dataset.workspaceSettings||!namespace)return;void request('google/calendar/status').then(status=>{if(!first.isConnected||status.accountId!==namespace)return;const config=status.workspacePublications?.find(row=>row.workspaceId===first.dataset.workspaceSettings);if(!config?.enabled||!config.error&&status.connected&&config.accountMatches)return;const target=document.querySelector('.content');if(!target||target.querySelector('[data-workspace-publication-error]'))return;const note=document.createElement('p');note.dataset.workspacePublicationError='';note.setAttribute('role','alert');note.className='sub';note.textContent='Google 게시 확인 필요: '+(config.error||'연결과 저장 대상을 다시 확인하세요.')+' 워크스페이스 설정에서 재시도할 수 있습니다.';target.prepend(note);}).catch(()=>{});}
 async function openWorkspaceSettings(trigger,namespace){
  if(active?.isConnected)return;
