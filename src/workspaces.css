@@ -817,6 +817,8 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 @media(max-width:900px){.school-entry-heading{padding:8px 0}.school-entry-actions[open]{max-width:110px}.school-entry-actions summary{min-height:44px}.school-syllabus{padding:12px 0}}
 .school-content-link,.school-content-link strong,.school-content-link small,.school-course-entry p{user-select:text;-webkit-user-select:text}
 
+.school-graduation-table .school-area-name{background:transparent;display:inline-flex;align-items:center;gap:8px}.school-area-name::before{content:"";width:3px;height:16px;flex:none;border-radius:2px;background:var(--credit-color)}
+.school-area-name.group-major{--credit-color:var(--school-major)}.school-area-name.group-liberal{--credit-color:var(--school-liberal)}.school-area-name.group-elective{--credit-color:var(--school-elective)}
 /* Project badges use white glyphs; quiet course entries inherit theme ink instead. */
 .school-course-entry .project-icon-trigger .icon{color:inherit}
 .school-course-entry .project-icon-popover .icon-choice>span{color:var(--ink)}
