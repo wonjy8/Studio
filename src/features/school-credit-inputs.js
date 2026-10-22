@@ -7,7 +7,7 @@ export function bindCreditInputs(root,{read,update}){
  const states=[...root.querySelectorAll('[data-school-credit-input]')].map(input=>({input,saved:input.value,queued:null,sent:null,error:null}));let running=false,blocked=false;
  const dirty=s=>s.input.validity.badInput||s.input.value!==s.saved||s.queued!==null||s.sent!==null;
  active={root,canLeave:()=>!running&&!states.some(dirty)};
- const controls=()=>root.querySelectorAll('[data-school-area-map],[data-school-gpa-group]').forEach(n=>n.disabled=running||states.some(dirty));
+ const controls=()=>root.querySelectorAll('[data-school-gpa-group]').forEach(n=>n.disabled=running||states.some(dirty));
  function show(s){const row=s.input.closest('.school-requirement-row'),status=row.querySelector('[data-credit-status]');status.textContent=s.error||'';status.setAttribute('role',s.error?'alert':'status');s.input.setAttribute('aria-invalid',s.error?'true':'false');row.querySelector('[data-credit-retry]').hidden=!s.error;row.querySelector('[data-credit-cancel]').hidden=!s.error||running;controls();}
  function value(s){const raw=s.input.value;if(s.input.validity.badInput)throw Error('0 이상의 정수 학점을 입력하세요.');if(raw==='')return null;const n=Number(raw);if(!Number.isSafeInteger(n)||n<0||n>100000||s.input.validity.badInput)throw Error('0 이상의 정수 학점을 입력하세요.');return n;}
  function enqueue(s){if(!s.input.validity.badInput&&s.input.value===s.saved&&s.queued===null&&s.sent===null){s.error=null;show(s);return;}try{const retry=!!s.error;s.queued={raw:s.input.value,value:value(s)};s.error=null;if(retry)blocked=false;}catch(e){s.error=e.message;show(s);return;}show(s);void drain();}
