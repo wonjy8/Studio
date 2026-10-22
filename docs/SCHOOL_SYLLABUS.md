@@ -1,0 +1,11 @@
+# Structured course syllabus
+
+The course's syllabus entry opens a directly editable page: course number, section, course name, credits, professor name/email/phone, class days/time, objectives, textbooks/references, assessment and a sixteen-row weekly plan. No separate information-edit mode is required. Blank fields remain blank until the account owner fills them; no PDF example facts are imported.
+
+Click or keyboard-activate a field to edit. Enter saves single-line fields; multiline Enter inserts a newline and Ctrl/Command+Enter saves. Blur saves; Escape cancels. A failed save keeps the draft and offers explicit retry. Retry refreshes the latest revision; if another device changed the same field, the user must explicitly choose their own value before overwriting it. Pending/failed drafts block background replacement and navigation until saved or canceled.
+
+Course name, credit count and professor name are the existing canonical course fields. Syllabus edits update course chips and existing credit calculations; changes through the course dialog appear in the syllabus. Existing status/equivalence semantics remain unchanged. Legacy fractional credits remain untouched unless the user intentionally changes credits to an integer. Professor contact fields and weekly plan live in an optional validated syllabus object, bounded by existing account-private School storage and revision checks.
+
+Legacy syllabus documents remain stored byte-for-byte with original document modification timestamps unless the document itself is edited. The page offers an explicit preserved-document editor and return path. Structured values are never guessed from or copied over the original body. Course and syllabus information uses spacing instead of decorative divider lines; other application dividers are unchanged.
+
+Validation uses temporary synthetic account records. Automated model/API checks cover blank defaults, bounds, canonical metadata, fractional records, original body/timestamps, revision conflicts and isolation. Browser QA covers desktop/mobile, Enter/blur/Escape, multiline input, retry/conflict resolution, both metadata surfaces, reload/history/navigation, legacy editor access and independent accounts.
