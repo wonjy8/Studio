@@ -8,6 +8,6 @@
  :where(html,body,body *)[data-scroll-active]::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink,#52525b) 38%,transparent)}
 }
 @media(forced-colors:active){
- :where(html,body,body *){scrollbar-color:auto}
- :where(html,body,body *)::-webkit-scrollbar-thumb{background:ButtonText}
+ :where(html,body,body *),:where(html,body,body *)[data-scroll-active]{scrollbar-color:auto}
+ :where(html,body,body *)::-webkit-scrollbar-thumb,:where(html,body,body *)[data-scroll-active]::-webkit-scrollbar-thumb{background:ButtonText}
 }
