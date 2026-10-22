@@ -1,3 +1,4 @@
+import {schoolRoutes} from './school.js';
 import {googleReadService} from './google-read.js';
 import {publicCalendarDiagnostic} from './google-calendar-errors.js';
 import {indexNewMaterialUpload} from './material-index.js';
@@ -47,6 +48,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   configureSiteRoleManagement(db,enableSiteRoleManagement);
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
+  const handleSchool=schoolRoutes(db);
   const handleScripture=scriptureRoutes(db,scripture);
   const handleDocumentLibrary=documentLibraryRoutes(db);
   const handleEquipmentCatalog=equipmentCatalogRoutes(db);
@@ -120,6 +122,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleAdminProjects({path,url,req,session,json,readJson}))return;
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;
+      if(await handleSchool({path,req,session,json,readJson}))return;
       if(await handleScripture({path,url,req,session,json,readJson,readBody:body,assertLiveMutation}))return;
       if(await handleDocumentLibrary({path,req,session,json,readJson}))return;
       if(await handleReferenceLibrary({path,req,session,json,readJson}))return;
