@@ -755,7 +755,7 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 [data-google-read] [data-read-verify][hidden]{display:none!important}
 /* One cohesive range selector; neighboring controls share its outer height. */
 .production-app .workspace-calendar-toolbar .calendar-period{box-sizing:border-box;display:flex;gap:2px;padding:4px;min-height:48px;background:var(--surface-2);border-radius:12px;width:auto;align-items:stretch}
-.production-app .workspace-calendar-toolbar .calendar-period .btn{height:40px;min-height:40px;min-width:40px;padding:4px 12px;border:0;border-radius:8px;background:transparent;color:var(--muted);box-shadow:none;font-weight:500}
+.production-app .workspace-calendar-toolbar .calendar-period .btn{height:40px;min-height:40px;min-width:40px;padding:4px 12px;border:0;border-radius:8px;background:transparent;color:var(--ink);box-shadow:none;font-weight:500}
 .production-app .workspace-calendar-toolbar .calendar-period .btn[aria-pressed=true]{background:var(--selected);color:var(--accent)}
 .production-app .workspace-calendar-toolbar .calendar-navigation .btn,.production-app .workspace-calendar-toolbar>[data-calendar-sidebar-toggle]{height:48px;min-height:48px}
 .production-app .workspace-calendar-toolbar .calendar-period .btn:hover{color:var(--ink)}
