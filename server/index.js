@@ -41,7 +41,7 @@ import { randomUUID } from 'node:crypto';
 import { openStore } from './store.js';
 import { digest, token, hashPassword, verifyPassword } from './auth.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
-export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false',google={},googleCalendar={},googleTasks={},scripture={},enableSiteRoleManagement=process.env.STUDIO_SITE_ROLE_MANAGEMENT==='enabled'}={}) {
+export async function createApp({dir=process.env.DATA_DIR || './data', origin=process.env.APP_ORIGIN, secure=process.env.COOKIE_SECURE !== 'false',contentWorkspaces=[],google={},googleCalendar={},googleTasks={},scripture={},enableSiteRoleManagement=process.env.STUDIO_SITE_ROLE_MANAGEMENT==='enabled'}={}) {
   if (!origin || new URL(origin).origin !== origin || (secure && !origin.startsWith('https://'))) throw Error('APP_ORIGIN must be an exact HTTPS origin.');
   const db = openStore(dir,{siteRoleBootstrap:enableSiteRoleManagement});
   try{await prepareAccountSchema(db,dir);}catch(error){db.close();throw error;}
@@ -65,7 +65,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   const googleUnified=googleUnifiedService(db,{origin,...google,codec:googleSheets.credentialCodec,attempts:googleAttempts});
   const googleRead=googleReadService(db,{origin,...google,codec:googleSheets.credentialCodec,attempts:googleAttempts});
   const handleInvitations=invitationRoutes(db,origin);
-  const oauth=oauthService(db,origin),handleMcp=mcpService(db,origin,oauth);
+  const oauth=oauthService(db,origin),handleMcp=mcpService(db,origin,oauth,{workspaces:contentWorkspaces});
   const attempts = new Map();
   const googleReturn=googleOAuthReturn(db,{secure});
   let loginInFlight = 0;

@@ -25,7 +25,8 @@ import {readWorkspace,writeWorkspace} from './workspace-service.js';
 import {newDocument,newBlock,validDocuments} from '../src/domain/documents.js';
 import {newScriptureNote} from '../src/domain/scripture.js';
 import {journalForQt} from '../src/domain/qt-journal.js';
-import {resourceSpec,resourceManifest} from './content-resources.js';
+import {contentRegistry,resourceManifest} from './content-resources.js';
+const registry=contentRegistry(workerData.workspaces||[]),resourceSpec=name=>registry.spec(name);
 const connection=new DatabaseSync(workerData.file);connection.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000');
 // Route services already own their nested transactions. Savepoints compose those
 // transactions inside the preview/apply transaction on this dedicated connection.
@@ -43,9 +44,10 @@ const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex
 const identity=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(value))throw Error('Read a valid content ID first');return value;};
 function consent(grantId,uid,write=false,school=false){
  if(!accountActive(db,uid)||passwordChangeRequired(db,uid))throw Error('Account unavailable');
- const row=db.prepare('SELECT g.scope'+(school?',c.generation':'')+' FROM oauth_grants g JOIN '+(school?'integration_school_consents':'integration_content_consents')+' c ON c.grant_id=g.id AND c.user_id=g.user_id WHERE g.id=? AND g.user_id=? AND g.revoked=0 AND g.refresh_expires>? AND g.access_expires>? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=g.client_id AND m.revoked=1) AND c.version=1'+(school?" AND c.scope='school-content-v1'":'')).get(grantId,uid,Date.now(),Date.now());
+ const workspace=db.prepare("SELECT g.scope,c.generation FROM oauth_grants g JOIN integration_workspace_consents c ON c.grant_id=g.id AND c.user_id=g.user_id WHERE g.id=? AND g.user_id=? AND g.revoked=0 AND g.refresh_expires>? AND g.access_expires>? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=g.client_id AND m.revoked=1) AND c.version=1 AND c.scope='workspace-content-v1'").get(grantId,uid,Date.now(),Date.now());
+ const row=workspace||db.prepare('SELECT g.scope'+(school?',c.generation':'')+' FROM oauth_grants g JOIN '+(school?'integration_school_consents':'integration_content_consents')+' c ON c.grant_id=g.id AND c.user_id=g.user_id WHERE g.id=? AND g.user_id=? AND g.revoked=0 AND g.refresh_expires>? AND g.access_expires>? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=g.client_id AND m.revoked=1) AND c.version=1'+(school?" AND c.scope='school-content-v1'":'')).get(grantId,uid,Date.now(),Date.now());
  if(!row||!row.scope.split(' ').includes('studio:read')||(write&&!row.scope.split(' ').includes('studio:write')))throw Error((school?'School':'Full content')+' consent is required in Studio connections settings');
- return row;
+ return {...row,workspaceApproved:!!workspace};
 }
 async function invoke(service,uid,path,method='GET',body){
  const url=new URL(path,'http://studio.internal');let value,status;
@@ -154,8 +156,8 @@ async function run(message){
  const {kind,uid,grantId,args={},values,baseline,proposalId}=message;
  connection.exec('BEGIN IMMEDIATE');nested=0;
  try{
-  const spec=resourceSpec(args.resource),grant=consent(grantId,uid,kind!=='read',!!spec.school);requireContentAccess(spec.service,grant,{write:kind!=='read',consentVersion:1});
-  const before=await snapshot(uid,args),stamp=hash(spec.school?{before,consentGeneration:grant.generation}:before);
+  const spec=resourceSpec(args.resource),grant=consent(grantId,uid,kind!=='read',!!spec.school);if(spec.workspaceConsentOnly&&!grant.workspaceApproved)throw Error('Current and future workspace consent is required');requireContentAccess(spec.service,grant,{write:kind!=='read',consentVersion:1});
+  const before=await snapshot(uid,args),stamp=hash(spec.school||grant.workspaceApproved?{before,consentGeneration:grant.generation}:before);
   if(kind==='read'){
    let value=selected(spec,before,args);
    if(!args.id&&args.resource==='shoots')value=value.map(({configuration,...shoot})=>({...shoot,hasConfiguration:!!configuration}));
@@ -167,7 +169,7 @@ async function run(message){
    else if(args.id&&['notes','qt'].includes(args.resource)){const {document,qtJournal,qtVerses,...metadata}=value;value={...metadata,document:{id:document.id,title:document.title,blockCount:document.blocks.length},...(qtJournal?{journalFields:['word','application','gratitude','prayers','memos']}:{}),verseCount:qtVerses?.length||0};}
    if(spec.entry&&!args.noteId&&!args.id)value={items:before.entries,nextOffset:before.nextOffset};else if(args.resource==='catalog'&&!args.id)value={items:before.models,total:before.total,nextOffset:(args.offset||0)+(args.limit||25)<before.total?(args.offset||0)+(args.limit||25):null};else if((!args.id||args.field||spec.blocks&&!args.blockId||args.resource==='school_note_blocks'&&!args.blockId)&&Array.isArray(value)){if(args.query)value=value.filter(item=>JSON.stringify(item).toLocaleLowerCase().includes(String(args.query).toLocaleLowerCase()));const offset=args.offset||0,limit=args.limit||25;const total=value.length;let count=limit;while(count>1&&Buffer.byteLength(JSON.stringify(value.slice(offset,offset+count)))>100000)count=Math.max(1,Math.floor(count/2));value={items:value.slice(offset,offset+count),total,nextOffset:offset+count<total?offset+count:null};}
    if(Buffer.byteLength(JSON.stringify(value))>131072)throw Error('Content response too large. Read a specific field or block with a smaller limit.');
-   connection.exec('ROLLBACK');return {value,revision:stamp,manifest:resourceManifest({canManageCatalog:isAdmin(db,uid)&&grant.scope.split(' ').includes('studio:write')})};
+   connection.exec('ROLLBACK');return {value,revision:stamp,manifest:resourceManifest({registry,canManageCatalog:isAdmin(db,uid)&&grant.scope.split(' ').includes('studio:write')})};
   }
   if(baseline&&baseline!==stamp)throw Object.assign(Error('Content changed. Read, propose and confirm again.'),{status:409});
   if(kind==='apply'){

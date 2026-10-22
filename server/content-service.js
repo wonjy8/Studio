@@ -1,25 +1,41 @@
+import {isAdmin} from './invitations.js';
+import {createHash} from 'node:crypto';
 import {siteRoleManagementEnabled} from './site-roles.js';
 import {Worker} from 'node:worker_threads';
 import {randomUUID} from 'node:crypto';
-import {resourceSpec,resourceManifest} from './content-resources.js';
+import {contentRegistry,resourceManifest} from './content-resources.js';
 export const fullContentConsentVersion=1;
+export const workspaceConsentVersion=1,workspaceConsentScope='workspace-content-v1';
 export const schoolConsentVersion=1,schoolConsentScope='school-content-v1';
-export function setupContentConsent(db){db.exec(`CREATE TABLE IF NOT EXISTS integration_content_consents(grant_id TEXT PRIMARY KEY REFERENCES oauth_grants(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id),version INTEGER NOT NULL,approved_at INTEGER NOT NULL);
+export function setupContentConsent(db){db.exec(`CREATE TABLE IF NOT EXISTS integration_workspace_consents(grant_id TEXT PRIMARY KEY REFERENCES oauth_grants(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id),version INTEGER NOT NULL,scope TEXT NOT NULL,generation TEXT NOT NULL,approved_at INTEGER NOT NULL);
+ CREATE TABLE IF NOT EXISTS integration_content_consents(grant_id TEXT PRIMARY KEY REFERENCES oauth_grants(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id),version INTEGER NOT NULL,approved_at INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS integration_school_consents(grant_id TEXT PRIMARY KEY REFERENCES oauth_grants(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id),version INTEGER NOT NULL,scope TEXT NOT NULL,generation TEXT NOT NULL,approved_at INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS integration_content_proposals(id TEXT PRIMARY KEY,grant_id TEXT NOT NULL REFERENCES oauth_grants(id) ON DELETE CASCADE,user_id TEXT NOT NULL REFERENCES users(id),body TEXT NOT NULL,expires INTEGER NOT NULL);`);}
-export function contentService(db){
+export function contentService(db,{workspaces=[]}={}){
+ const registry=contentRegistry(workspaces),resourceSpec=name=>registry.spec(name),manifest=options=>resourceManifest({...options,registry}),workspaceApproval=grant=>db.prepare('SELECT generation FROM integration_workspace_consents WHERE grant_id=? AND user_id=? AND version=1 AND scope=?').get(grant.id,grant.user_id,workspaceConsentScope);
  setupContentConsent(db);let worker;const pending=new Map();
  const close=()=>{for(const entry of pending.values())entry.reject(Error('Content service closed'));pending.clear();if(worker)worker.terminate();worker=null;};
  async function execute(grant,kind,args,extra={}){
-  const school=resourceSpec(args.resource).school;const table=school?'integration_school_consents':'integration_content_consents';if(!db.prepare('SELECT grant_id FROM '+table+' WHERE grant_id=? AND user_id=? AND version=1'+(school?" AND scope='school-content-v1'":'')).get(grant.id,grant.user_id))throw Error((school?'School':'Full content')+' consent is required in Studio connections settings');
-  if(!worker){const file=db.prepare('PRAGMA database_list').all().find(item=>item.name==='main').file;worker=new Worker(new URL('./content-worker.js',import.meta.url),{workerData:{file,siteRoleManagementEnabled:siteRoleManagementEnabled(db)}});worker.unref();worker.on('message',({request,value,error,status})=>{const entry=pending.get(request);if(!entry)return;pending.delete(request);if(!pending.size)worker.unref();if(error)entry.reject(Object.assign(Error(error),{status}));else entry.resolve(value);});worker.on('error',error=>{for(const entry of pending.values())entry.reject(error);pending.clear();worker=null;});}
+  const school=resourceSpec(args.resource).school;const table=school?'integration_school_consents':'integration_content_consents';if(!workspaceApproval(grant)&&(!db.prepare('SELECT grant_id FROM '+table+' WHERE grant_id=? AND user_id=? AND version=1'+(school?" AND scope='school-content-v1'":'')).get(grant.id,grant.user_id)||resourceSpec(args.resource).workspaceConsentOnly))throw Error((school?'School':'Full content')+' consent is required in Studio connections settings');
+  if(!worker){const file=db.prepare('PRAGMA database_list').all().find(item=>item.name==='main').file;worker=new Worker(new URL('./content-worker.js',import.meta.url),{workerData:{file,siteRoleManagementEnabled:siteRoleManagementEnabled(db),workspaces}});worker.unref();worker.on('message',({request,value,error,status})=>{const entry=pending.get(request);if(!entry)return;pending.delete(request);if(!pending.size)worker.unref();if(error)entry.reject(Object.assign(Error(error),{status}));else entry.resolve(value);});worker.on('error',error=>{for(const entry of pending.values())entry.reject(error);pending.clear();worker=null;});}
   const request=randomUUID();worker.ref();return new Promise((resolve,reject)=>{pending.set(request,{resolve,reject});worker.postMessage({request,uid:grant.user_id,grantId:grant.id,kind,args,...extra});});
+ }
+ function discover(grant,args){
+  if(Object.keys(args).some(k=>!['resource','query','offset','limit'].includes(k))||!grant.scope.split(' ').includes('studio:read'))throw Error('Read permission and discovery arguments required');
+  if(args.query!==undefined&&(typeof args.query!=='string'||args.query.length>200)||args.offset!==undefined&&(!Number.isSafeInteger(args.offset)||args.offset<0)||args.limit!==undefined&&(!Number.isSafeInteger(args.limit)||args.limit<1||args.limit>100))throw Error('Invalid discovery pagination');
+  const approved=!!workspaceApproval(grant),full=db.prepare('SELECT version FROM integration_content_consents WHERE grant_id=? AND user_id=?').get(grant.id,grant.user_id)?.version===1;
+  const school=db.prepare('SELECT version FROM integration_school_consents WHERE grant_id=? AND user_id=? AND scope=?').get(grant.id,grant.user_id,schoolConsentScope)?.version===1;
+  const write=grant.scope.split(' ').includes('studio:write'),all=manifest({canManageCatalog:isAdmin(db,grant.user_id)&&write&&(approved||full)});
+  const resources=all.map(resource=>{const spec=resourceSpec(resource.id),canRead=approved||!spec.workspaceConsentOnly&&(spec.school?school:full);return {...resource,canRead,canWrite:canRead&&!resource.readOnly&&write};});
+  const matches=args.query?resources.filter(r=>(r.id+' '+r.workspace+' '+(r.workspaceName||'')).toLocaleLowerCase().includes(args.query.toLocaleLowerCase())):resources;
+  const offset=args.offset||0,limit=args.limit||100;
+  return {value:{resources:matches.slice(offset,offset+limit),total:matches.length,nextOffset:offset+limit<matches.length?offset+limit:null,workspaceConsentVersion:approved?1:0,excluded:['settings','administration','accounts','credentials','permissions','private-file-bytes','external-provider-authorization'],futureWorkspacesRequire:'workspace-content-v1'},revision:createHash('sha256').update(JSON.stringify(all)).digest('hex')};
  }
  function argumentsFor(args){const spec=resourceSpec(args.resource);
   for(const [key,allowed] of Object.entries({ownerId:args.resource==='shared_projects',memberId:!!spec.member,projectId:!!(spec.project||spec.shoot||spec.projectCollection),noteId:!!spec.entry,courseId:!!spec.schoolParent,blockId:!!spec.blocks||args.resource==='school_note_blocks',book:!!spec.annotation||args.resource==='bible',chapter:!!spec.annotation||args.resource==='bible',verse:!!spec.annotation,passage:args.resource==='bible',version:args.resource==='bible'}))if(args[key]!==undefined&&!allowed)throw Error('Argument does not apply to this resource: '+key);
 const permitted=['resource','id','courseId','field','blockId','ownerId','memberId','projectId','noteId','book','chapter','verse','passage','version','query','offset','limit'];if(Object.keys(args).some(key=>!permitted.includes(key)))throw Error('Unsupported content arguments');if(args.offset!==undefined&&(!Number.isSafeInteger(args.offset)||args.offset<0))throw Error('Invalid offset');if(args.limit!==undefined&&(!Number.isSafeInteger(args.limit)||args.limit<1||args.limit>100))throw Error('Limit must be 1–100');if(args.query!==undefined&&(typeof args.query!=='string'||args.query.length>200))throw Error('Search query too long');return args;}
- return {close,manifest:resourceManifest,schoolConsentVersion:grant=>db.prepare('SELECT version FROM integration_school_consents WHERE grant_id=? AND user_id=? AND scope=?').get(grant.id,grant.user_id,schoolConsentScope)?.version||0,consentVersion:grant=>db.prepare('SELECT version FROM integration_content_consents WHERE grant_id=? AND user_id=?').get(grant.id,grant.user_id)?.version||0,
-  read:(grant,args)=>execute(grant,'read',argumentsFor(args)),
+ return {close,manifest,workspaceConsentVersion:grant=>workspaceApproval(grant)?1:0,schoolConsentVersion:grant=>db.prepare('SELECT version FROM integration_school_consents WHERE grant_id=? AND user_id=? AND scope=?').get(grant.id,grant.user_id,schoolConsentScope)?.version||0,consentVersion:grant=>db.prepare('SELECT version FROM integration_content_consents WHERE grant_id=? AND user_id=?').get(grant.id,grant.user_id)?.version||0,
+  read:(grant,args)=>args.resource==='manifest'?discover(grant,args):execute(grant,'read',argumentsFor(args)),
   async propose(grant,args,values,revision){
    argumentsFor(args);db.prepare('DELETE FROM integration_content_proposals WHERE expires<=?').run(Date.now());if(typeof revision!=='string'||!/^[a-f0-9]{64}$/.test(revision))throw Error('Read content and use its revision first');
    if(db.prepare('SELECT count(*) n FROM integration_content_proposals WHERE grant_id=? AND expires>?').get(grant.id,Date.now()).n>=20)throw Error('Too many pending proposals');
