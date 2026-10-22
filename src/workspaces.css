@@ -785,3 +785,16 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 .calendar-source-row [data-source-menu]{color:var(--ink)}
 .timeline-position>.calendar-event.is-timed-event .calendar-event-name::before{color:inherit}
 .school-requirement-total>div{display:grid;gap:8px}.school-requirement-total>div>strong{font-size:var(--text-page);font-weight:500}.school-requirement-groups{display:grid;gap:24px;margin:24px 0}.school-requirement-groups>section{min-width:0}.school-requirement-groups .section-head h3{margin:0}.school-requirement-groups .school-requirement-row{padding:12px 0}.school-requirement-advanced{margin:20px 0}.school-requirement-advanced>summary{min-height:44px;padding:10px 0;cursor:pointer;font-size:var(--text-support);color:var(--muted)}.school-requirement-advanced[open]>summary{color:var(--ink)}
+
+/* Course landing: text rows and a distinct syllabus entry. */
+.school-course-entry{flex:0 0 100%;min-width:0;padding:6px 0}
+.school-entry-heading{gap:4px;margin-bottom:0;min-width:0}
+.school-note-link{display:block;flex:1;min-width:0;min-height:36px;padding:6px 8px;border:0;border-radius:0;background:transparent;text-align:left;color:var(--ink);font:inherit;text-decoration:none;overflow-wrap:anywhere;cursor:pointer}
+.school-note-link:hover{text-decoration:underline;text-underline-offset:4px}
+.school-entry-emoji{font-size:20px}.school-entry-emoji:not(.has-emoji){color:var(--muted);opacity:.55}.school-entry-heading:hover .school-entry-emoji{opacity:1}
+.school-entry-emoji .icon{width:16px;height:16px}.school-entry-drag{color:var(--muted)}
+.school-emoji-options{display:flex;gap:8px;flex-wrap:wrap}.school-emoji-options .icon-button{font-size:22px}
+.school-syllabus{display:flex;align-items:center;gap:12px;min-height:76px;margin:20px 0 24px;padding:16px 20px;border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));border-radius:var(--r-surface);background:var(--selected);color:var(--accent)}
+.school-syllabus>span{display:grid;gap:4px;flex:1}.school-syllabus strong{font-size:var(--text-title);font-weight:500}.school-syllabus small{font-size:var(--text-support);color:var(--muted)}
+.school-syllabus:hover{border-color:var(--accent)}.school-note-link:focus-visible,.school-syllabus:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:900px){.school-note-link{min-height:44px}.school-entry-emoji{opacity:1}.school-syllabus{padding:16px}}
