@@ -59,7 +59,7 @@ export function oauthService(db,origin){
  async function routes({path,url,req,res,json,body,readJson,session}){
   if(path.startsWith('/.well-known/')){
    if(['/.well-known/oauth-protected-resource','/.well-known/oauth-protected-resource/mcp'].includes(path)){json(200,{resource,authorization_servers:[origin],scopes_supported:scopes,bearer_methods_supported:['header'],resource_name:'Studio'});return true;}
-   if(path==='/.well-known/oauth-authorization-server'){json(200,{issuer:origin,authorization_endpoint:origin+'/oauth/authorize',token_endpoint:origin+'/oauth/token',registration_endpoint:origin+'/oauth/register',revocation_endpoint:origin+'/oauth/revoke',response_types_supported:['code'],grant_types_supported:['authorization_code','refresh_token'],code_challenge_methods_supported:['S256'],token_endpoint_auth_methods_supported:clientMethods,scopes_supported:scopes});return true;}
+   if(path==='/.well-known/oauth-authorization-server'){json(200,{issuer:origin,authorization_response_iss_parameter_supported:true,authorization_endpoint:origin+'/oauth/authorize',token_endpoint:origin+'/oauth/token',registration_endpoint:origin+'/oauth/register',revocation_endpoint:origin+'/oauth/revoke',response_types_supported:['code'],grant_types_supported:['authorization_code','refresh_token'],code_challenge_methods_supported:['S256'],token_endpoint_auth_methods_supported:clientMethods,scopes_supported:scopes});return true;}
    return false;
   }
   if(path==='/oauth/register'&&req.method==='POST'){
@@ -175,7 +175,7 @@ export function oauthService(db,origin){
     const data=await readJson(16384);if(!data||typeof data.requestId!=='string')throw fail('invalid_request');
     const redirect=transaction(()=>{liveSession(session);const pending=db.prepare('SELECT * FROM oauth_requests WHERE id=? AND expires>?').get(data.requestId,Date.now());if(!pending)throw fail('연결 요청이 만료되었습니다.',404);
      const client=db.prepare('SELECT redirects FROM oauth_clients WHERE id=? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=oauth_clients.id AND m.revoked=1)').get(pending.client_id);if(!client||!JSON.parse(client.redirects).includes(pending.redirect_uri))throw fail('client_revoked',409);
-     const redirect=new URL(pending.redirect_uri);if(pending.state)redirect.searchParams.set('state',pending.state);
+     const redirect=new URL(pending.redirect_uri);redirect.searchParams.set('iss',origin);if(pending.state)redirect.searchParams.set('state',pending.state);
      if(!db.prepare('DELETE FROM oauth_requests WHERE id=? AND expires>?').run(pending.id,Date.now()).changes)throw fail('연결 요청이 만료되었습니다.',404);
      if(data.approve!==true)redirect.searchParams.set('error','access_denied');else{const scope=data.allowWrite===true?cleanScope(pending.scope):'studio:read',code=token();db.prepare('INSERT INTO oauth_codes VALUES(?,?,?,?,?,?,?)').run(digest(code),pending.client_id,session.user_id,pending.redirect_uri,pending.challenge,scope,Date.now()+120000);if(data.allowFullContent===true)db.prepare('INSERT INTO oauth_code_content_consents VALUES(?,?)').run(digest(code),fullContentConsentVersion);redirect.searchParams.set('code',code);}return redirect;
     });json(200,{redirect:redirect.href});return true;

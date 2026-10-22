@@ -1,6 +1,6 @@
 # Studio content MCP contract
 
-Tool schema 5 keeps the original project tools and adds `studio_read_content`, `studio_propose_content` and `studio_cancel_proposal`. Apply uses the existing `studio_apply_changes` tool and always requires explicit user confirmation. Content resources and fields are discovered from `studio_list_projects.capabilities.resources` (contract version 3), not a static resource enum. Changes to ordinary fields/resources can therefore appear in discovery without changing tool signatures. Initial ChatGPT metadata Refresh and a new conversation are still required to discover these three tools; the server cannot force a client refresh.
+Tool schema 5 keeps the original project tools and adds `studio_read_content`, `studio_propose_content` and `studio_cancel_proposal`. Apply uses the existing `studio_apply_changes` tool and always requires explicit user confirmation. Content resources and fields are discovered from `studio_list_projects.capabilities.resources` (contract version 3), not a static resource enum. Changes to ordinary fields/resources can therefore appear in discovery without changing tool signatures. The server cannot force a client catalog refresh. A client exposing only the six legacy definitions must be investigated separately from the current server catalog; refresh or a new conversation is not evidence that registration has updated.
 
 ## Scope and consent
 
@@ -52,7 +52,7 @@ Prefer the self-service button on each connection; no operator needs credentials
 
 ## Reading connection diagnostics
 
-`capabilities.services[].access` is the fixed service requirement: `consent-required` remains present even after approval. Never interpret it as a failed or missing approval. Use `capabilities.connection.fullContentApproved`, `requiresOwnerConsent`, `canReadFullContent` and `canWriteFullContent`, which are computed for the exact authenticated grant, plus each service's `effectiveAccess`. These report grant-level capability, not authorization to every individual object; existing object checks still apply. `toolSchemaVersion` and `serverRevision` identify the running MCP response without exposing account IDs or tokens. A full-content-approved connection with only the six old tools needs ChatGPT metadata Refresh and a new conversation, not repeated Studio consent.
+`capabilities.services[].access` is the fixed service requirement: `consent-required` remains present even after approval. Never interpret it as a failed or missing approval. Use `capabilities.connection.fullContentApproved`, `requiresOwnerConsent`, `canReadFullContent` and `canWriteFullContent`, which are computed for the exact authenticated grant, plus each service's `effectiveAccess`. These report grant-level capability, not authorization to every individual object; existing object checks still apply. `toolSchemaVersion` and `serverRevision` identify the running MCP response without exposing account IDs or tokens. A full-content-approved connection with only six old definitions indicates a catalog discrepancy; do not repeat consent or promise that refresh/new conversations will repair it. Compare sanitized initialization/catalog diagnostics with the registered App configuration.
 
 
 ## Shared equipment catalog writes
