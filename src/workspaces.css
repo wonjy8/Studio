@@ -680,3 +680,15 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 
 .school-workspace{max-width:1200px;margin:auto;min-width:0}.school-workspace .section-head{margin-top:20px}.school-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin:20px 0}.school-metrics .card{display:grid;gap:12px}.school-metrics strong{font-size:var(--text-page)}.school-courses{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:16px;margin:20px 0}.school-course-card{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r-surface);padding:20px;display:grid;gap:10px;text-align:left}.school-course-card strong{font-size:var(--text-title)}.school-course-card small,.school-item small{display:block;color:var(--muted);margin-top:6px}.school-items{display:grid;gap:12px;margin:20px 0}.school-item{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding:12px 0;flex-wrap:wrap}.school-item>label,.school-item>span{min-width:0;overflow-wrap:anywhere}.school-completed{text-decoration:line-through;color:var(--muted)}.school-dialog{max-width:min(520px,calc(100vw - 32px));width:100%;max-height:85dvh}.school-dialog form{display:grid;gap:16px}.school-dialog h2{font-size:var(--text-section);margin:0}.school-workspace .project-tabs{margin:20px 0}.school-workspace [data-school-calendar]{min-width:0}.school-workspace .actions{flex-wrap:wrap}.school-item .actions{flex-shrink:0}@media(max-width:760px){.school-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.school-dialog{padding:20px}.school-item{align-items:flex-start}}
 .school-workspace .school-course-tabs{padding:0}.production-app:has(.mobile-workspace-navigation:not([hidden])) .school-workspace .school-course-tabs{display:flex}
+
+/* School uses the shared modal surface; each section owns its content gutter. */
+.school-dialog{padding:0;box-sizing:border-box;overflow:auto}
+.school-dialog form{display:flex;flex-direction:column;gap:0;min-width:0}
+.school-dialog-header{padding:24px 24px 16px}
+.school-dialog-body{display:grid;gap:16px;padding:0 24px;min-width:0}
+.school-dialog-footer{padding:20px 24px 24px;margin:0}
+.school-dialog [data-school-form-error]{padding:0 24px;margin:12px 0 0;overflow-wrap:anywhere}
+.school-dialog [data-school-form-error]:empty{margin:0}
+.school-dialog .field{min-width:0;overflow-wrap:anywhere}
+.school-dialog input,.school-dialog select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+@media(max-width:900px){.school-dialog-header{padding:20px 20px 16px}.school-dialog-body{padding:0 20px}.school-dialog-footer{padding:20px}.school-dialog [data-school-form-error]{padding-inline:20px}}
