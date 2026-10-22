@@ -769,3 +769,4 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 @media(max-width:520px){.production-app .workspace-calendar-toolbar .calendar-period .btn{padding-inline:4px;min-width:24px}.production-app .workspace-calendar-toolbar .calendar-period{gap:0}.production-app .workspace-calendar-toolbar .calendar-navigation .btn{padding-inline:4px;min-width:24px}}
 
 .calendar-source-row [data-source-menu]{color:var(--ink)}
+.timeline-position>.calendar-event.is-timed-event .calendar-event-name::before{color:inherit}
