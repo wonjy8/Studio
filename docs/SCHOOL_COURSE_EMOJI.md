@@ -1,0 +1,7 @@
+# Course entry emoji picker
+
+Lecture-note and module rows have no ellipsis or visible move controls. Dragging the row or focusing it and pressing Alt+Up/Down retains mixed ordering. Native emoji use the platform color emoji font, without white SVG styling. Existing vector icon IDs and emoji remain stored; a saved emoji takes display precedence, and old vector values remain readable with theme ink until replaced.
+
+The picker reuses the project picker layout (search, categories, 48 choices per page, immediate selection) with Unicode emoji, not the vector icon catalog. All 3,773 fully-qualified RGI entries from Unicode Emoji 15.1 are bundled, including skin-tone, joined sequences and flags. English Unicode names and emoji are searchable; categories have Korean labels. Glyph availability depends on the operating system font. Source: the execution environment's installed `unicode-data` emoji-test.txt. The associated Unicode license is bundled alongside the catalog. No remote image service or runtime catalog request is used.
+
+Validation: catalog uniqueness and every entry against existing course validation; legacy metadata preservation; isolated Chromium 1440/390/320 testing of search, selection, failed-save restoration, retry, reload, native slow drag, keyboard ordering, navigation, and light/dark screenshots. Full application tests and syntax checks also run. No live school content is modified.

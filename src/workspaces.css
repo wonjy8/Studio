@@ -816,3 +816,9 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 .school-entry-actions{position:relative;flex:none}.school-entry-actions summary{list-style:none;cursor:pointer;min-width:36px;min-height:40px;display:grid;place-items:center;color:var(--ink)}.school-entry-actions[open]{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.school-entry-actions .btn{font-size:12px;white-space:nowrap}.school-course-entry.is-dragging{opacity:.55}.school-course-entry.is-drop-target{outline:2px dashed var(--accent)}
 @media(max-width:900px){.school-entry-heading{padding:8px 0}.school-entry-actions[open]{max-width:110px}.school-entry-actions summary{min-height:44px}.school-syllabus{padding:12px 0}}
 .school-content-link,.school-content-link strong,.school-content-link small,.school-course-entry p{user-select:text;-webkit-user-select:text}
+
+/* Project badges use white glyphs; quiet course entries inherit theme ink instead. */
+.school-course-entry .project-icon-trigger .icon{color:inherit}
+.school-course-entry .project-icon-popover .icon-choice>span{color:var(--ink)}
+.school-course-entry .course-emoji{font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;font-size:24px;font-style:normal;filter:none;opacity:1}
+.school-course-entry [data-emoji-results]{max-height:min(320px,calc(100dvh - 170px));overflow-y:auto;padding:4px}
