@@ -966,3 +966,7 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 @media print{.document-paper .type-h4{break-after:avoid}}
 .document-image-cleanup-list{max-height:180px;overflow:auto;padding-left:20px;overflow-wrap:anywhere}.document-image-cleanup-list small{color:var(--muted)}
 .document-image-cleanup [hidden]{display:none!important}
+.document-rich-menu button.is-danger{color:var(--bad)}
+.document-clipboard-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.document-selection-menu .document-clipboard-row button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;height:auto;min-height:44px;padding:4px 2px;font-size:var(--text-support)}
+.document-menu-error{color:var(--bad);font-size:var(--text-support);line-height:1.5;overflow-wrap:anywhere;margin:6px 4px}
