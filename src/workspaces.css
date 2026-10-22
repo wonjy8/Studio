@@ -824,3 +824,7 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 .school-course-entry .project-icon-popover .icon-choice>span{color:var(--ink)}
 .school-course-entry .course-emoji{font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;font-size:24px;font-style:normal;filter:none;opacity:1}
 .school-course-entry [data-emoji-results]{max-height:min(320px,calc(100dvh - 170px));overflow-y:auto;padding:4px}
+
+.school-sidebar-list{min-width:0}.school-sidebar-list details>summary{display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 10px;cursor:pointer;border-radius:9px;list-style:none}.school-sidebar-list summary:hover{background:var(--surface-2)}.school-sidebar-list summary>.icon{width:18px;height:18px;flex:none}.school-sidebar-list summary>span{flex:1;min-width:0;overflow-wrap:anywhere}.school-sidebar-list summary>small{color:var(--muted)}.school-sidebar-list details[open]>summary{font-weight:500}.school-sidebar-courses{padding-left:12px}.school-sidebar-courses .project-item{width:100%;min-width:0}.school-sidebar-courses .project-item>span{white-space:normal;overflow-wrap:anywhere}.school-sidebar-list .sub{padding:4px 10px}@media(max-width:900px){.school-sidebar-list details>summary{min-height:44px}}
+
+.school-sidebar-list details>summary::before{content:"›";color:var(--muted);display:inline-block;transform:rotate(0deg)}.school-sidebar-list details[open]>summary::before{transform:rotate(90deg)}
