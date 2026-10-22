@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {validScriptureNote,newScriptureNote,qtDocument} from '../src/domain/scripture.js';
 import {validDate} from '../src/domain/calendar.js';
 import {newBlock} from '../src/domain/documents.js';
-import {parseBiblePassage,parseBiblePassages} from '../src/domain/bible.js';
+import {bibleBooks,parseBiblePassage,parseBiblePassages} from '../src/domain/bible.js';
 import {readNotionZip,notionScriptureNotes,notionBibleVerses} from './notion-scripture-import.js';
 import {dailyQtService} from './daily-qt.js';
 const fail=(message,status=400)=>Object.assign(Error(message),{status});
@@ -14,6 +14,7 @@ export function scriptureRoutes(db,{fetcher,bibleFetcher,githubToken=process.env
  CREATE TABLE IF NOT EXISTS scripture_verses(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,book TEXT NOT NULL,chapter INTEGER NOT NULL,verse INTEGER NOT NULL,body TEXT NOT NULL,testament TEXT NOT NULL,book_order INTEGER NOT NULL,PRIMARY KEY(user_id,book,chapter,verse));
  CREATE TABLE IF NOT EXISTS scripture_annotations(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,book TEXT NOT NULL,chapter INTEGER NOT NULL,verse INTEGER NOT NULL,body TEXT NOT NULL,revision INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(user_id,book,chapter,verse));
  CREATE TABLE IF NOT EXISTS scripture_bibles(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,title TEXT NOT NULL,fingerprint TEXT NOT NULL,imported_at INTEGER NOT NULL);`);
+ if(initialize)db.exec('CREATE TABLE IF NOT EXISTS scripture_reading_positions(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,book TEXT NOT NULL,chapter INTEGER NOT NULL)');
  const versions=bibleVersionStore(db,{initialize}),github=githubBibleSource({token:githubToken,fetcher:bibleFetcher});
  const applied=new Map();
  const qt=dailyQtService({fetcher}),rowNote=row=>({...JSON.parse(row.body),revision:row.revision,createdAt:row.created_at,updatedAt:row.updated_at,externalId:row.external_id,automaticQt:Boolean(row.qt_date)}),read=(uid,id)=>db.prepare('SELECT * FROM scripture_notes WHERE user_id=? AND id=?').get(uid,id);
@@ -21,6 +22,11 @@ export function scriptureRoutes(db,{fetcher,bibleFetcher,githubToken=process.env
  const versesFor=(uid,passage)=>{const passages=parseBiblePassages(passage);if(!passages)return [];const found=new Map();for(const p of passages){const rows=db.prepare('SELECT book,chapter,verse,body text FROM scripture_verses WHERE user_id=? AND book=? AND chapter>=? AND chapter<=? AND (chapter<>? OR verse>=?) AND (chapter<>? OR verse<=?) ORDER BY chapter,verse LIMIT 501').all(uid,p.book,p.chapter,p.endChapter,p.chapter,p.start,p.endChapter,p.end);for(const row of rows)found.set(`${row.book}:${row.chapter}:${row.verse}`,row);if(found.size>500)throw fail('성경 본문은 한 번에 500절까지 선택하세요.');}return [...found.values()];};
  return async({path,url,req,session,json,readJson,readBody,assertLiveMutation})=>{
   if(!path.startsWith('/api/scripture'))return false;if(!session){json(401,{error:'Login required'});return true;}const uid=session.user_id,match=path.match(/^\/api\/scripture\/notes\/([A-Za-z0-9_-]{1,80})$/);
+  if(path==='/api/scripture/read-position'){
+   if(req.method==='GET'){json(200,{position:db.prepare('SELECT book,chapter FROM scripture_reading_positions WHERE user_id=?').get(uid)||null});return true;}
+   if(req.method==='PUT'){const data=await readJson(4096);if(!data||Object.keys(data).some(k=>!['book','chapter','version'].includes(k))||!bibleBooks.includes(data.book)||!Number.isSafeInteger(data.chapter)||data.chapter<1||data.chapter>150||typeof data.version!=='string'||data.version.length>200)throw fail('읽기 위치를 확인하세요.');const result=versions.read(uid,new URLSearchParams({book:data.book,chapter:String(data.chapter),version:data.version}));if(!result.verses.some(v=>v.book===data.book&&v.chapter===data.chapter))throw fail('표시할 수 없는 본문은 읽기 위치로 저장하지 않습니다.');db.prepare('INSERT INTO scripture_reading_positions VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET book=excluded.book,chapter=excluded.chapter').run(uid,data.book,data.chapter);json(200,{position:{book:data.book,chapter:data.chapter}});return true;}
+   json(405,{error:'Method not allowed'});return true;
+  }
   let repositoryError='';
   if(github.enabled&&((path==='/api/scripture/bible'&&req.method==='GET')||path==='/api/scripture/qt')){
    try{const source=await github.load();if(!db.prepare('SELECT token FROM sessions WHERE token=? AND user_id=? AND expires>?').get(session.token,uid,Date.now()))throw fail('다시 로그인해 주세요.',401);repositoryError=(source.errors||[]).join(' / ');const signature=source.revision+':'+source.versions.map(item=>item.fingerprint).join(',');if(applied.get(uid)!==signature){db.exec('BEGIN IMMEDIATE');try{for(const item of source.versions)versions.save(uid,item.bible,item.fingerprint);db.exec('COMMIT');applied.set(uid,signature);}catch(error){db.exec('ROLLBACK');throw error;}}}catch(error){if(error.status===401)throw error;repositoryError=error.message;}
