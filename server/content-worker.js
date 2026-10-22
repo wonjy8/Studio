@@ -1,3 +1,5 @@
+import {schoolRoutes} from './school.js';
+import {schoolSelected,schoolMutation} from './school-content.js';
 import {configureSiteRoleManagement} from './site-roles.js';
 import {isAdmin} from './invitations.js';
 import {applyCommands} from '../src/domain/commands.js';
@@ -36,13 +38,13 @@ const db={prepare:sql=>connection.prepare(sql),exec:sql=>{
 }};
 configureSiteRoleManagement(db,workerData.siteRoleManagementEnabled);
 const options={initialize:false};
-const handlers={handleScripture:scriptureRoutes(db,{...options,githubToken:''}),handleDocumentLibrary:documentLibraryRoutes(db,options),handleReferenceLibrary:referenceLibraryRoutes(db,options),handleReferenceBoards:referenceBoardRoutes(db,options),handleRentalVendors:rentalVendorRoutes(db,options),handleContacts:contactRoutes(db,{...options,orgCanRead,equipmentProjectScope}),handleEquipmentCatalog:equipmentCatalogRoutes(db,options),handleInventory:inventoryRoutes(db,options),handleMaterials:materialLibraryRoutes(db,{...options,preview:false})};
+const handlers={handleSchool:schoolRoutes(db),handleScripture:scriptureRoutes(db,{...options,githubToken:''}),handleDocumentLibrary:documentLibraryRoutes(db,options),handleReferenceLibrary:referenceLibraryRoutes(db,options),handleReferenceBoards:referenceBoardRoutes(db,options),handleRentalVendors:rentalVendorRoutes(db,options),handleContacts:contactRoutes(db,{...options,orgCanRead,equipmentProjectScope}),handleEquipmentCatalog:equipmentCatalogRoutes(db,options),handleInventory:inventoryRoutes(db,options),handleMaterials:materialLibraryRoutes(db,{...options,preview:false})};
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const identity=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(value))throw Error('Read a valid content ID first');return value;};
-function consent(grantId,uid,write=false){
+function consent(grantId,uid,write=false,school=false){
  if(!accountActive(db,uid)||passwordChangeRequired(db,uid))throw Error('Account unavailable');
- const row=db.prepare('SELECT g.scope FROM oauth_grants g JOIN integration_content_consents c ON c.grant_id=g.id AND c.user_id=g.user_id WHERE g.id=? AND g.user_id=? AND g.revoked=0 AND g.refresh_expires>? AND g.access_expires>? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=g.client_id AND m.revoked=1) AND c.version=1').get(grantId,uid,Date.now(),Date.now());
- if(!row||!row.scope.split(' ').includes('studio:read')||(write&&!row.scope.split(' ').includes('studio:write')))throw Error('Full content consent is required in Studio connections settings');
+ const row=db.prepare('SELECT g.scope'+(school?',c.generation':'')+' FROM oauth_grants g JOIN '+(school?'integration_school_consents':'integration_content_consents')+' c ON c.grant_id=g.id AND c.user_id=g.user_id WHERE g.id=? AND g.user_id=? AND g.revoked=0 AND g.refresh_expires>? AND g.access_expires>? AND NOT EXISTS(SELECT 1 FROM oauth_manual_clients m WHERE m.client_id=g.client_id AND m.revoked=1) AND c.version=1'+(school?" AND c.scope='school-content-v1'":'')).get(grantId,uid,Date.now(),Date.now());
+ if(!row||!row.scope.split(' ').includes('studio:read')||(write&&!row.scope.split(' ').includes('studio:write')))throw Error((school?'School':'Full content')+' consent is required in Studio connections settings');
  return row;
 }
 async function invoke(service,uid,path,method='GET',body){
@@ -52,7 +54,7 @@ async function invoke(service,uid,path,method='GET',body){
 }
 function base(spec,args){return spec.member?'/api/contacts/'+identity(args.memberId)+'/equipment':spec.collection;}
 async function snapshot(uid,args){
- const spec=resourceSpec(args.resource),id=args.id;
+ const spec=resourceSpec(args.resource),id=args.id;if(spec.school)return invoke('handleSchool',uid,'/api/school');
  if(spec.projectCollection){const current=readWorkspace(db,uid),project=[current.state,...current.state.projects||[]].find(p=>p.project.id===args.projectId);if(!project)throw Error('Project not found');return {items:project[spec.projectCollection]||[],revision:current.revision};}
  if(spec.blocks){if(!id)throw Error('Parent document/note id is required');return snapshot(uid,{...args,resource:spec.blocks});}
  if(args.resource==='shared_projects'){
@@ -75,6 +77,7 @@ async function snapshot(uid,args){
 }
 function beforeDocument(spec,value,args){if(spec.blocks==='notes')return value.note.document;const doc=value.documents?.find(item=>item.id===args.id);if(!doc)throw Error('Document not found');return doc;}
 function selected(spec,value,args){
+ if(spec.school)return schoolSelected(value.school,args);
  if(spec.blocks){const document=beforeDocument(spec,value,args);if(args.blockId){const block=document.blocks.find(item=>item.id===args.blockId);if(!block)throw Error('Block not found');return block;}return document.blocks;}
  if(spec.detail&&args.id){if(spec.kind&&value.note?.kind!==spec.kind)throw Error('Note not found');return value.note||value.model||value.project||value;}
  if(spec.shoot)return value.configuration;
@@ -87,6 +90,7 @@ function cleanFields(spec,value){return Object.fromEntries(Object.entries(value)
 async function mutate(uid,args,values,before,requestId){
  const spec=resourceSpec(args.resource);if(spec.readOnly)throw Error('Read-only content; use Studio for read-only content');
  if(!values||typeof values!=='object'||Array.isArray(values)||Object.keys(values).some(key=>!spec.fields.includes(key)))throw Error('Unsupported content fields');
+ if(spec.school){const next=structuredClone(before.school),result=schoolMutation(db,next,args,values,uid),saved=await invoke('handleSchool',uid,'/api/school','PUT',{school:next,revision:before.revision});return {...result,revision:saved.revision};}
  const id=args.id,old=id?selected(spec,before,args):null;
  if(spec.commandType){const current=readWorkspace(db,uid),change=applyCommands(current.state,args.projectId,[{operation:(id?'update_':'add_')+spec.commandType,...(id?{entityId:id}:{}),values}]);if(!validateWorkspace(change.state))throw Error('Invalid project content');const saved=writeWorkspace(db,uid,change.state,current.revision),project=[change.state,...change.state.projects||[]].find(p=>p.project.id===args.projectId),item=id?project[spec.projectCollection].find(item=>item.id===id):project[spec.projectCollection].find(item=>!before.items.some(prior=>prior.id===item.id));return {revision:saved.revision,item};}
 
@@ -150,17 +154,18 @@ async function run(message){
  const {kind,uid,grantId,args={},values,baseline,proposalId}=message;
  connection.exec('BEGIN IMMEDIATE');nested=0;
  try{
-  const grant=consent(grantId,uid,kind!=='read'),spec=resourceSpec(args.resource);requireContentAccess(spec.service,grant,{write:kind!=='read',consentVersion:1});
-  const before=await snapshot(uid,args),stamp=hash(before);
+  const spec=resourceSpec(args.resource),grant=consent(grantId,uid,kind!=='read',!!spec.school);requireContentAccess(spec.service,grant,{write:kind!=='read',consentVersion:1});
+  const before=await snapshot(uid,args),stamp=hash(spec.school?{before,consentGeneration:grant.generation}:before);
   if(kind==='read'){
    let value=selected(spec,before,args);
    if(!args.id&&args.resource==='shoots')value=value.map(({configuration,...shoot})=>({...shoot,hasConfiguration:!!configuration}));
    if(args.field){
-    if(!args.id||!spec.fields.includes(args.field.split('.')[0])||args.field.split('.').length>2|| (args.field.includes('.')&&!['qtJournal.word','qtJournal.application','qtJournal.gratitude','qtJournal.prayers','qtJournal.memos','document.blocks'].includes(args.field)))throw Error('Read an allowed content field');
+    if(Array.isArray(value))throw Error('Read a detail ID before selecting a field');
+    if((!args.id&&!spec.school)||!spec.fields.includes(args.field.split('.')[0])||args.field.split('.').length>2|| (args.field.includes('.')&&!['qtJournal.word','qtJournal.application','qtJournal.gratitude','qtJournal.prayers','qtJournal.memos','document.blocks'].includes(args.field)))throw Error('Read an allowed content field');
     value=args.field.split('.').reduce((item,key)=>item?.[key],value);
-   }else if(spec.document){const summarize=doc=>({id:doc.id,title:doc.title,blockCount:doc.blocks.length});value=Array.isArray(value)?value.map(summarize):summarize(value);}
+   }else if(spec.document||args.resource==='school_notes'){const summarize=doc=>({id:doc.id,title:doc.title,blockCount:doc.blocks.length,...(spec.school?{archived:doc.archived,...(doc.modifiedAt?{modifiedAt:doc.modifiedAt}:{})}:{})});value=Array.isArray(value)?value.map(summarize):summarize(value);}
    else if(args.id&&['notes','qt'].includes(args.resource)){const {document,qtJournal,qtVerses,...metadata}=value;value={...metadata,document:{id:document.id,title:document.title,blockCount:document.blocks.length},...(qtJournal?{journalFields:['word','application','gratitude','prayers','memos']}:{}),verseCount:qtVerses?.length||0};}
-   if(spec.entry&&!args.noteId&&!args.id)value={items:before.entries,nextOffset:before.nextOffset};else if(args.resource==='catalog'&&!args.id)value={items:before.models,total:before.total,nextOffset:(args.offset||0)+(args.limit||25)<before.total?(args.offset||0)+(args.limit||25):null};else if((!args.id||args.field||spec.blocks&&!args.blockId)&&Array.isArray(value)){if(args.query)value=value.filter(item=>JSON.stringify(item).toLocaleLowerCase().includes(String(args.query).toLocaleLowerCase()));const offset=args.offset||0,limit=args.limit||25;const total=value.length;let count=limit;while(count>1&&Buffer.byteLength(JSON.stringify(value.slice(offset,offset+count)))>100000)count=Math.max(1,Math.floor(count/2));value={items:value.slice(offset,offset+count),total,nextOffset:offset+count<total?offset+count:null};}
+   if(spec.entry&&!args.noteId&&!args.id)value={items:before.entries,nextOffset:before.nextOffset};else if(args.resource==='catalog'&&!args.id)value={items:before.models,total:before.total,nextOffset:(args.offset||0)+(args.limit||25)<before.total?(args.offset||0)+(args.limit||25):null};else if((!args.id||args.field||spec.blocks&&!args.blockId||args.resource==='school_note_blocks'&&!args.blockId)&&Array.isArray(value)){if(args.query)value=value.filter(item=>JSON.stringify(item).toLocaleLowerCase().includes(String(args.query).toLocaleLowerCase()));const offset=args.offset||0,limit=args.limit||25;const total=value.length;let count=limit;while(count>1&&Buffer.byteLength(JSON.stringify(value.slice(offset,offset+count)))>100000)count=Math.max(1,Math.floor(count/2));value={items:value.slice(offset,offset+count),total,nextOffset:offset+count<total?offset+count:null};}
    if(Buffer.byteLength(JSON.stringify(value))>131072)throw Error('Content response too large. Read a specific field or block with a smaller limit.');
    connection.exec('ROLLBACK');return {value,revision:stamp,manifest:resourceManifest({canManageCatalog:isAdmin(db,uid)&&grant.scope.split(' ').includes('studio:write')})};
   }

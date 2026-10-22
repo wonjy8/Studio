@@ -1,7 +1,9 @@
+import {schoolResources} from './school-content.js';
 import {commandFields} from '../src/domain/commands.js';
 // Finite semantic resources. No caller-supplied route, SQL, account or HTTP method.
 const spec=(service,collection,key,fields,options={})=>({service,collection,key,fields,...options});
 export const contentResources=Object.freeze({
+ ...schoolResources,
  shoots:spec('projects',null,'items',commandFields.shoot,{projectCollection:'contents',commandType:'shoot'}),
  tasks:spec('projects',null,'items',commandFields.task,{projectCollection:'tasks',commandType:'task'}),
  project_members:spec('projects',null,'items',commandFields.member,{projectCollection:'members',commandType:'member'}),
@@ -35,4 +37,4 @@ export const contentResources=Object.freeze({
 });
 export function resourceSpec(name){if(!Object.hasOwn(contentResources,name))throw Error('Unsupported content resource');return contentResources[name];}
 export const contentResourceNames=Object.keys(contentResources);
-export function resourceManifest({canManageCatalog}={}){return contentResourceNames.map(id=>({id,service:contentResources[id].service,fields:contentResources[id].fields,readOnly:!!contentResources[id].readOnly||(!!contentResources[id].catalog&&canManageCatalog===false),...(contentResources[id].catalog?{operations:['create','update'],shared:true,writeRequires:'existing-catalog-manager-permission',...(canManageCatalog!==undefined?{canWrite:canManageCatalog}:{}),photo:{types:['image/png','image/jpeg','image/webp'],input:'photo:{type,base64}; null removes photo; omission preserves existing photo; no remote URLs',maxValuesJsonBytes:65536}}:{}),requiresParent:contentResources[id].member?'memberId':(contentResources[id].project||contentResources[id].shoot||contentResources[id].projectCollection)?'projectId':undefined}));}
+export function resourceManifest({canManageCatalog}={}){return contentResourceNames.map(id=>({id,service:contentResources[id].service,fields:contentResources[id].fields,readOnly:!!contentResources[id].readOnly||(!!contentResources[id].catalog&&canManageCatalog===false),...(contentResources[id].catalog?{operations:['create','update'],shared:true,writeRequires:'existing-catalog-manager-permission',...(canManageCatalog!==undefined?{canWrite:canManageCatalog}:{}),photo:{types:['image/png','image/jpeg','image/webp'],input:'photo:{type,base64}; null removes photo; omission preserves existing photo; no remote URLs',maxValuesJsonBytes:65536}}:{}),...(contentResources[id].school?{consentScope:'school-content-v1',consentVersion:1,ownAccountOnly:true,operations:['read','propose','apply'],...(contentResources[id].schoolParent?{requiresParent:'courseId'}:{})}:{}),requiresParent:contentResources[id].schoolParent?'courseId':contentResources[id].member?'memberId':(contentResources[id].project||contentResources[id].shoot||contentResources[id].projectCollection)?'projectId':undefined}));}
