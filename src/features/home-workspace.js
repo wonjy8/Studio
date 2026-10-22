@@ -1,3 +1,4 @@
+import {calendarEventOrder} from '../domain/calendar-display.js';
 import {googleTasksPanel} from './google-tasks.js';
 import {personalCalendarPanel} from './google-calendar.js';
 import {icon} from '../design-system/primitives/icons.js';
@@ -44,11 +45,12 @@ export function homeWorkspacePage({state,account}={}){
 
 const homeProjects=state=>[state,...(state?.projects||[])].filter(item=>item?.project&&!item.project.placeholder);
 const openAttributes=(project,view,date='')=>`data-home-open-project="${esc(project.id)}" data-home-project-view="${view}" data-home-date="${esc(date)}"`;
-function scheduleRows(rows){return rows.map(({event,project})=>`<button type="button" class="home-workspace-project" data-calendar-source="project:${esc(project.id)}" ${openAttributes(project,'schedule',event.date||project.date||'')}><span class="home-workspace-date">${esc((event.date||project.date||'날짜 미정').replace(/-/g,'.'))}</span><span class="home-workspace-row-copy"><strong>${esc(event.name)}</strong><small>${[project.name,event.time,event.location].filter(Boolean).map(esc).join(' · ')}</small></span>${icon('chevron')}</button>`).join('')||'<div class="empty">예정된 일정이 없습니다.</div>';}
+const scheduleRecord=row=>({...row.event,date:row.event.date||row.project.date||'',allDay:row.event.allDay===undefined?!row.event.time:row.event.allDay===true,projectId:row.project.id});
+function scheduleRows(rows){return rows.map(({event,project})=>`<button type="button" class="home-workspace-project" data-calendar-source="project:${esc(project.id)}" ${openAttributes(project,'schedule',event.date||project.date||'')}><span class="home-workspace-date">${esc((event.date||project.date||'날짜 미정').replace(/-/g,'.'))}</span><span class="home-workspace-row-copy"><strong class="${(event.allDay===undefined?!event.time:event.allDay===true)?'is-all-day':'is-timed-event'}">${esc(event.name)}</strong><small>${[project.name,event.time,event.location].filter(Boolean).map(esc).join(' · ')}</small></span>${icon('chevron')}</button>`).join('')||'<div class="empty">예정된 일정이 없습니다.</div>';}
 export function homeSchedulePage({state}={}){
  const today=dateKey(),rows=homeProjects(state).flatMap(item=>[...(item.contents||[]),...(item.schedule||[])].map(event=>({event,project:item.project}))),date=row=>row.event.date||row.project.date||'';
- const upcoming=rows.filter(row=>!date(row)||date(row)>=today).sort((a,b)=>(date(a)||'9999').localeCompare(date(b)||'9999')||String(a.event.time||'').localeCompare(String(b.event.time||'')));
- const previous=rows.filter(row=>date(row)&&date(row)<today).sort((a,b)=>date(b).localeCompare(date(a)));
+ const upcoming=rows.filter(row=>!date(row)||date(row)>=today).sort((a,b)=>calendarEventOrder(scheduleRecord(a),scheduleRecord(b)));
+ const previous=rows.filter(row=>date(row)&&date(row)<today).sort((a,b)=>date(b).localeCompare(date(a))||calendarEventOrder(scheduleRecord(a),scheduleRecord(b)));
  return `<section class="home-workspace home-collection" data-home-schedule><div data-workspace-calendar></div><div data-workspace-schedule-list><section class="home-workspace-panel"><div class="section-head"><h2>프로젝트 일정</h2><span class="sub">${upcoming.length}개</span></div><div class="home-workspace-list">${scheduleRows(upcoming)}</div>${previous.length?`<details class="home-history"><summary>지난 일정 · ${previous.length}개</summary>${scheduleRows(previous)}</details>`:''}</section>${personalCalendarPanel()}<div data-school-schedule-summary></div></div></section>`;
 }
 export function homeTasksPage({state}={}){
