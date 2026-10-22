@@ -109,7 +109,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       }
       const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
       if(session&&passwordChangeRequired(db,session.user_id)&&!['/api/session','/api/logout','/api/account/password'].includes(path)&&path.startsWith('/api/'))return json(403,{error:'PASSWORD_CHANGE_REQUIRED'});
-      if(path==='/api/connections/diagnostics'&&req.method==='GET'){if(!session)return json(401,{error:'Login required'});if(!isAdmin(db,session.user_id))return json(403,{error:'Administrator required'});return json(200,{version:'connection-diagnostics-1',toolSchemaVersion,events:diagnostics.list()});}
+      if(path==='/api/connections/diagnostics'&&req.method==='GET'){if(!session)return json(401,{error:'Login required'});if(!isAdmin(db,session.user_id))return json(403,{error:'Administrator required'});return json(200,{version:'connection-diagnostics-1',toolSchemaVersion,serverRevision:/^[a-f0-9]{7,40}$/.test(process.env.STUDIO_REVISION||'')?process.env.STUDIO_REVISION:'development',issuerIdentification:true,events:diagnostics.list()});}
       if(path==='/oauth/google/tasks/callback'&&await tasksGoogle.routes({path,url,req,res,session,json,readJson}))return;
       if(path==='/oauth/google/calendar/callback'&&await calendar.routes({path,url,req,res,session,json,readJson}))return;
       if(path==='/oauth/google/callback'&&await googleRead.routes({path,url,req,res,session,json,readJson}))return;
