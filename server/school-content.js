@@ -16,7 +16,7 @@ export const schoolResources={
  school_modules:resource(['kind','title','url','width','archived'],{schoolParent:true}),
  school_course_layout:resource(['orderedEntryIds'],{schoolParent:true}),
  school_tasks:resource(['name','completed','date','time'],{schoolParent:true}),
- school_events:resource(['name','date','time','location'],{schoolParent:true})
+ school_events:resource(['name','date','time','endTime','location'],{schoolParent:true})
 };
 const identifier=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9_-]{1,80}$/.test(value))throw Error('Read a valid School ID first');return value;};
 function target(school,args){const course=args.courseId&&school.courses.find(c=>c.id===identifier(args.courseId));if(schoolResources[args.resource].schoolParent&&!course)throw Error('Course not found in your School workspace');return course;}

@@ -26,7 +26,7 @@ export function projectCalendarEvents(project,{uid,subject,timeZone}){
   if(!source.time?.trim()){start={date:source.date};end={date:addDays(source.date,1)};}
   else{
    const parts=source.time.trim().split(/\s*[–—~\-]\s*/),begin=minutes(parts[0]);if(begin===null||parts.length>2){skipped.push({id:source.id,reason:'시간 형식 확인 필요'});continue;}
-   let finish=parts.length>1?minutes(parts[1]):begin+60;if(finish===null){skipped.push({id:source.id,reason:'종료 시간 확인 필요'});continue;}
+   let finish=parts.length>1?(parts[1]==='24:00'?1440:minutes(parts[1])):begin+60;if(finish===null){skipped.push({id:source.id,reason:'종료 시간 확인 필요'});continue;}
    const nextDay=finish<=begin||finish>=1440;if(finish>=1440)finish-=1440;
    const endDate=nextDay?addDays(source.date,1):source.date;
    if(wallInstants(source.date,Math.floor(begin/60),begin%60,0,timeZone).length!==1||wallInstants(endDate,Math.floor(finish/60),finish%60,0,timeZone).length!==1){skipped.push({id:source.id,name:source.name,reason:'시간대의 DST 전환으로 없거나 중복되는 시간'});continue;}
