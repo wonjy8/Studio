@@ -1,3 +1,4 @@
+import './typed-arrows.js';
 import './desktop-page-zoom.js';
 import {schoolWorkspacePage,bindSchoolWorkspace,schoolCanLeave,bindSchoolTaskSummary} from './features/school-workspace.js';
 import {bindWorkspaceCalendar} from './features/workspace-calendar.js';

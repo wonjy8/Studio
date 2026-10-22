@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {arrowReplacement} from '../src/typed-arrows.js';
+test('typed pairs become arrows only in ordinary new text tokens',()=>{assert.equal(arrowReplacement('-', '>'),'→');assert.equal(arrowReplacement('text <','-'),'←');assert.equal(arrowReplacement('https://host/-','>'),null);assert.equal(arrowReplacement('email@host<','-'),null);assert.equal(arrowReplacement('`-','>'),null);assert.equal(arrowReplacement('ordinary','>'),null);});
