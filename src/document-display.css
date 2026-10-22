@@ -1,0 +1,14 @@
+/* Default UI midpoint: existing app 13px and default Scripture verse 16px. */
+:root{--text-body:.90625rem;--document-screen-scale:1.0875}
+.production-app{font-size:var(--text-body)}
+/* Preserve Scripture's smaller secondary text and personal reading-size offsets. */
+.scripture-reader{--text-body:.8125rem}
+@media screen {
+ .document-workspace{max-width:calc(var(--document-page-width) * var(--document-screen-scale))}
+ .document-paper{zoom:var(--document-screen-scale)}
+}
+/* Retain readable reflow rather than shrinking a physical sheet into tiny text. */
+@media screen and (max-width:760px){.document-workspace{--document-screen-scale:1}}
+@media print{.document-paper{zoom:1!important}}
+/* The user's later compact-calendar request overrides the app-body midpoint. */
+[data-workspace-calendar] .month-calendar .calendar-event{font-size:13px}
