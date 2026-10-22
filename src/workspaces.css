@@ -745,5 +745,17 @@ html[data-theme=dark]{--scripture-highlight-color-1:#b2b3bb;--scripture-highligh
 .connections-panel .mcp-connection-row .property-value{display:flex;flex-direction:column;align-items:stretch;text-align:left;gap:12px;min-width:0}.school-content-consent p{line-height:1.65;overflow-wrap:anywhere}.school-content-consent summary{cursor:pointer;min-height:36px}
 @media(max-width:600px){.connections-panel .mcp-connection-row{display:block}.connections-panel .mcp-connection-row .property-label{display:none}.connections-panel .mcp-connection-row .property-value{width:100%}.school-content-consent summary{min-height:44px}}
 
+/* A4 document typography: physical print points, scoped away from passage/syllabus UI. */
+.document-paper{--document-body-size:10pt;--document-title-size:22pt;--document-h1-size:18pt;--document-h2-size:14pt;--document-h3-size:12pt;--document-code-size:9pt}
+.document-paper .document-title{font-size:var(--document-title-size)!important;line-height:1.3!important;min-height:1.4em;margin-bottom:1.2em}
+.document-paper .document-editable{font-size:var(--document-body-size);line-height:1.65;min-height:1.65em;padding:0}
+.document-paper .document-block{min-height:0;padding-top:3px;padding-bottom:3px;margin:0 0 .25em}
+.document-paper .type-h1 .document-editable{font-size:var(--document-h1-size);line-height:1.3;padding:.65em 0 .2em}
+.document-paper .type-h2 .document-editable{font-size:var(--document-h2-size);line-height:1.35;padding:.6em 0 .2em}
+.document-paper .type-h3 .document-editable{font-size:var(--document-h3-size);line-height:1.4;padding:.5em 0 .15em}
+.document-paper .type-code .document-editable{font-size:var(--document-code-size);line-height:1.6;padding:1em}
+.document-paper :is(.document-list-marker,[data-block-check]){top:6px}
+@media screen{@container(max-width:640px){.document-paper{--document-body-size:16px;--document-title-size:28px;--document-h1-size:24px;--document-h2-size:21px;--document-h3-size:18px;--document-code-size:16px}.document-paper .document-title{font-size:var(--document-title-size)!important}}}
+@media print{.document-paper .document-print-title{font-size:var(--document-title-size);line-height:1.3;margin-bottom:1.2em}}
 /* Service read forms remain hidden while their own service is disconnected. */
 [data-google-read] [data-read-verify][hidden]{display:none!important}
