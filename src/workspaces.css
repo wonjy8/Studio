@@ -673,3 +673,7 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
  [data-mobile-admin-settings] .project-sidebar [data-settings-section],[data-mobile-admin-settings] .project-sidebar [data-admin-settings-divider]{display:none}
 }
 @media(min-width:360px) and (max-width:900px){:root{--workspace-gutter:28px;--page-gutter:28px}}
+
+.home-collection>[data-workspace-calendar],.home-collection>[data-workspace-schedule-list]{min-width:0}
+[data-google-read] form{display:grid;gap:12px;margin-top:16px}
+[data-google-read] code{overflow-wrap:anywhere}
