@@ -938,3 +938,23 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 @media print{.document-tail{display:none!important}}
 .document-tail:focus-visible::before{content:'텍스트 입력';color:var(--muted);font-size:var(--text-support)}
 .document-block:has(>.document-editable:focus-visible) .document-add{color:var(--accent);background:var(--selected)}
+
+/* Shared emoji selection: ordered scrolling choices and bottom category tabs. */
+.emoji-popover{overflow:hidden;max-height:min(480px,calc(100dvh - 24px));padding:12px;grid-template-rows:auto minmax(80px,1fr) auto;gap:8px}
+.emoji-popover:popover-open{display:grid}
+.emoji-popover .icon-filters{display:flex;margin:0}.emoji-popover .icon-filters input{flex:1;min-width:0}
+.emoji-scroll{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;overflow:auto;max-height:280px;min-height:80px;align-content:start}
+.emoji-scroll>h3,.emoji-scroll>p{grid-column:1/-1;font-size:var(--text-support);font-weight:500;margin:8px 0 4px;color:var(--muted)}
+.emoji-popover .icon-choice>span{background:transparent;border-radius:6px;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;font-size:24px;color:var(--ink)}
+.emoji-tabs{display:flex;gap:2px;overflow-x:auto;min-width:0;padding:3px 0}
+.emoji-tabs [role=tab]{flex:none;width:28px;min-height:36px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--ink);font-size:18px}
+.emoji-tabs [aria-selected=true]{background:var(--selected)}.emoji-tabs [role=tab]:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.document-block.type-callout.has-callout-emoji{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;align-items:start}
+.document-block.type-callout>[data-course-emoji-picker]{width:32px;min-width:32px;gap:0}
+.document-block.type-callout>[data-course-emoji-picker]>.appearance-label{display:none}
+.document-block.type-callout>[data-course-emoji-picker]>.project-icon-trigger{width:32px;min-width:32px;height:32px;min-height:32px;padding:0;border:0;background:transparent;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;font-size:24px;color:var(--ink)}
+.document-block.type-callout>[data-course-emoji-picker].is-empty{display:contents}
+.document-block.type-callout>[data-course-emoji-picker]>[hidden]{display:none!important}
+@media(max-width:900px){.emoji-tabs [role=tab]{min-height:44px;width:36px}.emoji-popover .icon-choice>span{min-height:36px}}
+@media print{.document-block.type-callout>[data-course-emoji-picker]>.project-icon-trigger{display:block!important}.document-block.type-callout>[data-course-emoji-picker]>[popover],.document-block.type-callout>[data-course-emoji-picker].is-empty{display:none!important}}
+@media print{.document-block.type-callout>[data-course-emoji-picker].is-empty>.project-icon-trigger{display:none!important}}
