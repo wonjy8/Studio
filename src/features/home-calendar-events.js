@@ -16,7 +16,7 @@ export function editHomeCalendarEvent({id,trigger,onSaved,namespace,initial={}})
   if(!id){savedRecord=saved.event;savedTarget=calendarId;model.calendarTarget.locked=true;}
   if(!id&&calendarId!=='none')try{
    const synced=await request('google/calendar/home-targets/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({editContext:target.editContext})});
-   if(synced.workspaceErrors?.length)throw Error(synced.workspaceErrors.map(e=>e.error||e.message).join(' · '));
+   const errors=(synced.workspaceErrors||[]).filter(e=>e.eventId===newId);if(errors.length)throw Error(errors.map(e=>e.error||e.message).join(' · '));
   }catch(error){await onSaved?.();throw Error('일정은 Studio에 저장됐지만 Google 게시를 완료하지 못했습니다. 입력을 보관하고 다시 저장해 주세요. '+error.message);}
   return saved;
  },...(id?{remove:()=>request('workspace-events/home/'+id,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({editContext,revision:record.revision})})}:{}),onSaved});
