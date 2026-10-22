@@ -2,7 +2,7 @@ import {resourceManifest} from './content-resources.js';
 import {commandOperations} from '../src/domain/commands.js';
 // This registry classifies app services, not arbitrary URLs or database tables.
 // New services must make an explicit consent/permission decision before MCP exposure.
-export const contentContractVersion=5;
+export const contentContractVersion=6;
 export const contentServices=Object.freeze({
  handleSchool:{access:'consent-required',consentVersion:1,consentScope:'school-content-v1',content:['school-semesters','school-courses','school-syllabus','lecture-notes','course-modules','school-tasks','school-events','credit-requirements']},
  projects:{access:'enabled',scope:'studio:read',writeScope:'studio:write',operations:commandOperations},
@@ -37,7 +37,7 @@ export function requireContentAccess(service,grant,{write=false,consentVersion=0
  if(!scopes.includes(contract.scope||'studio:read')||(write&&!scopes.includes(contract.writeScope||'studio:write')))throw Error('Content consent is required.');
  return contract;
 }
-export function contentCapabilities({scope='',consentVersion=0,schoolConsentVersion=0,canManageCatalog=false}={}){
- const scopes=scope.split(' '),read=scopes.includes('studio:read'),write=scopes.includes('studio:write'),approved=consentVersion===1;
- return {version:contentContractVersion,accessMeaning:'services.access describes a fixed requirement, not this connection approval status',connection:{schoolConsentVersion,schoolContentApproved:schoolConsentVersion===1,canReadSchool:schoolConsentVersion===1&&read,canWriteSchool:schoolConsentVersion===1&&read&&write,fullContentConsentVersion:consentVersion,fullContentApproved:approved,requiresOwnerConsent:!approved,canReadFullContent:approved&&read,canWriteFullContent:approved&&read&&write},resources:resourceManifest({canManageCatalog:canManageCatalog&&approved&&read&&write}),services:Object.entries(contentServices).map(([id,{access,content,operations,readOnly}])=>({id,access,effectiveAccess:access==='excluded'?'excluded':!read?'unavailable':access==='consent-required'&&!(id==='handleSchool'?schoolConsentVersion===1:approved)?'consent-required':write&&!readOnly&&(id!=='handleEquipmentCatalog'||canManageCatalog)?'read-write':'read-only',...(content?{content}:{}),...(operations?{operations:[...operations]}:{})}))};
+export function contentCapabilities({scope='',consentVersion=0,schoolConsentVersion=0,workspaceConsentVersion=0,canManageCatalog=false}={}){
+ const scopes=scope.split(' '),read=scopes.includes('studio:read'),write=scopes.includes('studio:write'),workspaceApproved=workspaceConsentVersion===1,approved=consentVersion===1||workspaceApproved,schoolApproved=schoolConsentVersion===1||workspaceApproved;
+ return {version:contentContractVersion,accessMeaning:'services.access describes a fixed requirement, not this connection approval status',connection:{workspaceConsentVersion,currentAndFutureWorkspacesApproved:workspaceApproved,schoolConsentVersion,schoolContentApproved:schoolApproved,canReadSchool:schoolApproved&&read,canWriteSchool:schoolApproved&&read&&write,fullContentConsentVersion:consentVersion,fullContentApproved:approved,requiresOwnerConsent:!approved,canReadFullContent:approved&&read,canWriteFullContent:approved&&read&&write},resources:resourceManifest({canManageCatalog:canManageCatalog&&approved&&read&&write}),services:Object.entries(contentServices).map(([id,{access,content,operations,readOnly}])=>({id,access,effectiveAccess:access==='excluded'?'excluded':!read?'unavailable':access==='consent-required'&&!(id==='handleSchool'?schoolApproved:approved)?'consent-required':write&&!readOnly&&(id!=='handleEquipmentCatalog'||canManageCatalog)?'read-write':'read-only',...(content?{content}:{}),...(operations?{operations:[...operations]}:{})}))};
 }
