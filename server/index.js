@@ -101,6 +101,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       session = cookie && db.prepare('SELECT user_id,token FROM sessions WHERE token=? AND expires>?').get(digest(cookie),Date.now());
       const returnedSession=googleReturn.recover(path,url,req,res);if(!session&&returnedSession)session=returnedSession;
       if(session&&!accountActive(db,session.user_id))session=undefined;
+      if(session&&path.startsWith('/api/')&&!['GET','HEAD'].includes(req.method)&&req.headers['x-studio-account']&&req.headers['x-studio-account']!==session.user_id)return json(409,{error:'ACCOUNT_CHANGED'});
       // A request may wait for its body while another request revokes authority.
       // Cover JSON and binary API bodies; role/ownership checks stay in each
       // mutation's transaction, after this exact-session/account check.
