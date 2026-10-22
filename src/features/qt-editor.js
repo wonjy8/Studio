@@ -35,7 +35,7 @@ export async function bindQtEditor(root,selected,{onBack,backLabel='QT 목록',n
   list.querySelectorAll('[data-qt-item]').forEach(row=>{const item=journal[kind].find(item=>item.id===row.dataset.qtItem),input=row.querySelector('[data-qt-item-text]');bindRich(input,(text,content)=>{item.text=text;item.content=content;});input.onkeydown=event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();addItem(kind,journal[kind].indexOf(item)+1);}};row.querySelector('[data-qt-item-remove]').onclick=()=>{journal[kind]=journal[kind].filter(value=>value.id!==item.id);drawItems(kind);saver.change();};if(prayer){const recipient=row.querySelector('[data-qt-recipient]');row.querySelector('[data-qt-prayer-kind]').onchange=event=>{item.target=event.target.value;recipient.hidden=item.target!=='other';if(recipient.hidden){item.recipient='';recipient.value='';}else recipient.focus();saver.change();};recipient.oninput=event=>{item.recipient=event.target.value;saver.change();};}});
  }
  function addItem(kind,index=journal[kind].length,item=newQtItem(kind==='prayers')){if(journal[kind].length>=500)return;journal[kind].splice(index,0,item);drawItems(kind);root.querySelector(`[data-qt-item="${item.id}"] [data-qt-item-text]`).focus();saver.change();}
- drawItems('prayers');bindQtGratitude(root,journal,{onChange:()=>saver.change()});
+ drawItems('prayers');bindQtGratitude(root,journal,{onChange:()=>saver.change(),bindText:bindRich});
  root.querySelector('[data-qt-add-prayer]').onclick=()=>addItem('prayers');
  for(const field of ['word','application'])bindRich(root.querySelector('[data-qt-'+field+']'),(text,content)=>{journal[field]=text;journal[field+'Content']=content;});
  let entries=[],nextOffset=0,fetching=false,historyVersion=0,searchTimer;
