@@ -59,4 +59,3 @@ button.theme-mode-toggle[aria-checked=true]{background:var(--selected)}
 :is(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=button],[type=submit],[type=reset],[type=hidden]),textarea,select):is([aria-invalid=true],:user-invalid){box-shadow:none!important;background:color-mix(in srgb,var(--input-invalid-cue) 9%,var(--surface))!important}
 :is(input,textarea,select):disabled{opacity:.55;cursor:not-allowed}:is(input,textarea)[readonly]{color:var(--muted);background:var(--surface-2)}
 @media(forced-colors:active){html :is(input,textarea,select,[contenteditable=true]):focus{outline:2px solid Highlight!important;outline-offset:2px}}
-:is(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=button],[type=submit],[type=reset],[type=hidden]),textarea,select):is([aria-invalid=true],:user-invalid):focus-visible{box-shadow:none!important;outline:2px solid var(--input-focus-cue)!important;outline-offset:2px}
