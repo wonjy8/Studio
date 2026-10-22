@@ -12,9 +12,9 @@ export const contentResources=Object.freeze({
  project_equipment:spec('projects',null,'items',commandFields.equipment,{projectCollection:'gear',commandType:'equipment'}),
  project_references:spec('projects',null,'items',commandFields.reference,{projectCollection:'refs',commandType:'reference'}),
 
- document_blocks:spec('handleDocumentLibrary','/api/document-library',null,['type','content','checked','align','color','background','indent','url','caption','referenceId','emoji'],{blocks:'documents'}),
- project_blocks:spec('projects',null,null,['type','content','checked','align','color','background','indent','url','caption','referenceId','emoji'],{blocks:'project_documents',project:true}),
- note_blocks:spec('handleScripture','/api/scripture/notes',null,['type','content','checked','align','color','background','indent','url','caption','referenceId','emoji'],{blocks:'notes',detail:true}),
+ document_blocks:spec('handleDocumentLibrary','/api/document-library',null,['type','content','checked','align','color','background','indent','url','caption','referenceId','emoji','bulletStyle'],{blocks:'documents'}),
+ project_blocks:spec('projects',null,null,['type','content','checked','align','color','background','indent','url','caption','referenceId','emoji','bulletStyle'],{blocks:'project_documents',project:true}),
+ note_blocks:spec('handleScripture','/api/scripture/notes',null,['type','content','checked','align','color','background','indent','url','caption','referenceId','emoji','bulletStyle'],{blocks:'notes',detail:true}),
  shared_projects:spec('sharedProjects',null,'projects',[],{readOnly:true,detail:true}),
  organizations:spec('handleInventory','/api/inventory','organizations',[],{readOnly:true}),
  shoot_configuration:spec('projects',null,null,['memberIds','gearIds','rentals','cameras','layoutObjects'],{shoot:true}),
