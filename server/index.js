@@ -1,3 +1,4 @@
+import {workspaceHomeEventRoutes} from './workspace-home-events.js';
 import {schoolRoutes} from './school.js';
 import {googleReadService} from './google-read.js';
 import {publicCalendarDiagnostic} from './google-calendar-errors.js';
@@ -48,7 +49,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   configureSiteRoleManagement(db,enableSiteRoleManagement);
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
-  const handleSchool=schoolRoutes(db);
+  const handleSchool=schoolRoutes(db),handleWorkspaceHomeEvents=workspaceHomeEventRoutes(db);
   const handleScripture=scriptureRoutes(db,scripture);
   const handleDocumentLibrary=documentLibraryRoutes(db);
   const handleEquipmentCatalog=equipmentCatalogRoutes(db);
@@ -122,7 +123,8 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleAdminProjects({path,url,req,session,json,readJson}))return;
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;
-      if(await handleSchool({path,req,session,json,readJson}))return;
+      if(await handleWorkspaceHomeEvents({path,req,session,json,readJson,assertLiveMutation})){if(!['GET','HEAD'].includes(req.method)&&res.statusCode<400)calendar.kick(session.user_id);return;}
+      if(await handleSchool({path,req,session,json,readJson})){if(req.method!=='GET'&&res.statusCode>=200&&res.statusCode<300)calendar.kick(session.user_id);return;}
       if(await handleScripture({path,url,req,session,json,readJson,readBody:body,assertLiveMutation}))return;
       if(await handleDocumentLibrary({path,req,session,json,readJson}))return;
       if(await handleReferenceLibrary({path,req,session,json,readJson}))return;
