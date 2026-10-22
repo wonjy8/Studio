@@ -869,3 +869,11 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 .school-graduation-table td input{box-sizing:border-box;width:100%;min-width:0;padding-inline:0;text-align:right;font:inherit;font-variant-numeric:tabular-nums;appearance:textfield}
 .school-graduation-table td input::-webkit-inner-spin-button,.school-graduation-table td input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 @media(max-width:600px){.school-graduation-table th:not(:first-child),.school-graduation-table td{width:18.333333%}}
+
+/* Course rows own one fixed emoji slot, independent of project-settings controls. */
+.school-course-entry [data-course-emoji-picker]{flex:0 0 40px;width:40px;min-width:40px;gap:0}
+@media(min-width:901px){
+ :root{--rail:56px}
+ .production-app .workspace-rail .rail-button{flex:0 0 40px;width:40px;height:40px;padding:0}
+ .production-app .workspace-rail .rail-button .icon{width:24px;height:24px}
+}
