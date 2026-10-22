@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {readWorkspace} from './workspace-service.js';
 import {projectCalendarEvents,calendarFingerprint,calendarTimeZone} from './google-calendar-model.js';
-import {validDate,addDays} from '../src/domain/calendar.js';
+import {validDate,addDays,calendarEvents} from '../src/domain/calendar.js';
 import {wallInstant} from './calendar-event-edit.js';
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export const schoolCalendarProjectId='workspace:school';
@@ -22,4 +22,6 @@ export function workspacePublicationEvents(source,context){
  return projectCalendarEvents(source,context);
 }
 
-export function workspaceSourceKeys(source){if(source.homeEvents)return new Set(source.homeEvents.map(e=>JSON.stringify(['home',e.id])));return new Set([...(source.contents||[]).filter(e=>validDate(e.date||source.project.date)).map(e=>JSON.stringify(['shoot',e.id])),...(source.tasks||[]).filter(e=>validDate(e.date)).map(e=>JSON.stringify(['task',e.id]))]);}
+// Source identity is independent of whether date/time payload conversion succeeds.
+export function workspaceSourceIdentities(source,{uid,subject}){const entries=source.homeEvents?source.homeEvents.map(event=>({id:event.id,type:'home',date:event.start.slice(0,10)})):calendarEvents(source);return entries.map(event=>({projectId:source.project.id,type:event.type,sourceId:event.id,date:event.date,eventId:'studio'+hash([uid,subject,source.project.id,event.type,event.id])}));}
+export function workspaceSourceKeys(source){const records=source.homeEvents?source.homeEvents.map(event=>['home',event.id]):[...(source.contents||[]).map(event=>['shoot',event.id]),...(source.tasks||[]).map(event=>['task',event.id])];return new Set(records.map(record=>JSON.stringify(record)));}
