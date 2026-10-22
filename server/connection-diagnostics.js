@@ -11,6 +11,7 @@ export function connectionDiagnostics(db){
   }
   return result;
  }
+ function clientAuthentication(data){const result={};const choices={failure:['unsupported_auth_header','malformed_basic','conflicting_client_id','multiple_auth_methods','missing_or_invalid_client_id','unknown_client','revoked_client','auth_method_mismatch','secret_mismatch_or_missing'],providedAuth:['none','client_secret_post','client_secret_basic','unsupported'],expectedAuth:['none','client_secret_post','client_secret_basic','unknown'],clientType:['unknown','manual','dynamic_or_legacy']};for(const [key,values]of Object.entries(choices))if(values.includes(data?.[key]))result[key]=data[key];return result;}
  function toolMetadata(data){const names=['search','fetch','studio_list_projects','studio_get_project','studio_propose_changes','studio_read_content','studio_propose_content','studio_cancel_proposal','studio_apply_changes'];return data?.method==='tools/call'&&names.includes(data.params?.name)?{tool:data.params.name}:{};}
  function stage(path,data){
   if(path==='/.well-known/oauth-authorization-server')return 'oauth_metadata';
@@ -25,5 +26,5 @@ export function connectionDiagnostics(db){
   if(!name)return;if(reason==='Unsupported protocol version')reason='unsupported_protocol_version';
   try{const now=Date.now();db.prepare('INSERT INTO connection_diagnostics(created_at,stage,status,reason,details) VALUES(?,?,?,?,?)').run(now,name,status,errors.has(reason)?reason:status<400?'ok':'request_rejected',JSON.stringify(details));db.prepare('DELETE FROM connection_diagnostics WHERE created_at<? OR id NOT IN (SELECT id FROM connection_diagnostics ORDER BY id DESC LIMIT 100)').run(now-86400000);}catch{/* Diagnostics must not break account operations. */}
  }
- return {metadata,toolMetadata,stage,record,list:()=>db.prepare('SELECT created_at,stage,status,reason,details FROM connection_diagnostics WHERE created_at>? ORDER BY id DESC LIMIT 30').all(Date.now()-86400000).map(r=>({...r,details:JSON.parse(r.details)}))};
+ return {clientAuthentication,metadata,toolMetadata,stage,record,list:()=>db.prepare('SELECT created_at,stage,status,reason,details FROM connection_diagnostics WHERE created_at>? ORDER BY id DESC LIMIT 30').all(Date.now()-86400000).map(r=>({...r,details:JSON.parse(r.details)}))};
 }

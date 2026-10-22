@@ -19,18 +19,18 @@ export function oauthService(db,origin){
  if(!clientColumns.includes('secret_hash'))db.exec('ALTER TABLE oauth_clients ADD COLUMN secret_hash TEXT');
  const clientMethods=['none','client_secret_post','client_secret_basic'];
  const clientAuthentication=(req,form)=>{
-  let id=form.get('client_id'),secret=form.get('client_secret'),method=secret?'client_secret_post':'none';
+  let id=form.get('client_id'),secret=form.get('client_secret'),method=secret?'client_secret_post':'none';let clientType='unknown',expectedAuth='unknown';const reject=reason=>{const error=fail('invalid_client',401);error.oauthClientDiagnostic={failure:reason,providedAuth:method,expectedAuth,clientType};throw error;};
   if(req.headers.authorization){
-   const encoded=req.headers.authorization.match(/^Basic ([A-Za-z0-9+/]+=*)$/i)?.[1];if(!encoded)throw fail('invalid_client',401);
-   const decoded=Buffer.from(encoded,'base64').toString(),split=decoded.indexOf(':');if(split<0)throw fail('invalid_client',401);
-   const basicId=decoded.slice(0,split);if((id&&id!==basicId)||secret)throw fail('invalid_client',401);
+   const encoded=req.headers.authorization.match(/^Basic ([A-Za-z0-9+/]+=*)$/i)?.[1];if(!encoded){method='unsupported';reject('unsupported_auth_header');}
+   const decoded=Buffer.from(encoded,'base64').toString(),split=decoded.indexOf(':');if(split<0){method='client_secret_basic';reject('malformed_basic');}
+   const basicId=decoded.slice(0,split);if(id&&id!==basicId){method='client_secret_basic';reject('conflicting_client_id');}if(secret){method='client_secret_basic';reject('multiple_auth_methods');}
    id=basicId;secret=decoded.slice(split+1);method='client_secret_basic';
   }
-  if(typeof id!=='string'||id.length>256)throw fail('invalid_client',401);
+  if(typeof id!=='string'||!id||id.length>256)reject('missing_or_invalid_client_id');
   const client=db.prepare('SELECT * FROM oauth_clients WHERE id=?').get(id);
   const manual=client&&db.prepare('SELECT revoked FROM oauth_manual_clients WHERE client_id=?').get(client.id);
-  if(!client||manual?.revoked||(client.auth_method!==method&&!(manual&&client.auth_method==='client_secret_post'&&method==='client_secret_basic')))throw fail('invalid_client',401);
-  if(method!=='none'&&(typeof secret!=='string'||secret.length>256||!client.secret_hash||!timingSafeEqual(Buffer.from(digest(secret),'hex'),Buffer.from(client.secret_hash,'hex'))))throw fail('invalid_client',401);
+  if(!client)reject('unknown_client');clientType=manual?'manual':'dynamic_or_legacy';expectedAuth=client.auth_method;if(manual?.revoked)reject('revoked_client');if(client.auth_method!==method&&!(manual&&client.auth_method==='client_secret_post'&&method==='client_secret_basic'))reject('auth_method_mismatch');
+  if(method!=='none'&&(typeof secret!=='string'||secret.length>256||!client.secret_hash||!timingSafeEqual(Buffer.from(digest(secret),'hex'),Buffer.from(client.secret_hash,'hex'))))reject('secret_mismatch_or_missing');
   return client.id;
  };
  const liveAccount=uid=>Boolean(db.prepare('SELECT id FROM users WHERE id=?').get(uid)&&accountActive(db,uid)&&!passwordChangeRequired(db,uid));
