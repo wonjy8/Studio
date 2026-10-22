@@ -1,0 +1,11 @@
+# School credit dashboard and requirements
+
+The account-owned School store accepts optional graduation configuration, course grade and detailed credit category. Existing records, fractional credit values, legacy equivalence labels, documents and timestamps remain intact. No preview numbers or university requirements are seeded. An unset requirement stays unset. The new /school/requirements route supports normal namespace/history/reload and uses revision-checked saves with retained error drafts.
+
+The overview omits planned-enrollment cards. Earned credits still require existing completed status, excluding F/failed/withdrawn. Inputting a grade alone never promotes a planned course to completed. S and P count as earned only for completed records, and are excluded from GPA. Numeric grades use the user-supplied 4.3 scale; failed F contributes zero points and its credits to the GPA denominator. Planned/progress/withdrawn records are excluded from GPA. Missing grades are not guessed.
+
+Equivalence groups retain max-credit deduplication. Each group's earned amount is allocated once. Tied maximum-credit courses with conflicting detailed categories are shown as unallocated, rather than guessed. Categories map explicitly to a single user-defined graduation area; no automatic major/liberal mapping is created. Area totals and overall credits remain separate criteria and do not certify graduation. Red major subdivisions use the same red, green liberal subdivisions the same green, and general electives brown. Segment gaps/names distinguish subdivisions. Detail tables remain monochrome.
+
+When multiple numerically graded records belong to an equivalence group, the app does not invent a university retake/GPA rule: the user selects one representative in requirements. Until exactly one is selected, that group is omitted from the displayed partial GPA and the overview explains it. This selection never changes earned-credit deduplication or stored grades.
+
+Tests use synthetic accounts/data only: unset requirements, grade scale and weighted S/P/F behavior, explicit mapping, duplicate/tied classification and GPA choices, fractional legacy data, private revision-safe persistence, repeated cancel/edit, conflict draft retention, reload/back, 1440/390/320px, keyboard access and same-color segments. Existing consent/privacy boundaries remain unchanged.
