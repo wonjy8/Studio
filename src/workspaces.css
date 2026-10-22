@@ -929,3 +929,12 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 .month-date-heading{justify-content:flex-start}.calendar-cell-add{margin-left:auto;flex:none;border:0;border-radius:6px;background:transparent;color:var(--ink);width:28px;height:28px;opacity:0;pointer-events:none;display:grid;place-items:center;font:inherit;font-size:20px}.month-cell:hover .calendar-cell-add,.month-cell:focus-within .calendar-cell-add{opacity:1;pointer-events:auto}.calendar-cell-add:focus-visible{outline:2px solid var(--accent);outline-offset:1px}@media(hover:none){.calendar-cell-add{opacity:1;pointer-events:auto}}
 .calendar-time-selection{position:absolute;left:2px;right:2px;background:color-mix(in srgb,var(--accent) 18%,transparent);border:1px solid var(--accent);border-radius:6px;pointer-events:none;z-index:4;padding:4px;color:var(--ink);font-size:12px;overflow:hidden}
 .calendar-event-editor .school-dialog-body>.field{gap:6px}.calendar-event-editor .field input,.calendar-event-editor .field select{background:var(--surface-2);padding:10px 12px;min-height:44px;border:0;box-shadow:none;border-radius:6px}.calendar-event-editor .field:focus-within{background:color-mix(in srgb,var(--accent) 5%,transparent)}
+
+/* A quiet continuous writing surface with one focusable empty tail. */
+@media screen{.document-paper{display:flex;flex-direction:column}.document-paper>.document-title,.document-paper>.document-blocks,.document-paper>[data-document-meta]{flex:none}}
+.document-tail{flex:1;min-height:120px;cursor:text}
+.document-tail:focus-visible{outline:none;background:color-mix(in srgb,var(--accent) 4%,transparent)}
+.document-block-controls{top:calc(var(--document-first-line-center,15px) - 15px)}
+@media print{.document-tail{display:none!important}}
+.document-tail:focus-visible::before{content:'텍스트 입력';color:var(--muted);font-size:var(--text-support)}
+.document-block:has(>.document-editable:focus-visible) .document-add{color:var(--accent);background:var(--selected)}
