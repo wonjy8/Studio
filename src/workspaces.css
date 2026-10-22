@@ -889,3 +889,24 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 @media(max-width:900px){.calendar-source-sidebar{top:112px;right:0;max-height:calc(100dvh - 280px)}}
 
 [data-workspace-calendar] [hidden],.project-calendar-settings [hidden]{display:none!important}
+
+/* Today uses one circular accent across month, week and day; selection stays separate. */
+.month-cell.is-today .calendar-date,.month-cell.is-today.is-holiday .calendar-date,.timeline-day.is-today strong{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--surface);outline:0;flex:none}
+.timeline-position>.calendar-event.is-timed-event{background:color-mix(in srgb,var(--event-fill) 88%,transparent);align-content:center;justify-content:center}
+.timeline-position>.calendar-event.is-timed-event:hover{background:color-mix(in srgb,var(--event-fill) 94%,transparent)}
+.timeline-position>.calendar-event.is-timed-event .calendar-event-name{min-height:0;overflow:hidden}
+.workspace-calendar-toolbar .calendar-period .btn:disabled{opacity:.4;cursor:not-allowed}
+[data-workspace-calendar] .calendar-body{min-width:0}
+[data-workspace-calendar] .calendar-view{container-type:inline-size}
+[data-workspace-calendar] .calendar-timeline,[data-workspace-calendar] .calendar-timeline.is-week{min-width:0;width:100%}
+@container(max-width:699px){.calendar-day-layout{grid-template-columns:minmax(0,1fr)}.calendar-day-sidebar{display:none}}
+[data-workspace-calendar] .calendar-event{align-items:center}
+[data-workspace-calendar] .timeline-position>.calendar-event{align-items:flex-start}
+[data-workspace-calendar] .calendar-event-mark:empty{display:none}
+[data-workspace-calendar] .month-calendar .calendar-event{font-size:14.5px}
+[data-workspace-calendar] .month-calendar .calendar-date{font-size:16px}
+/* Center safely, then compact short slots without pushing their first line above the clip. */
+.timeline-position{container-type:size;container-name:event-slot}
+.timeline-position>.calendar-event.is-timed-event{justify-content:safe center}
+@container event-slot (max-height:64px){.timeline-position>.calendar-event.is-timed-event{min-height:0;padding:2px 4px;flex-direction:row;align-items:center;justify-content:safe center;gap:4px}.timeline-position>.calendar-event.is-timed-event .calendar-event-name{flex:1;min-width:0;line-height:1.2;white-space:nowrap;text-overflow:ellipsis}.timeline-position>.calendar-event.is-timed-event .calendar-event-time{flex:none;line-height:1.2;white-space:nowrap}.timeline-position>.calendar-event.is-timed-event .calendar-event-mark{display:none}}
+@container event-slot (max-height:64px) and (max-width:90px){.timeline-position>.calendar-event.is-timed-event .calendar-event-time{display:none}}
