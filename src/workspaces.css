@@ -905,3 +905,8 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 [data-workspace-calendar] .calendar-event-mark:empty{display:none}
 [data-workspace-calendar] .month-calendar .calendar-event{font-size:14.5px}
 [data-workspace-calendar] .month-calendar .calendar-date{font-size:16px}
+/* Center safely, then compact short slots without pushing their first line above the clip. */
+.timeline-position{container-type:size;container-name:event-slot}
+.timeline-position>.calendar-event.is-timed-event{justify-content:safe center}
+@container event-slot (max-height:64px){.timeline-position>.calendar-event.is-timed-event{min-height:0;padding:2px 4px;flex-direction:row;align-items:center;justify-content:safe center;gap:4px}.timeline-position>.calendar-event.is-timed-event .calendar-event-name{flex:1;min-width:0;line-height:1.2;white-space:nowrap;text-overflow:ellipsis}.timeline-position>.calendar-event.is-timed-event .calendar-event-time{flex:none;line-height:1.2;white-space:nowrap}.timeline-position>.calendar-event.is-timed-event .calendar-event-mark{display:none}}
+@container event-slot (max-height:64px) and (max-width:90px){.timeline-position>.calendar-event.is-timed-event .calendar-event-time{display:none}}
