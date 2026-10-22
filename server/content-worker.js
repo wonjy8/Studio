@@ -102,7 +102,7 @@ async function mutate(uid,args,values,before,requestId){
  if(spec.blocks){
   const document=beforeDocument(spec,before,args),blocks=document.blocks;
   if(args.blockId&&!blocks.some(item=>item.id===args.blockId))throw Error('Block not found');
-  const block={...(args.blockId?blocks.find(item=>item.id===args.blockId):newBlock(values.type||'paragraph')),...values};if(block.type!=='todo')delete block.checked;if(block.type!=='image')delete block.url;if(block.type!=='reference')delete block.referenceId;
+  const block={...(args.blockId?blocks.find(item=>item.id===args.blockId):newBlock(values.type||'paragraph')),...values};if(block.type!=='todo')delete block.checked;if(block.type!=='image')delete block.url;if(block.type!=='reference')delete block.referenceId;if(block.type!=='callout')delete block.emoji;
   const next={...document,blocks:args.blockId?blocks.map(item=>item.id===args.blockId?block:item):[...blocks,block]};if(!validDocuments([next]))throw Error('Invalid block');
   if(spec.blocks==='notes'){const {revision,createdAt,updatedAt,externalId,automaticQt,...note}=before.note;return invoke(spec.service,uid,'/api/scripture/notes/'+identity(id),'PUT',{revision,note:{...note,document:next}});}
   const documents=before.documents.map(item=>item.id===id?next:item);

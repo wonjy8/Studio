@@ -1,3 +1,4 @@
+import {validEmoji as validCourseEmoji} from './emoji.js';
 import {projectIconInfo} from '../design-system/icons/catalog.js';
 import {newDocument,safeDocumentUrl} from './documents.js';
 const id=prefix=>prefix+'-'+crypto.randomUUID(),identity=v=>typeof v==='string'&&/^[A-Za-z0-9_-]{1,80}$/.test(v);
@@ -10,4 +11,4 @@ export function stampSchoolDocuments(next,current,now=new Date().toISOString()){
 export const isCourseUpload=url=>typeof url==='string'&&/^\/api\/school\/files\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(url);
 export function archiveCourseDocument(course,documentId){let entry=course.page.entries.find(e=>e.documentId===documentId);if(!entry){const doc=course.documents.find(d=>d.id===documentId);if(!doc)throw Error('문서를 찾을 수 없습니다.');entry={id:id('lecture'),kind:'note',documentId,title:doc.title,archived:true,width:100};course.page.entries.push(entry);}entry.archived=true;}
 
-export function validCourseEmoji(value){return typeof value==='string'&&(value===''||value.length<=32&&[...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(value)].length===1&&/[\p{Extended_Pictographic}\p{Regional_Indicator}\u20e3]/u.test(value));}
+export {validEmoji as validCourseEmoji} from './emoji.js';
