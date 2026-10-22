@@ -2,7 +2,8 @@
 // SQL, services, roles or handler functions. New workspace contracts reuse vetted
 // content adapters; new adapter implementations belong in reviewed server code.
 const forbidden=/(^|_)(settings|admin|administrator|accounts?|credentials?|permissions?|oauth|secrets?)(_|$)/;
-const id=value=>typeof value==='string'&&/^[a-z][a-z0-9_]{0,79}$/.test(value)&&!forbidden.test(value);
+const reserved=new Set(['manifest']);
+const id=value=>typeof value==='string'&&/^[a-z][a-z0-9_]{0,79}$/.test(value)&&!forbidden.test(value)&&!reserved.has(value);
 const extensionAdapters=new Set(['documents','references','materials','vendors']);
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 export function createContentRegistry(definitions,workspaces=[]){

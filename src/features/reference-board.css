@@ -78,3 +78,33 @@
 .reference-editor>.section-head{flex-wrap:wrap}
 .reference-editor>.section-head h2{min-width:0;overflow-wrap:anywhere}
 .reference-module audio{max-width:100%}
+/* References are pages; each tab owns an independent module layout. */
+.reference-page-open>.browse-toolbar,.reference-page-open>[data-reference-list],.reference-page-open>.selection-toolbar{display:none}
+.reference-page{max-width:1500px;margin:0 auto;padding:12px 24px 48px;min-width:0}
+.reference-page-header{display:flex;align-items:center;gap:16px;margin:0 0 20px}
+.reference-page-header h1{font-size:clamp(25px,3vw,38px);font-weight:650;flex:1;min-width:0;overflow-wrap:anywhere;margin:0}
+.reference-page-tabs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:24px}
+.reference-page-tabs button{border:0;background:transparent;color:var(--muted);padding:10px 14px;border-radius:8px;min-height:42px;cursor:pointer}
+.reference-page-tabs button[aria-current=page]{color:var(--ink);background:var(--surface-2)}
+.reference-metadata{margin-bottom:20px}.reference-metadata summary{cursor:pointer;color:var(--muted)}
+.reference-metadata[open]{display:grid;gap:12px}.reference-metadata .field{margin-top:12px}
+.reference-page .reference-board-shell,.reference-page .reference-board-canvas{background:transparent;border:0;box-shadow:none;padding:0;min-height:200px}
+.reference-page .reference-board-toolbar[hidden]{display:none}
+.reference-page .reference-attachment-list:empty{display:none}
+.reference-module-picker{position:fixed;right:16px;top:80px;bottom:24px;width:min(340px,calc(100vw - 32px));z-index:80;overflow:auto;background:var(--surface,#fff);color:var(--ink);padding:20px;border-radius:14px;box-shadow:0 8px 40px #0002}
+.reference-module-picker[hidden]{display:none}.reference-module-picker header{display:flex;justify-content:space-between;align-items:center}.reference-module-picker input{width:100%;margin:12px 0}
+[data-picker-categories]{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px}[data-picker-categories] button{border:0;background:transparent;color:inherit;padding:8px;border-radius:8px}[data-picker-categories] button[aria-pressed=true]{background:var(--surface-2)}
+[data-picker-choices]>button{display:flex;justify-content:space-between;width:100%;border:0;background:transparent;color:inherit;padding:14px 8px;text-align:left;cursor:pointer}
+.reference-module-inline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;color:var(--muted);font-size:12px}
+.reference-module-inline button,.reference-module-inline select,.reference-module-inline input{border:0;background:transparent;color:inherit;min-height:32px}.reference-module-inline input{max-width:120px}.reference-module-inline label{display:flex;align-items:center;gap:4px}
+.reference-module-items{display:grid;grid-template-columns:repeat(var(--gallery-columns,1),minmax(0,1fr));align-items:start}
+.reference-module-items.module-kind-heading,.reference-module-items.module-kind-divider{display:block;min-height:0}.module-kind-divider hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+.reference-page .reference-board-card{min-height:0;border:0;box-shadow:none;background:transparent}.reference-page .reference-board-card-body{height:auto;min-height:0;padding:0}
+.reference-page .reference-board-image,.reference-page .reference-board-video{width:100%;height:auto;max-height:none;object-fit:contain}
+.reference-page .reference-module-head input{font-size:18px;font-weight:600}.reference-page [data-board-status]{font-size:12px;margin-top:24px}
+@media(max-width:900px){.reference-page{padding:8px 0 32px}.reference-page-header{gap:8px}.reference-page-header .btn{white-space:nowrap}.reference-module-items{grid-template-columns:repeat(min(var(--gallery-columns,1),2),minmax(0,1fr))}.reference-module-picker{top:64px;bottom:16px}.reference-page-tabs button{min-height:44px}.reference-page .reference-module-tools{flex-wrap:wrap}}
+.reference-module:is([data-module-kind=heading],[data-module-kind=divider])>.reference-module-inline{display:none}
+.reference-page-open>.collection-selection{display:none}
+
+.reference-page .reference-board-shell:not(:has([data-board-select]:checked))>[data-board-selection]{display:none}
+.reference-attachment-settings{color:var(--muted);font-size:12px}.reference-attachment-settings summary{cursor:pointer}

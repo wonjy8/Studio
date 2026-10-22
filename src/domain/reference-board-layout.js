@@ -24,7 +24,7 @@ export function validateBoardLayout(layout,keys){
  const ids=new Set(),used=new Set(),known=new Set(keys);
  const modules=layout.modules.map(m=>{
   if(!m||typeof m.id!=='string'||!/^[-\w]{1,100}$/.test(m.id)||ids.has(m.id)||typeof m.title!=='string'||m.title.length>200||!Number.isFinite(m.width)||m.width<20||m.width>100||!Array.isArray(m.items))throw Error('Invalid module');
-  ids.add(m.id);for(const key of m.items){if(!known.has(key)||used.has(key))throw Error('Duplicate or unknown module item');used.add(key);}return {id:m.id,title:m.title,width:m.width,items:[...m.items]};
+  ids.add(m.id);for(const key of m.items){if(!known.has(key)||used.has(key))throw Error('Duplicate or unknown module item');used.add(key);}if(m.kind!==undefined&&!['photo','video','file','link','text','heading','divider'].includes(m.kind)||m.grid!==undefined&&!['auto','1','2','3','4'].includes(m.grid)||m.tags!==undefined&&(typeof m.tags!=='string'||m.tags.length>200))throw Error('Invalid module display');return {id:m.id,title:m.title,width:m.width,items:[...m.items],...(m.kind?{kind:m.kind}:{}),...(m.grid?{grid:m.grid}:{}),...(m.tags!==undefined?{tags:m.tags}:{})};
  });
  const placed=new Set(),containers=new Set();const take=id=>{if(!ids.has(id)||placed.has(id))throw Error('Duplicate or unknown module');placed.add(id);return id;};
  const flow=layout.flow.map(node=>{
