@@ -1,0 +1,9 @@
+# Reference pages
+
+Opening or creating a reference uses an account-namespaced dedicated page route. Page tabs are independent module layouts; a reference without page metadata keeps its existing full layout in the first tab. Existing flat API consumers retain the combined layout, and flat writes reconcile module ownership into saved tabs. Tab IDs, names and selected tab persist with the board revision; explicit page URLs override the saved default.
+
+The right module picker supports text, photo, video, file, link, heading, divider and two/three/four columns. Galleries retain image aspect ratios and expose layout/count/tag controls. Existing module/item drag, keyboard movement, width controls and extraction remain available. A removed module keeps its items in recoverable stored materials; uploaded file originals are not deleted. Tabs can be named and renamed. Reference metadata and attachment administration are collapsible; attachment changes use the existing explicit reference save before board persistence.
+
+All data remains owned by the signed-in account. Board writes validate the complete page set and flat compatibility projection together, reject duplicate module/item IDs across pages and retain revision conflict checks. No new remote media policy, upload permission or external security settings are introduced.
+
+Verification uses temporary accounts, generated image/video fixtures and mocked legacy boards. It covers create/open/back/reload/history, named/blank tabs and cancellation, selected-tab persistence/deep links, module additions, actual local image/video loading, old-layout migration, drag between modules, column creation/extraction, width/aspect preservation, keyboard movement, desktop/mobile widths and other-account denial. Reference screenshots supplied by the user were available as descriptions/OCR only; exact pixel matching remains unverified.
