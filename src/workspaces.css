@@ -692,3 +692,14 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 @media(max-width:520px){.month-cell{min-height:calc(130px * var(--calendar-density,1))}}
 .timeline-column.is-weekend{background-color:color-mix(in srgb,var(--surface-2) 65%,var(--surface))}
 .calendar-timeline-scroll{scrollbar-gutter:stable}
+/* School uses the shared modal surface; each section owns its content gutter. */
+.school-dialog{padding:0;box-sizing:border-box;overflow:auto}
+.school-dialog form{display:flex;flex-direction:column;gap:0;min-width:0}
+.school-dialog-header{padding:24px 24px 16px}
+.school-dialog-body{display:grid;gap:16px;padding:0 24px;min-width:0}
+.school-dialog-footer{padding:20px 24px 24px;margin:0}
+.school-dialog [data-school-form-error]{padding:0 24px;margin:12px 0 0;overflow-wrap:anywhere}
+.school-dialog [data-school-form-error]:empty{margin:0}
+.school-dialog .field{min-width:0;overflow-wrap:anywhere}
+.school-dialog input,.school-dialog select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+@media(max-width:900px){.school-dialog-header{padding:20px 20px 16px}.school-dialog-body{padding:0 20px}.school-dialog-footer{padding:20px}.school-dialog [data-school-form-error]{padding-inline:20px}}
