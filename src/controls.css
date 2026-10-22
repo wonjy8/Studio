@@ -51,3 +51,12 @@ button.theme-mode-toggle[aria-checked=true]{background:var(--selected)}
 /* Low specificity keeps deliberate canvas/drag gesture contracts intact. */
 :where(html[data-mobile-page-zoom="locked"],html[data-mobile-page-zoom="locked"] body,html[data-mobile-page-zoom="locked"] body *){touch-action:pan-x pan-y}
 :where(html[data-mobile-page-zoom="locked"]) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="button"]):not([type="submit"]):not(.document-title),textarea,select){font-size:max(16px,1em)}
+
+/* Quiet input edges retain their geometry; keyboard focus uses a bottom cue. */
+:root{--input-focus-cue:var(--accent);--input-invalid-cue:var(--bad)}
+:is(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=button],[type=submit],[type=reset],[type=hidden]),textarea,select){border-color:transparent!important;box-shadow:none!important}
+:is(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=button],[type=submit],[type=reset],[type=hidden]),textarea,select,[contenteditable=true]):focus-visible{outline:none!important;box-shadow:inset 0 -3px 0 var(--input-focus-cue)!important}
+:is(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=button],[type=submit],[type=reset],[type=hidden]),textarea,select):is([aria-invalid=true],:user-invalid){box-shadow:inset 0 -2px 0 var(--input-invalid-cue)!important}
+:is(input,textarea,select):disabled{opacity:.55;cursor:not-allowed}:is(input,textarea)[readonly]{color:var(--muted);background:var(--surface-2)}
+@media(forced-colors:active){html :is(input,textarea,select,[contenteditable=true]):focus{outline:2px solid Highlight!important;outline-offset:2px}}
+:is(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=button],[type=submit],[type=reset],[type=hidden]),textarea,select):is([aria-invalid=true],:user-invalid):focus-visible{box-shadow:inset 0 -2px 0 var(--input-invalid-cue),inset 0 -5px 0 var(--input-focus-cue)!important}
