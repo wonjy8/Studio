@@ -5,6 +5,7 @@ import {commandFields} from '../src/domain/commands.js';
 const spec=(service,collection,key,fields,options={})=>({service,collection,key,fields,...options});
 export const contentResources=Object.freeze({
  ...schoolResources,
+ home_events:spec('handleWorkspaceHomeEvents','/api/workspace-events/home','events',['title','location','allDay','start','end','timeZone'],{workspaceId:'home',workspaceName:'홈',workspaceConsentOnly:true}),
  shoots:spec('projects',null,'items',commandFields.shoot,{projectCollection:'contents',commandType:'shoot'}),
  tasks:spec('projects',null,'items',commandFields.task,{projectCollection:'tasks',commandType:'task'}),
  project_members:spec('projects',null,'items',commandFields.member,{projectCollection:'members',commandType:'member'}),

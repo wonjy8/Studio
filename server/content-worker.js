@@ -1,3 +1,4 @@
+import {workspaceHomeEventRoutes} from './workspace-home-events.js';
 import {schoolRoutes} from './school.js';
 import {schoolSelected,schoolMutation} from './school-content.js';
 import {configureSiteRoleManagement} from './site-roles.js';
@@ -39,7 +40,7 @@ const db={prepare:sql=>connection.prepare(sql),exec:sql=>{
 }};
 configureSiteRoleManagement(db,workerData.siteRoleManagementEnabled);
 const options={initialize:false};
-const handlers={handleSchool:schoolRoutes(db),handleScripture:scriptureRoutes(db,{...options,githubToken:''}),handleDocumentLibrary:documentLibraryRoutes(db,options),handleReferenceLibrary:referenceLibraryRoutes(db,options),handleReferenceBoards:referenceBoardRoutes(db,options),handleRentalVendors:rentalVendorRoutes(db,options),handleContacts:contactRoutes(db,{...options,orgCanRead,equipmentProjectScope}),handleEquipmentCatalog:equipmentCatalogRoutes(db,options),handleInventory:inventoryRoutes(db,options),handleMaterials:materialLibraryRoutes(db,{...options,preview:false})};
+const handlers={handleWorkspaceHomeEvents:workspaceHomeEventRoutes(db,{contentWorker:true}),handleSchool:schoolRoutes(db),handleScripture:scriptureRoutes(db,{...options,githubToken:''}),handleDocumentLibrary:documentLibraryRoutes(db,options),handleReferenceLibrary:referenceLibraryRoutes(db,options),handleReferenceBoards:referenceBoardRoutes(db,options),handleRentalVendors:rentalVendorRoutes(db,options),handleContacts:contactRoutes(db,{...options,orgCanRead,equipmentProjectScope}),handleEquipmentCatalog:equipmentCatalogRoutes(db,options),handleInventory:inventoryRoutes(db,options),handleMaterials:materialLibraryRoutes(db,{...options,preview:false})};
 const canonicalResource=args=>resourceSpec(args.resource).canonicalResource||args.resource;
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const identity=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(value))throw Error('Read a valid content ID first');return value;};
@@ -95,6 +96,7 @@ async function mutate(uid,args,values,before,requestId){
  if(!values||typeof values!=='object'||Array.isArray(values)||Object.keys(values).some(key=>!spec.fields.includes(key)))throw Error('Unsupported content fields');
  if(spec.school){const next=structuredClone(before.school),result=schoolMutation(db,next,args,values,uid),saved=await invoke('handleSchool',uid,'/api/school','PUT',{school:next,revision:before.revision});return {...result,revision:saved.revision};}
  const id=args.id,old=id?selected(spec,before,args):null;
+ if(canonicalResource(args)==='home_events'){const payload={...cleanFields(spec,old||{}),...values};return invoke(spec.service,uid,spec.collection+(id?'/'+identity(id):''),id?'PATCH':'POST',id?{revision:old.revision,values:payload}:{id:randomUUID(),values:payload});}
  if(spec.commandType){const current=readWorkspace(db,uid),change=applyCommands(current.state,args.projectId,[{operation:(id?'update_':'add_')+spec.commandType,...(id?{entityId:id}:{}),values}]);if(!validateWorkspace(change.state))throw Error('Invalid project content');const saved=writeWorkspace(db,uid,change.state,current.revision),project=[change.state,...change.state.projects||[]].find(p=>p.project.id===args.projectId),item=id?project[spec.projectCollection].find(item=>item.id===id):project[spec.projectCollection].find(item=>!before.items.some(prior=>prior.id===item.id));return {revision:saved.revision,item};}
 
  if(spec.blocks){
