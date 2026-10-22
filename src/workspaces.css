@@ -958,3 +958,9 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 @media(max-width:900px){.emoji-tabs [role=tab]{min-height:44px;width:36px}.emoji-popover .icon-choice>span{min-height:36px}}
 @media print{.document-block.type-callout>[data-course-emoji-picker]>.project-icon-trigger{display:block!important}.document-block.type-callout>[data-course-emoji-picker]>[popover],.document-block.type-callout>[data-course-emoji-picker].is-empty{display:none!important}}
 @media print{.document-block.type-callout>[data-course-emoji-picker].is-empty>.project-icon-trigger{display:none!important}}
+
+.document-paper{--document-h4-size:11pt}
+.document-paper .type-h4 .document-editable{font-size:var(--document-h4-size);font-weight:500;line-height:1.5;padding:4px 0}
+.document-paper .type-quote .document-editable{border-left-color:color-mix(in srgb,var(--ink) 55%,transparent)}
+@media screen{@container(max-width:640px){.document-paper{--document-h4-size:17px}}}
+@media print{.document-paper .type-h4{break-after:avoid}}
