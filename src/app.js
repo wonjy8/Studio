@@ -143,7 +143,7 @@ async function reloadAfterMutation(){
   await pending;
   if(!calendarEditorCanLeave()||!schoolCanLeave()||documentsDraftPending()||failed||saving||request!==reloadGeneration||editingDialog()||unsavedProjectSettings()||inventoryDraftPending()||adminProjectsDraftPending()||siteRoleManagementDraftPending()||accountDeletionDraftPending()||selfDeletionDraftPending())return;
   const generation=saveGeneration;
-  const accept=()=>!documentsDraftPending()&&!failed&&!saving&&generation===saveGeneration&&request===reloadGeneration&&!editingDialog()&&!unsavedProjectSettings()&&!inventoryDraftPending()&&!adminProjectsDraftPending()&&!siteRoleManagementDraftPending()&&!accountDeletionDraftPending()&&!selfDeletionDraftPending();
+  const accept=()=>calendarEditorCanLeave()&&schoolCanLeave()&&!documentsDraftPending()&&!failed&&!saving&&generation===saveGeneration&&request===reloadGeneration&&!editingDialog()&&!unsavedProjectSettings()&&!inventoryDraftPending()&&!adminProjectsDraftPending()&&!siteRoleManagementDraftPending()&&!accountDeletionDraftPending()&&!selfDeletionDraftPending();
   const fresh=await loadWorkspace({accept});
   if(!fresh||!accept())return;
   state=adoptProjectWorkspace(fresh,state.project.id);rememberProjectNames();render();
