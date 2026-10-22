@@ -1,4 +1,5 @@
 import './typed-arrows.js';
+import './desktop-page-zoom.js';
 import {schoolWorkspacePage,bindSchoolWorkspace,schoolCanLeave,bindSchoolTaskSummary} from './features/school-workspace.js';
 import {bindWorkspaceCalendar} from './features/workspace-calendar.js';
 import {selectionToolbar,selectionControl} from './features/collection-selection.js';
@@ -251,7 +252,7 @@ function bindCalendar(){
  document.querySelectorAll('[data-calendar-nav]').forEach(button=>button.onclick=()=>{calendarDate=shiftDate(calendarDate,calendarMode,Number(button.dataset.calendarNav));update();});
  document.querySelector('[data-calendar-today]')?.addEventListener('click',()=>{calendarDate=dateKey();update();});
  document.querySelectorAll('[data-calendar-day]').forEach(button=>button.onclick=()=>{calendarDate=button.dataset.calendarDay;calendarMode='day';update();});
- const scroll=document.querySelector('[data-calendar-scroll]');if(scroll){const visible=[...document.querySelectorAll('.timeline-position')].map(e=>parseFloat(e.style.top));scroll.scrollTop=Math.max(0,Math.min(8*48,...visible)-48);}
+ const scroll=document.querySelector('[data-calendar-scroll]');if(scroll){const visible=[...document.querySelectorAll('.timeline-position')].map(e=>Number(e.dataset.calendarStart||0)*.8*(Number(getComputedStyle(e).getPropertyValue('--calendar-density'))||1));scroll.scrollTop=Math.max(0,Math.min(8*48,...visible)-48);}
 }
 function bindInventoryCollections(){bindInventoryCollectionPicker({onSelect:id=>{if(!inventoryCanLeave())return false;inventoryContainerId=id;setInventoryContainer(id);recordHistory();sidebarOpen=false;render();const picker=document.querySelector('[data-inventory-picker-toggle]');(picker?.checkVisibility()?picker:document.querySelector('.sidebar-toggle'))?.focus();return true;},onAdd:()=>{const opened=openInventoryOrganizationCreation();if(opened){setSidebarOpen(false);document.querySelector('[data-inventory-organization] [name=name]')?.focus();}return opened;}});}
 function openHomeProject(projectId,nextView,date){state=switchProject(state,projectId);view=nextView;lastProjectView=nextView;if(nextView==='schedule'){scheduleView='calendar';calendarMode='month';calendarDate=validDate(date)?date:dateKey();calendarMonth=calendarDate.slice(0,7);}documentId=null;modal=null;sidebarOpen=false;recordHistory();render()}
