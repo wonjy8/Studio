@@ -784,3 +784,4 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 
 .calendar-source-row [data-source-menu]{color:var(--ink)}
 .timeline-position>.calendar-event.is-timed-event .calendar-event-name::before{color:inherit}
+.school-requirement-total>div{display:grid;gap:8px}.school-requirement-total>div>strong{font-size:var(--text-page);font-weight:500}.school-requirement-groups{display:grid;gap:24px;margin:24px 0}.school-requirement-groups>section{min-width:0}.school-requirement-groups .section-head h3{margin:0}.school-requirement-groups .school-requirement-row{padding:12px 0}.school-requirement-advanced{margin:20px 0}.school-requirement-advanced>summary{min-height:44px;padding:10px 0;cursor:pointer;font-size:var(--text-support);color:var(--muted)}.school-requirement-advanced[open]>summary{color:var(--ink)}
