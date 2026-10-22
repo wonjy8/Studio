@@ -1,0 +1,13 @@
+/* Transparent thumbs retain the same native gutter before/during/after scrolling. */
+@media screen {
+ :where(html,body,body *){scrollbar-width:thin;scrollbar-color:transparent transparent}
+ :where(html,body,body *)::-webkit-scrollbar{width:8px;height:8px}
+ :where(html,body,body *)::-webkit-scrollbar-track{background:transparent}
+ :where(html,body,body *)::-webkit-scrollbar-thumb{background:transparent;border-radius:8px}
+ :where(html,body,body *)[data-scroll-active]{scrollbar-color:color-mix(in srgb,var(--ink,#52525b) 38%,transparent) transparent}
+ :where(html,body,body *)[data-scroll-active]::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink,#52525b) 38%,transparent)}
+}
+@media(forced-colors:active){
+ :where(html,body,body *){scrollbar-color:auto}
+ :where(html,body,body *)::-webkit-scrollbar-thumb{background:ButtonText}
+}
