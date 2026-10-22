@@ -49,7 +49,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   configureSiteRoleManagement(db,enableSiteRoleManagement);
   try{if(enableSiteRoleManagement)await prepareSiteRoleSchema(db,dir);}catch(error){db.close();throw error;}
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
-  const handleSchool=schoolRoutes(db),handleWorkspaceHomeEvents=workspaceHomeEventRoutes(db);
+  const handleSchool=schoolRoutes(db);let handleWorkspaceHomeEvents;
   const handleScripture=scriptureRoutes(db,scripture);
   const handleDocumentLibrary=documentLibraryRoutes(db);
   const handleEquipmentCatalog=equipmentCatalogRoutes(db);
@@ -58,6 +58,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   syncRepresentatives(db);
   const googleAttempts=googleOAuthAttempts();let googleSheets;try{googleSheets=await googleSheetsService(db,{dir,origin,...google,oauthAttempts:googleAttempts});}catch(error){db.close();throw error;}
   const calendar=googleCalendarService(db,{origin,...google,...googleCalendar,codec:googleSheets.credentialCodec,oauthAttempts:googleAttempts});
+  handleWorkspaceHomeEvents=workspaceHomeEventRoutes(db,{prepareTarget:calendar.prepareHomeTarget});
   const tasksGoogle=googleTasksService(db,{origin,...google,...googleTasks,codec:googleSheets.credentialCodec,oauthAttempts:googleAttempts});
   const handleEquipmentSharing=equipmentSharingRoutes(db);
   const handleAccounts=accountRoutes(db),handleAccountDeletion=accountDeletionRoutes(db);
