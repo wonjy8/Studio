@@ -784,6 +784,14 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 
 .calendar-source-row [data-source-menu]{color:var(--ink)}
 .timeline-position>.calendar-event.is-timed-event .calendar-event-name::before{color:inherit}
+/* Wider schedule surface; other workspaces keep their standard reading width. */
+.home-workspace[data-home-schedule]{max-width:none}
+@media(min-width:901px){.production-app:has([data-home-schedule]) .content{padding-inline:16px}}
+.production-app .workspace-calendar-toolbar .calendar-period .btn[aria-pressed=true]{background:#fff;color:#18181b;box-shadow:0 1px 3px #0002}
+.month-calendar{grid-template-rows:28px repeat(var(--calendar-weeks,6),calc(154px * var(--calendar-density,1)))}
+.month-calendar .month-cell{min-height:0;overflow:hidden}.month-calendar .calendar-cell-events{display:flex;flex-direction:column;gap:4px;min-height:0;max-height:none;overflow:auto;flex:1}.month-calendar .calendar-cell-events>.calendar-event{flex-shrink:0}
+.month-date-heading{display:flex;align-items:center;gap:6px;min-width:0;flex-shrink:0}.month-date-heading>.calendar-date{flex-shrink:0}.calendar-holiday-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;color:var(--bad);font-size:var(--text-meta)}.month-cell.is-today.is-holiday .calendar-date{background:var(--surface);color:var(--bad);outline:2px solid var(--accent);outline-offset:1px}
+.calendar-event.is-all-day,.calendar-event.is-task.is-all-day{border-radius:6px}
 .school-requirement-total>div{display:grid;gap:8px}.school-requirement-total>div>strong{font-size:var(--text-page);font-weight:500}.school-requirement-groups{display:grid;gap:24px;margin:24px 0}.school-requirement-groups>section{min-width:0}.school-requirement-groups .section-head h3{margin:0}.school-requirement-groups .school-requirement-row{padding:12px 0}.school-requirement-advanced{margin:20px 0}.school-requirement-advanced>summary{min-height:44px;padding:10px 0;cursor:pointer;font-size:var(--text-support);color:var(--muted)}.school-requirement-advanced[open]>summary{color:var(--ink)}
 
 /* Course landing: text rows and a distinct syllabus entry. */
