@@ -880,3 +880,12 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
  .production-app .workspace-rail .rail-button{flex:0 0 40px;width:40px;height:40px;padding:0}
  .production-app .workspace-rail .rail-button .icon{width:24px;height:24px}
 }
+
+/* Keep the calendar toolbar anchored while the source panel uses the grid area. */
+[data-workspace-calendar]{position:relative;min-width:0}
+.calendar-source-sidebar{position:absolute;top:112px;right:0;bottom:auto;max-height:calc(100dvh - 224px)}
+.calendar-default-target{margin-top:24px;padding-top:12px}.calendar-default-target select{width:100%;min-width:0}
+@media(min-width:901px){.home-collection:has([data-workspace-calendar].is-calendar-sidebar-open){padding-right:0}[data-workspace-calendar].is-calendar-sidebar-open>[data-workspace-grid]{padding-right:296px}}
+@media(max-width:900px){.calendar-source-sidebar{top:112px;right:0;max-height:calc(100dvh - 280px)}}
+
+[data-workspace-calendar] [hidden],.project-calendar-settings [hidden]{display:none!important}
