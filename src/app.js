@@ -1,3 +1,4 @@
+import './activity-scrollbars.js';
 import {bindCalendarTargetSelect} from './features/calendar-target-select.js';
 import {sharedCalendarButton} from './features/shared-project-calendar.js';
 import {bindWorkspaceSettings,workspaceSettingsCanLeave} from './features/workspace-calendar-settings.js';
