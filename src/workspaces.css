@@ -911,6 +911,21 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 @container event-slot (max-height:64px){.timeline-position>.calendar-event.is-timed-event{min-height:0;padding:2px 4px;flex-direction:row;align-items:center;justify-content:safe center;gap:4px}.timeline-position>.calendar-event.is-timed-event .calendar-event-name{flex:1;min-width:0;line-height:1.2;white-space:nowrap;text-overflow:ellipsis}.timeline-position>.calendar-event.is-timed-event .calendar-event-time{flex:none;line-height:1.2;white-space:nowrap}.timeline-position>.calendar-event.is-timed-event .calendar-event-mark{display:none}}
 @container event-slot (max-height:64px) and (max-width:90px){.timeline-position>.calendar-event.is-timed-event .calendar-event-time{display:none}}
 
+/* Balance compact calendar labels and prominent credit values by role. */
+[data-workspace-calendar] .month-calendar .calendar-event{font-size:var(--text-body)}
+[data-workspace-calendar] .month-calendar .calendar-date{font-size:var(--text-title)}
+.school-graduation-table td{font-size:.875rem}
+.school-requirement-row [data-school-credit-input]{font-size:.875rem}
+@media(max-width:900px){.school-requirement-row [data-school-credit-input]{font-size:1rem}}
+@media(min-width:901px){
+ :root{--rail:54px}
+ .production-app .workspace-rail{gap:14px}
+ .production-app .workspace-rail .rail-button{flex-basis:38px;width:38px;height:38px}
+ .production-app .workspace-rail .rail-button .icon{width:22px;height:22px}
+ .production-app .project-sidebar .project-item{min-height:36px;padding-block:5px}
+ .school-sidebar-list summary>.school-semester-name{font-size:var(--text-title)}
+ .school-sidebar-list details>summary{min-height:38px;padding-block:7px}
+}
 .month-date-heading{justify-content:flex-start}.calendar-cell-add{margin-left:auto;flex:none;border:0;border-radius:6px;background:transparent;color:var(--ink);width:28px;height:28px;opacity:0;pointer-events:none;display:grid;place-items:center;font:inherit;font-size:20px}.month-cell:hover .calendar-cell-add,.month-cell:focus-within .calendar-cell-add{opacity:1;pointer-events:auto}.calendar-cell-add:focus-visible{outline:2px solid var(--accent);outline-offset:1px}@media(hover:none){.calendar-cell-add{opacity:1;pointer-events:auto}}
 .calendar-time-selection{position:absolute;left:2px;right:2px;background:color-mix(in srgb,var(--accent) 18%,transparent);border:1px solid var(--accent);border-radius:6px;pointer-events:none;z-index:4;padding:4px;color:var(--ink);font-size:12px;overflow:hidden}
 .calendar-event-editor .school-dialog-body>.field{gap:6px}.calendar-event-editor .field input,.calendar-event-editor .field select{background:var(--surface-2);padding:10px 12px;min-height:44px;border:0;box-shadow:none;border-radius:6px}.calendar-event-editor .field:focus-within{background:color-mix(in srgb,var(--accent) 5%,transparent)}
