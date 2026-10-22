@@ -2,6 +2,7 @@ import {stampSchoolDocuments} from '../src/domain/school-course-page.js';
 import {emptySchool,validSchool} from '../src/domain/school.js';
 // A separate account-owned store never enters shared project snapshots or legacy APIs.
 export function schoolRoutes(db){
+ db.exec('CREATE TABLE IF NOT EXISTS school_files(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,name TEXT NOT NULL,type TEXT NOT NULL,bytes BLOB NOT NULL)');
  db.exec('CREATE TABLE IF NOT EXISTS school_workspaces(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,body TEXT NOT NULL,revision INTEGER NOT NULL)');
  return async({path,req,session,json,readJson})=>{if(path!=='/api/school')return false;if(!session){json(401,{error:'Login required'});return true;}const uid=session.user_id,read=()=>{const row=db.prepare('SELECT body,revision FROM school_workspaces WHERE user_id=?').get(uid);return {school:row?JSON.parse(row.body):emptySchool(),revision:row?.revision||0};};
  if(req.method==='GET'){json(200,read());return true;}

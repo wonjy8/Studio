@@ -179,18 +179,21 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           if(!validateWorkspace(data.state))return json(400,{error:'Invalid workspace'});
           try{const previous=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(uid),saved=writeWorkspace(db,uid,linkedWorkspace(db,uid,data.state),data.revision);registerNewProjectDocuments(db,uid,saved.state,previous?JSON.parse(previous.body):null);calendar.kick(uid);tasksGoogle.kick(uid);return json(200,saved);}catch(e){return json(e.status||500,{error:e.message});}
         }
-        if(path==='/api/files'&&req.method==='POST') {
+        if((path==='/api/files'||path==='/api/school/files')&&req.method==='POST') {
+          const schoolPrivate=path==='/api/school/files';
           const type=req.headers['content-type'];
           const supported=['application/pdf','image/png','image/jpeg','image/webp','video/mp4','video/webm','video/quicktime','text/plain','text/csv','application/json','application/zip','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.openxmlformats-officedocument.presentationml.presentation','audio/mpeg','audio/wav','audio/ogg'];if(!supported.includes(type)) return json(415,{error:'지원하지 않는 파일 형식입니다.'});
           const bytes=await body(50*1024*1024);
           const signature=type==='application/pdf'?bytes.subarray(0,5).toString()==='%PDF-':type==='image/png'?bytes.subarray(0,8).toString('hex')==='89504e470d0a1a0a':type==='image/jpeg'?bytes.subarray(0,3).toString('hex')==='ffd8ff':type==='video/mp4'||type==='video/quicktime'?bytes.subarray(4,8).toString()==='ftyp':type==='video/webm'?bytes.subarray(0,4).toString('hex')==='1a45dfa3':type==='image/webp'?bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WEBP':['application/zip','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.openxmlformats-officedocument.presentationml.presentation'].includes(type)?bytes.subarray(0,4).toString('hex')==='504b0304':type==='audio/wav'?bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WAVE':type==='audio/ogg'?bytes.subarray(0,4).toString()==='OggS':type==='audio/mpeg'?bytes.subarray(0,3).toString()==='ID3'||(bytes[0]===0xff&&(bytes[1]&0xe0)===0xe0):(()=>{try{new TextDecoder('utf-8',{fatal:true}).decode(bytes);return !bytes.includes(0);}catch{return false;}})();
           if(!signature) return json(400,{error:'Invalid file'});
-          const usage=db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM files WHERE user_id=?').get(uid).size;
+          const usage=db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM files WHERE user_id=?').get(uid).size+db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM school_files WHERE user_id=?').get(uid).size;
           if(usage+bytes.length>250*1024*1024) return json(413,{error:'Storage quota reached'});
           const id=randomUUID(), name=decodeURIComponent(req.headers['x-file-name']||'file').slice(0,200);
-          db.exec('BEGIN IMMEDIATE');try{db.prepare('INSERT INTO files VALUES(?,?,?,?,?)').run(id,uid,name,type,bytes);registerMaterialFile(db,uid,{id,name,type});indexNewMaterialUpload(db,uid,{id,name,type,bytes,colors:req.headers['x-material-colors']});db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}
-          return json(201,{id,url:`/api/files/${id}`});
+          db.exec('BEGIN IMMEDIATE');try{if(schoolPrivate)db.prepare('INSERT INTO school_files VALUES(?,?,?,?,?)').run(id,uid,name,type,bytes);else{db.prepare('INSERT INTO files VALUES(?,?,?,?,?)').run(id,uid,name,type,bytes);registerMaterialFile(db,uid,{id,name,type});indexNewMaterialUpload(db,uid,{id,name,type,bytes,colors:req.headers['x-material-colors']});}db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}
+          return json(201,{id,url:`/api/${schoolPrivate?'school/':''}files/${id}`});
         }
+        const schoolFile=path.match(/^\/api\/school\/files\/([a-f0-9-]{36})$/);
+        if(schoolFile&&req.method==='GET'){const file=db.prepare('SELECT * FROM school_files WHERE id=? AND user_id=?').get(schoolFile[1],uid);res.setHeader('Cache-Control','private, no-store');if(!file)return json(404,{error:'Not found'});res.setHeader('Content-Type',file.type);res.setHeader('Content-Disposition',`inline; filename*=UTF-8''${encodeURIComponent(file.name).replace(/'/g,'%27')}`);res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");return res.end(file.bytes);}
         const match=path.match(/^\/api\/files\/([a-f0-9-]{36})$/);
         if(match&&req.method==='GET') {
           let file=db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(match[1],uid);
