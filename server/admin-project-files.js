@@ -1,3 +1,4 @@
+import {previewUsage} from './file-previews.js';
 // Managed attachments retain the project owner's file custody. Authority is
 // checked against an exact owner/project pair and actual selected-project refs;
 // administrators never receive another account's unrestricted file endpoint.
@@ -30,7 +31,7 @@ export function adminProjectFileRoutes(db){return async({path,url,req,res,sessio
    }else{
     if(data.revision!==current.revision)fail(409,'Workspace changed. Reload before editing.');const item=entity(current.project,data.target);
     if(req.method==='POST'){
-     const usage=db.prepare('SELECT COALESCE(SUM(length(bytes)),0) size FROM files WHERE user_id=?').get(owner).size;if(usage+bytes.length>quota)fail(413,'Project owner storage quota reached');
+     const usage=db.prepare('SELECT COALESCE(SUM(length(bytes)),0) size FROM files WHERE user_id=?').get(owner).size+previewUsage(db,owner);if(usage+bytes.length>quota)fail(413,'Project owner storage quota reached');
      const id=randomUUID();db.prepare('INSERT INTO files(id,user_id,name,type,bytes) VALUES(?,?,?,?,?)').run(id,owner,data.file.name.trim(),data.file.type,bytes);
      if(data.target.kind==='reference')item.images.push('/api/files/'+id);else {item.scriptFile=id;item.script=true;}
      response={file:{id,name:data.file.name.trim(),type:data.file.type,size:bytes.length,url:fileURL(owner,pid,id)},target:data.target};

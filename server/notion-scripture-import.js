@@ -22,9 +22,9 @@ const cleanTitle=value=>String(value).replace(/\s*\([^)]*\.md\)\s*$/i,'').replac
 const get=(properties,labels)=>Object.entries(properties).find(([key])=>labels.includes(key.toLowerCase().replace(/\s/g,'')))?.[1]||'';
 function dateValue(value){const m=String(value).match(/(\d{4})\s*[년./-]\s*(\d{1,2})\s*[월./-]\s*(\d{1,2})/);const date=m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:'';return validDate(date)?date:'';}
 export function markdownBlocks(text){const blocks=[];let fenced=false,code=[];for(const line of text.split(/\r?\n/)){if(/^```/.test(line)){if(fenced){blocks.push(newBlock('code',code.join('\n')));code=[];}fenced=!fenced;continue;}if(fenced){code.push(line);continue;}if(!line.trim())continue;const heading=line.match(/^(#{1,6})\s+(.*)$/),todo=line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.*)$/),bullet=line.match(/^(\s*)[-*]\s+(.*)$/),number=line.match(/^(\s*)\d+[.)]\s+(.*)$/);let block;if(heading)block=newBlock('h'+Math.min(3,heading[1].length),heading[2]);else if(todo)block={...newBlock('todo',todo[2]),checked:todo[1].toLowerCase()==='x'};else if(bullet||number){const m=bullet||number;block={...newBlock(bullet?'bullet':'number',m[2]),indent:Math.min(3,Math.floor(m[1].length/2))};}else if(/^>/.test(line))block=newBlock('quote',line.replace(/^>\s?/,''));else if(/^[-*_]{3,}$/.test(line.trim()))block=newBlock('divider');else block=newBlock('paragraph',line);blocks.push(block);}if(fenced)blocks.push(newBlock('code',code.join('\n')));return blocks.length?blocks:[newBlock()];}
-export function notionScriptureNotes(files){
+export function notionScriptureNotes(files,parseCsv=parseNotionCsv){
  const pages=[...files].filter(([name])=>/\.md$/i.test(name)).map(([name,text])=>{const title=text.match(/^#\s+(.+)$/m)?.[1]||name.split('/').pop().replace(/\s+[a-f0-9-]{32,36}\.md$/i,'').replace(/\.md$/i,'');return {name,text,title,id:pageId(name)};});
- const csv=[...files].filter(([name])=>/\.csv$/i.test(name)&&!/_all\.csv$/i.test(name));const rows=csv.flatMap(([,text])=>parseNotionCsv(text));const items=[],seen=new Set(),used=new Set();
+ const csv=[...files].filter(([name])=>/\.csv$/i.test(name)&&!/_all\.csv$/i.test(name));const rows=csv.flatMap(([,text])=>parseCsv(text));const items=[],seen=new Set(),used=new Set();
  function add(title,properties,page){const kind=/qt|큐티/i.test(get(properties,['분류','종류','유형','type','태그'])+' '+title)?'qt':'sermon',id=page?.id||pageId(Object.values(properties).join(' ')),key=id?'notion:'+id:'notion:'+createHash('sha256').update(JSON.stringify([title,properties,page?.name||''])).digest('hex');if(seen.has(key))return;seen.add(key);if(page)used.add(page.name);const document=newDocument(cleanTitle(title)||'제목 없음');document.blocks=markdownBlocks(page?.text.replace(/^#\s+.+\r?\n/,'')||Object.entries(properties).map(([key,value])=>key+': '+value).join('\n'));if(!validDocuments([document]))throw fail('문서가 너무 큽니다. 노션 내보내기를 나누어 주세요.');items.push({externalId:key,document,kind,date:dateValue(get(properties,['날짜','일자','date','설교일','묵상일','작성일'])),passage:get(properties,['본문','성경본문','성경구절','성경','말씀본문','passage']),speaker:get(properties,['설교자','목사','speaker']),sourceUrl:id?'https://www.notion.so/'+id:'',properties});}
  for(const properties of rows){const raw=get(properties,['이름','제목','name','title','말씀','설교제목'])||Object.values(properties)[0]||'',title=cleanTitle(raw),id=pageId(raw);const candidates=pages.filter(p=>id?p.id===id:p.title===title),page=candidates.length===1?candidates[0]:null;add(title,properties,page);}
  for(const page of pages)if(!used.has(page.name)&&!/^\s*\[.+\.csv\)/m.test(page.text))add(page.title,{},page);
@@ -34,10 +34,10 @@ export function notionScriptureNotes(files){
 // These NIV references intentionally have no main-text verse in the supplied source.
 // Omit only those empty rows; never synthesize text or renumber the surrounding verses.
 
-export function notionBibleVerses(files){
+export function notionBibleVerses(files,parseCsv=parseNotionCsv){
  const candidates=[...files].filter(([name])=>/\.csv$/i.test(name)),preferred=candidates.filter(([name])=>!/_all\.csv$/i.test(name));
  for(const [name,text]of preferred.length?preferred:candidates){
-  const rows=parseNotionCsv(text);if(!rows.length||!['구절','구약·신약','본문','성경','장','절'].every(k=>k in rows[0]))continue;
+  const rows=parseCsv(text);if(!rows.length||!['구절','구약·신약','본문','성경','장','절'].every(k=>k in rows[0]))continue;
   const niv=/(?:^|[^A-Za-z])NIV(?:$|[^A-Za-z])|New International Version/i.test(name.normalize('NFKC')),seen=new Map();
   for(const [index,row]of rows.entries()){
    const book=row['성경'],chapter=Number(row['장']),verse=Number(row['절']),body=row['본문'],key=book+':'+chapter+':'+verse;

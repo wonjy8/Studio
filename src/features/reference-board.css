@@ -82,7 +82,7 @@
 .reference-page-open>.browse-toolbar,.reference-page-open>[data-reference-list],.reference-page-open>.selection-toolbar{display:none}
 .reference-page{max-width:1500px;margin:0 auto;padding:12px 24px 48px;min-width:0}
 .reference-page-header{display:flex;align-items:center;gap:16px;margin:0 0 20px}
-.reference-page-header h1{font-size:clamp(25px,3vw,38px);font-weight:650;flex:1;min-width:0;overflow-wrap:anywhere;margin:0}
+.reference-page-header h1{font-size:var(--text-page);font-weight:500;line-height:1.3;flex:1;min-width:0;overflow-wrap:anywhere;margin:0}
 .reference-page-tabs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:24px}
 .reference-page-tabs button{border:0;background:transparent;color:var(--muted);padding:10px 14px;border-radius:8px;min-height:42px;cursor:pointer}
 .reference-page-tabs button[aria-current=page]{color:var(--ink);background:var(--surface-2)}
@@ -108,3 +108,6 @@
 
 .reference-page .reference-board-shell:not(:has([data-board-select]:checked))>[data-board-selection]{display:none}
 .reference-attachment-settings{color:var(--muted);font-size:12px}.reference-attachment-settings summary{cursor:pointer}
+.reference-image-preview{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
+.reference-image-preview img.reference-board-image{width:100%;height:auto;object-fit:contain}
+.reference-image-preview>.btn{flex:none;white-space:nowrap}

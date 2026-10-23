@@ -13,6 +13,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Test Rust compute core
+        run: |
+          rustup toolchain install stable --profile minimal
+          cargo +stable test --locked --manifest-path compute-core/Cargo.toml
       - run: npm run check
       - run: npm test
       - run: docker build -t studio-test .

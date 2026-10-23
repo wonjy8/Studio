@@ -1,3 +1,4 @@
+import {prepareImageUpload} from '../media/image-preview.js';
 import {clearCalendarCache} from '../features/calendar-event-cache.js';
 import {sampleUploadColors} from '../domain/material-colors.js';
 let revision=0,mutationGeneration=0,pendingMutations=0,requestAccount=null;
@@ -30,7 +31,22 @@ export async function saveWorkspace(state){const data=await revisionMutation('wo
 export async function saveEquipmentAssignments(projectId,gearId,values){const data=await revisionMutation(`projects/${encodeURIComponent(projectId)}/equipment/${encodeURIComponent(gearId)}/assignments`,'PUT',{values:structuredClone(values)});return data.state;}
 export function createProjectTeam(projectId,name){return revisionMutation(`projects/${encodeURIComponent(projectId)}/teams`,'POST',{name});}
 export function saveProjectMemberTeams(projectId,memberId,teamIds){return revisionMutation(`projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(memberId)}/teams`,'PUT',{teamIds:[...teamIds]});}
-export async function upload(file){const colors=await sampleUploadColors(file);return request('files',{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name),...(colors?{'X-Material-Colors':JSON.stringify(colors)}:{})},body:file});}
+export async function storeImagePreviews(fileId,prepared,{resource='files',editContext,signal}={}){
+ if(!['files','school/files','document-files'].includes(resource))throw Error('Unknown file resource');
+ if(!prepared.preview||!prepared.reference)return false;
+ const sizes=new ArrayBuffer(8),view=new DataView(sizes);view.setUint32(0,prepared.preview.size,true);view.setUint32(4,prepared.reference.size,true);
+ await request(resource+'/'+encodeURIComponent(fileId)+'/preview',{method:'PUT',headers:{'Content-Type':'application/octet-stream','X-Thumbnail-Type':prepared.preview.type,'X-Reference-Type':prepared.reference.type,...(editContext?{'X-Document-Context':editContext}:{})},body:new Blob([sizes,prepared.preview,prepared.reference]),signal});
+ return true;
+}
+export async function upload(file,{signal,accept=()=>true,resource='files'}={}){
+ if(!['files','school/files'].includes(resource))throw Error('Unknown upload resource');
+ const prepared=await prepareImageUpload(file,{signal}),colors=resource==='files'? await sampleUploadColors(prepared.preview?new File([prepared.preview],file.name,{type:prepared.preview.type}):file):null;
+ if(!accept()||signal?.aborted)throw new DOMException('업로드 화면이 닫혔습니다.','AbortError');
+ const saved=await request(resource,{method:'POST',headers:{'Content-Type':file.type,'X-File-Name':encodeURIComponent(file.name),...(colors?{'X-Material-Colors':JSON.stringify(colors)}:{})},body:file,signal});
+ if(!accept()||signal?.aborted)return saved;
+ if(prepared.preview&&prepared.reference){try{saved.previewStored=await storeImagePreviews(saved.id,prepared,{resource,signal});}catch{saved.previewStored=false;saved.retryPreviews=()=>storeImagePreviews(saved.id,prepared,{resource,signal});}}
+ return saved;
+}
 
 export function addProjectParticipants(projectId,userIds,organizationIds,contactIds=[]){return revisionMutation(`projects/${encodeURIComponent(projectId)}/member-selection`,'POST',{userIds:[...userIds],organizationIds:[...organizationIds],contactIds:[...contactIds]});}
 

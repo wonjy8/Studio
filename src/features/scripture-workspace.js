@@ -43,7 +43,26 @@ export async function bindScriptureWorkspace({view,namespace,documentId,onSelect
  async function run(operation){if(busy)return;busy=true;try{return await operation();}catch(error){if(alive())message(error);}finally{busy=false;}}
  function chrome(html){root.innerHTML=`${html}<p class="sub" data-scripture-status role="status"></p>`;}
  function importButton(){return '<label class="btn scripture-import-label">노션 ZIP 가져오기<input type="file" accept=".zip,application/zip" data-scripture-import class="sr-only"></label>';}
- function bindImport(){root.querySelector('[data-scripture-import]')?.addEventListener('change',event=>{const file=event.target.files[0];if(!file)return;void run(async()=>{if(file.size>25*1024*1024)throw Error('ZIP 파일은 25MB 이하여야 합니다.');root.querySelector('[data-scripture-status]').textContent='ZIP 확인 중…';const preview=await request('scripture/import?preview=1',{method:'POST',headers:{'Content-Type':'application/zip'},body:file});if(!alive())return;const summary=preview.type==='bible'?`${preview.title} · ${preview.books}권 · ${preview.verses.toLocaleString()}개 구절`:`${preview.notes}개 말씀 노트`;if(!confirm(summary+'을 가져올까요?')){root.querySelector('[data-scripture-status]').textContent='';return;}root.querySelector('[data-scripture-status]').textContent='가져오는 중…';const result=await request('scripture/import',{method:'POST',headers:{'Content-Type':'application/zip'},body:file});if(!alive())return;if(view==='scripture-bible')await bible();else await browse();const target=root.querySelector('[data-scripture-status]');target.textContent=result.type==='bible'?`${result.verses.toLocaleString()}개 구절을 ${result.alreadyImported?'이미 가져왔습니다.':'가져왔습니다.'}`:`${result.added}개 추가 · ${result.skipped}개 중복 건너뜀`;});});}
+ function bindImport(){root.querySelector('[data-scripture-import]')?.addEventListener('change',event=>{
+  const file=event.target.files[0];if(!file)return;
+  void run(async()=>{
+   if(file.size>25*1024*1024)throw Error('ZIP 파일은 25MB 이하여야 합니다.');
+   const controller=new AbortController(),cancel=document.createElement('button');cancel.type='button';cancel.className='btn';cancel.textContent='가져오기 취소';cancel.dataset.scriptureImportCancel='';cancel.onclick=()=>controller.abort();root.querySelector('[data-scripture-status]').after(cancel);
+   try{
+    root.querySelector('[data-scripture-status]').textContent='ZIP 확인 중…';
+    const preview=await request('scripture/import?preview=1',{method:'POST',headers:{'Content-Type':'application/zip'},body:file,signal:controller.signal});
+    if(!alive()||controller.signal.aborted)return;
+    const summary=preview.type==='bible'?`${preview.title} · ${preview.books}권 · ${preview.verses.toLocaleString()}개 구절`:`${preview.notes}개 말씀 노트`;
+    if(!confirm(summary+'을 가져올까요?')){root.querySelector('[data-scripture-status]').textContent='';return;}
+    root.querySelector('[data-scripture-status]').textContent='가져오는 중…';
+    const result=await request('scripture/import',{method:'POST',headers:{'Content-Type':'application/zip'},body:file,signal:controller.signal});
+    if(!alive())return;if(view==='scripture-bible')await bible();else await browse();
+    root.querySelector('[data-scripture-status]').textContent=result.type==='bible'?`${result.verses.toLocaleString()}개 구절을 ${result.alreadyImported?'이미 가져왔습니다.':'가져왔습니다.'}`:`${result.added}개 추가 · ${result.skipped}개 중복 건너뜀`;
+   }catch(error){if(error.name==='AbortError')throw Error('가져오기 요청을 취소했습니다. 저장을 이미 요청했다면 목록에서 결과를 확인하세요.');throw error;}
+   finally{cancel.remove();event.target.value='';}
+  });
+ });}
+
  async function create(kind='sermon',document,date=scriptureToday()){const value=newScriptureNote(kind,date);if(document)value.document=document;const result=await request('scripture/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(value)});if(alive())await edit(result.note);}
  async function removeListedNotes(items,after){await run(async()=>{await flushScriptureDrafts();if(!items.length||!confirm(`${items.length}개 노트를 삭제할까요? 삭제 후 복구할 수 없습니다.\n${items.map(item=>item.document.title).join(' · ')}`))return;let removed=0,error;for(const item of items){try{await request('scripture/notes/'+item.document.id,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision:item.revision})});removed++;}catch(e){error=e;break;}}if(alive()){await after();const target=root.querySelector('[data-scripture-status]');if(target)target.textContent=error?`${removed}개 삭제 · 나머지는 삭제하지 않았습니다. ${error.message}`:`${removed}개 노트를 삭제했습니다.`;}});}
 

@@ -132,3 +132,56 @@ synthetic data volume/bridge and loopback port, verifies health and origin acces
 signals SIGTERM during an upload, restarts with the same volume and verifies stored
 bytes/SQLite integrity. It removes only its own fixture resources. It never launches
 a real Cloudflare Tunnel or mounts an existing Studio data volume.
+
+### Private file and document revalidation
+
+File and personal document GETs use session-bound opaque ETags and `private,
+no-cache, must-revalidate` with `Vary: Cookie`. Every reuse contacts Studio to
+check the current session and resource access; an unchanged file returns 304
+without selecting its BLOB. The browser manages its own bounded HTTP cache;
+Studio does not put private responses in a public service worker cache or enable
+offline access. Logout, another session, deleted files and revoked project access
+cannot validate the previous response. Existing downloaded local copies remain
+outside Studio's control.
+
+Opening a personal document from its list revalidates the library before mounting
+the editor. A failed check leaves the list open and allows an explicit retry;
+there is no background replacement of an active editor or unsaved draft. Project
+and School editor refresh paths are unchanged in this first unit.
+
+### Browser image derivatives
+
+New standard file uploads preserve exact original bytes and send a small
+thumbnail plus a <=600px-long-edge Reference preview generated in a bounded
+Rust/WASM module Worker. The paired derivatives commit in one SQLite transaction;
+a failed pair leaves the original intact and may be retried by its file ID.
+Materials shows thumbnails and References uses medium previews; neither silently
+fetches an original when a derivative is missing. Old files are not converted in
+bulk. All three stored representations count against the existing owner quota.
+
+No Rust runtime is needed on NAS: a content-hashed WASM code asset is checked in,
+with source, Cargo.lock, build script and dependency notices. Only this public
+code asset has immutable caching. Private image variants retain live authorization
+and session-bound ETag revalidation. Existing NAS network, restart and updater
+settings are unchanged. The synthetic comparison and supported-image limitations
+are recorded in image-preview/README.md; the Rust path is not claimed faster than
+native browser codecs or proven to fix the NAS OOM incident.
+
+### Google read traffic
+
+Calendar list requests that are simultaneously in flight for the same Studio
+user, Google subject and connection generation share one provider request chain.
+There is no completed metadata cache: the next read still checks Google for
+permission changes, failures are not retained, and connection/account guards run
+before and after waiting. Each caller gets its own result object. At most 64
+pending read keys are retained; this is a memory bound, not a new user quota.
+Existing per-calendar/date-range browser event caches and mutation invalidation
+remain unchanged.
+
+Browser-direct Calendar REST/CORS is supported by Google's GIS token model:
+https://developers.google.com/identity/oauth2/web/guides/use-token-model . Studio's
+current web-server OAuth flow retains refresh tokens and client credentials on
+the server. This change does not expose any access/refresh token to the browser,
+add a token relay, request new scopes or alter the OAuth client. Adopting GIS
+would require a separately reviewed browser consent/expiry UX; unattended token
+refresh is not promised. Server mediation therefore remains for this unit.
