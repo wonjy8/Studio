@@ -80,3 +80,39 @@ Example requests: “촬영 목록을 보여줘”, “이 촬영에 할 일 ‘
 ### Full content contract (tool schema 5)
 
 See [MCP_CONTENT.md](MCP_CONTENT.md) for the current resource coverage, per-connection full-content consent, bounded reads, stable semantic tool signatures and confirmed transaction lifecycle. Schema 4 project editing remains supported. Existing project-only connections are not silently expanded. New connections disclose the complete content scope; old connections can approve their own expansion in Studio settings. Account, settings, administrator and permission actions remain excluded.
+
+## Container lifecycle and independent tunnel checks
+
+Studio's standalone entry handles SIGTERM/SIGINT by stopping new HTTP connections,
+draining active responses and then running its existing integration/worker/SQLite
+cleanup. It closes stalled connections after eight seconds. Verify any locally
+customized container stop timeout before rollout; no data-volume or memory-limit
+change is required by this code. A forced shutdown is reported as a failure rather
+than a successful drain.
+
+The Docker healthcheck uses Node's HTTP client against fixed loopback
+`127.0.0.1:8080/health`. It requires a bounded successful JSON health response and
+never follows a redirect. Its existing 30-second interval and three-second Docker
+limit remain unchanged. It checks Studio/SQLite availability, **not** the tunnel,
+public DNS, outbound internet or the external domain.
+
+The repository manages only the `studio` Compose service. Keep the independently
+managed `studio-cloudflared` configuration private. Before changing that container,
+review its actual image version, restart count/policy, stop timeout, network membership,
+log driver/rotation and effective memory usage/limit using sanitized fields. Do not
+paste its environment, full command, tunnel token or credential file. No cloudflared
+binary, DNS pin, host-network mode, firewall rule or guessed memory cap is supplied
+by this patch.
+
+The updater remains serialized and uses `up -d --no-deps studio`, preserving the
+cloudflared service. A failed registry pull exits before image tagging/recreation.
+Its documented every-minute schedule does not itself imply every-minute restarts:
+an unchanged image does not recreate Studio. Actual scheduler times and OOM events
+must be compared on the NAS; application health cannot establish working tunnel
+egress. Repeated DNS and direct outbound connection timeouts require host/network
+investigation separately from this application patch.
+
+Logging limits are not overridden without checking the existing driver and retention
+policy. Large logs consume storage and may contribute reclaimable filesystem cache;
+they are not alone evidence of a JavaScript memory leak. Preserve failure-time logs
+and process/container mapping before proposing operational changes.

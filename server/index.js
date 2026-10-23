@@ -1,3 +1,4 @@
+import {installGracefulShutdown} from './shutdown.js';
 import {documentFileRoutes} from './document-files.js';
 import {workspaceHomeEventRoutes} from './workspace-home-events.js';
 import {schoolRoutes} from './school.js';
@@ -228,6 +229,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)) {
   const {server}=await createApp();
+  installGracefulShutdown(server);
   server.listen(Number(process.env.PORT||8080),'0.0.0.0',()=>console.log('Studio listening'));
 }
 

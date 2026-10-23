@@ -4,7 +4,7 @@ import {mkdtempSync,writeFileSync,readFileSync,mkdirSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
-for(const scenario of ['unchanged','success','rollback','missing-volume','repeat','failed-release']) test(`NAS updater: ${scenario}`,()=>{
+for(const scenario of ['unchanged','success','rollback','missing-volume','repeat','failed-release','pull-failure']) test(`NAS updater: ${scenario}`,()=>{
  const dir=mkdtempSync(join(tmpdir(),'studio-updater-'));
  try {
   const bin=join(dir,'bin');mkdirSync(bin);
@@ -24,16 +24,18 @@ if(a[0]==='inspect'){
  else if(f.includes('.Image')) console.log('sha256:old');
  else if(f.includes('Health')) console.log(s==='rollback'?'unhealthy':'healthy');
 } else if(a[0]==='image'&&a[1]==='inspect') console.log(s==='unchanged'?'sha256:old':'sha256:new');
+else if(a[0]==='pull'&&s==='pull-failure')process.exit(1);
 else if(a[0]==='compose'&&a.includes('up')) fs.writeFileSync(p.join(d,'applied'),'yes');
 ` ,{mode:0o755});
   if(scenario==='failed-release')writeFileSync(join(dir,'.studio-update.failed-image'),'sha256:new\n');
   const run=spawnSync('sh',[join(dir,'update.sh')],{encoding:'utf8',env:{...process.env,TEST_BIN:bin,STUDIO_PROJECT_DIR:dir,SCENARIO:scenario}});
-  assert.equal(run.status,['rollback','missing-volume','failed-release'].includes(scenario)?1:0,run.stderr);
+  assert.equal(run.status,['rollback','missing-volume','failed-release','pull-failure'].includes(scenario)?1:0,run.stderr);
   const calls=readFileSync(join(dir,'calls'),'utf8').trim().split('\n').map(JSON.parse);
   const updates=calls.filter(a=>a[0]==='compose'&&a.includes('up'));
   assert.equal(updates.length,scenario==='rollback'?2:['success','repeat'].includes(scenario)?1:0);
   for(const args of updates){assert.deepEqual(args.slice(-3),['-d','--no-deps','studio']);}
   if(scenario==='rollback')assert.match(readFileSync(join(dir,'.studio-update.override.yaml'),'utf8'),/studio-rollback:local/);
+  if(scenario==='pull-failure')assert.equal(calls.some(a=>a[0]==='image'&&a[1]==='tag'),false);
   if(scenario==='repeat')assert.equal(updates[0].filter(x=>x.endsWith('.studio-update.override.yaml')).length,1);
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
