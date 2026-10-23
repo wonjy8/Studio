@@ -179,8 +179,6 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true,appVersion:process.env.STUDIO_REVISION||'development',...siteCapabilities(db,uid),passwordChangeRequired:passwordChangeRequired(db,uid),account:db.prepare("SELECT u.id,u.username,COALESCE(p.name,'') name FROM users u LEFT JOIN account_profiles p ON p.user_id=u.id WHERE u.id=?").get(uid)});
         if(path==='/api/logout'&&req.method==='POST') {db.prepare('DELETE FROM sessions WHERE token=?').run(digest(cookie));setCookie('',0);return json(200,{ok:true});}
         if(path==='/api/workspace'&&req.method==='GET') {
-          const revision=db.prepare('SELECT revision FROM workspaces WHERE user_id=?').get(uid)?.revision||0;
-          if(privateNotModified(req,res,session,'workspace',revision))return;
           const row=db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(uid);
           return json(200,row?{revision:row.revision,state:reconcileEquipment(db,uid,linkedWorkspace(db,uid,JSON.parse(row.body)))}:{revision:0,state:null});
         }
