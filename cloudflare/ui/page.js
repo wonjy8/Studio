@@ -11,7 +11,22 @@ export function browserClient() {
     current = null,
     busy = false,
     dirty = false,
-    epoch = 0;
+    epoch = 0,
+    libraryOwner = null,
+    currentOwner = null;
+  const actorKey = (value) =>
+    value ? value.account.id + "\0" + value.csrfToken : null;
+  function clearPrivate() {
+    library = null;
+    current = null;
+    dirty = false;
+    libraryOwner = null;
+    currentOwner = null;
+  }
+  function requireOwner(owner) {
+    if (!owner || owner !== actorKey(actor))
+      throw new Error("계정이 변경되어 이전 문서 초안을 사용할 수 없습니다.");
+  }
   const errors = {
     REVISION_CONFLICT:
       "다른 화면에서 수정되었습니다. 입력을 유지하고 서버 내용을 다시 확인해 주세요.",
@@ -40,9 +55,13 @@ export function browserClient() {
     busy = value;
     root
       .querySelectorAll("button,input,textarea,select")
-      .forEach((e) => (e.disabled = value));
+      .forEach(
+        (e) => (e.disabled = value || (!actor && !bootstrap?.configured)),
+      );
   }
   async function api(path, method = "GET", body) {
+    const requestEpoch = epoch,
+      requestActor = actor;
     const controller = new AbortController(),
       timeout = setTimeout(() => controller.abort(), 15000);
     try {
@@ -57,14 +76,30 @@ export function browserClient() {
             ? {}
             : {
                 "Content-Type": "application/json",
-                "X-Studio-CSRF": actor?.csrfToken || bootstrap?.csrfToken || "",
+                "X-Studio-CSRF":
+                  path === "/api/edge/auth/google/start"
+                    ? bootstrap?.csrfToken || ""
+                    : requestActor?.csrfToken || "",
               }),
-          ...(actor ? { "X-Studio-Account": actor.account.id } : {}),
+          ...(requestActor
+            ? { "X-Studio-Account": requestActor.account.id }
+            : {}),
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
       const data = await r.json();
+      if (requestEpoch !== epoch || actorKey(requestActor) !== actorKey(actor))
+        throw new Error("이전 화면의 응답을 취소했습니다.");
       if (!r.ok) {
+        if (
+          path !== "/api/edge/session" &&
+          (r.status === 401 || data.error === "ACCOUNT_CHANGED")
+        ) {
+          ++epoch;
+          clearPrivate();
+          actor = null;
+          draw();
+        }
         const e = new Error(
           errors[data.error] ||
             "요청을 완료하지 못했습니다. 입력은 유지됩니다. (" +
@@ -208,7 +243,10 @@ export function browserClient() {
       !confirm("저장하지 않은 변경을 버리고 서버 문서를 다시 열까요?")
     )
       return;
+    const owner = actorKey(actor);
     const result = await api("/api/edge/documents");
+    requireOwner(owner);
+    libraryOwner = owner;
     library = result;
     current = null;
     dirty = false;
@@ -224,6 +262,8 @@ export function browserClient() {
         doc.title,
         () => {
           if (dirty && !confirm("저장하지 않은 변경을 버릴까요?")) return;
+          requireOwner(libraryOwner);
+          currentOwner = libraryOwner;
           current = structuredClone(doc);
           dirty = false;
           draw();
@@ -234,6 +274,8 @@ export function browserClient() {
       "새 문서",
       () => {
         if (dirty && !confirm("저장하지 않은 변경을 버릴까요?")) return;
+        requireOwner(libraryOwner);
+        currentOwner = libraryOwner;
         current = {
           id: "document-" + crypto.randomUUID(),
           title: "제목 없음",
@@ -293,6 +335,9 @@ export function browserClient() {
     form.onsubmit = (e) => {
       e.preventDefault();
       run(async () => {
+        requireOwner(libraryOwner);
+        requireOwner(currentOwner);
+        const owner = currentOwner;
         const sent = structuredClone(current),
           docs = structuredClone(library.documents),
           index = docs.findIndex((d) => d.id === sent.id);
@@ -302,6 +347,7 @@ export function browserClient() {
           documents: docs,
           revision: library.revision,
         });
+        requireOwner(owner);
         library = result;
         dirty = false;
         draw();
@@ -322,8 +368,11 @@ export function browserClient() {
     ]);
     if (turn !== epoch) return;
     bootstrap = b;
+    const changed = actorKey(actor) !== actorKey(s);
+    if (changed) clearPrivate();
     actor = s;
     draw();
+    if (!s && !b.configured) return;
     notice(
       authFailed
         ? "Google 연결이 취소되었거나 완료되지 않았습니다. 다시 시도해 주세요."
@@ -341,9 +390,7 @@ export function browserClient() {
   });
   window.addEventListener("pageshow", (e) => {
     if (e.persisted) {
-      library = null;
-      current = null;
-      dirty = false;
+      clearPrivate();
       load().catch((e) => notice(e.message, true));
     }
   });
