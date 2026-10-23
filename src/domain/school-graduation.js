@@ -1,6 +1,6 @@
 // User-configured areas are not an institution's certified graduation rules.
 export const creditCategories=[
- ['major-required','전공필수','major'],['major-core','전공핵심','major'],['major-elective','전공선택','major'],['major-elective-required','전공 선택(필수)','major'],['major-elective-general','전공 선택(일반)','major'],
+ ['major-required','전공필수','major'],['major-core','전공핵심','major'],['major-elective','전공선택','major'],['major-elective-required','전공선택(필수)','major'],['major-elective-general','전공선택(일반)','major'],
  ['liberal-general','일반교양','liberal'],['liberal-world','교양 (학문의 세계)','liberal'],['liberal-foundation','교양 (학문의 기초)','liberal'],['liberal-language','언어·문학','liberal'],['liberal-art','문화·예술','liberal'],['liberal-history','역사·철학','liberal'],['liberal-politics','정치·경제','liberal'],['liberal-society','인간·사회','liberal'],['liberal-nature','자연·기술','liberal'],['liberal-environment','생명·환경','liberal'],['liberal-writing','대학글쓰기','liberal'],['liberal-foreign','외국어','liberal'],['general-elective','일반선택','elective']
 ].map(([id,name,group])=>({id,name,group,...(['major-elective','liberal-language','liberal-art','liberal-history','liberal-politics','liberal-society','liberal-nature','liberal-environment'].includes(id)?{legacy:true}:{})}));
 export const gradePoints={'A+':4.3,A0:4,'A-':3.7,'B+':3.3,B0:3,'B-':2.7,'C+':2.3,C0:2,'C-':1.7,'D+':1.3,D0:1,'D-':0.7,F:0};
