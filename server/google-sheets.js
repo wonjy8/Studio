@@ -1,3 +1,5 @@
+import {backgroundInterval} from './background-interval.js';
+import {limitedResponseText} from './limited-response.js';
 import {googleOAuthAttempts} from './google-oauth-attempts.js';
 import {randomBytes,createHash,createCipheriv,createDecipheriv,randomUUID} from 'node:crypto';
 import {readFile,writeFile} from 'node:fs/promises';
@@ -24,7 +26,7 @@ export async function googleSheetsService(db,{origin,dir,fetcher=fetch,clientId=
  const collection=(uid,org)=>{live(uid);if(org&&!orgCanManage(db,uid,org))throw fail('조직 장비 관리 권한이 필요합니다.',403);return org?'org:'+org:'user:'+uid;};
  let ticking=false;
  const ready=()=>{if(!configured)throw fail('Google Cloud OAuth 설정이 필요합니다. 설정의 연결 안내를 확인하세요.',503);};
- async function remote(url,options={}){const controller=new AbortController();controllers.add(controller);const timeout=setTimeout(()=>controller.abort(),15000);try{const response=await fetcher(url,{...options,signal:controller.signal,redirect:'error'});const text=await response.text();if(text.length>5*1024*1024)throw fail('시트 응답이 너무 큽니다.',413);let data;try{data=JSON.parse(text);}catch{throw fail('Google 응답을 읽지 못했습니다.',502);}if(!response.ok)throw fail(response.status===401?'Google 연결이 만료되었습니다. 계정을 다시 연결하세요.':response.status===403?'Google 시트 수정 권한과 Sheets API 설정을 확인하세요.':response.status===429?'Google 요청 한도를 초과했습니다. 잠시 후 다시 시도하세요.':'Google 요청에 실패했습니다. 연결과 시트 주소를 확인하세요.',response.status===401?401:502);return data;}finally{clearTimeout(timeout);controllers.delete(controller);}}
+ async function remote(url,options={}){const controller=new AbortController();controllers.add(controller);const timeout=setTimeout(()=>controller.abort(),15000);try{const response=await fetcher(url,{...options,signal:controller.signal,redirect:'error'});const text=await limitedResponseText(response,5*1024*1024,()=>fail('시트 응답이 너무 큽니다.',413));let data;try{data=JSON.parse(text);}catch{throw fail('Google 응답을 읽지 못했습니다.',502);}if(!response.ok)throw fail(response.status===401?'Google 연결이 만료되었습니다. 계정을 다시 연결하세요.':response.status===403?'Google 시트 수정 권한과 Sheets API 설정을 확인하세요.':response.status===429?'Google 요청 한도를 초과했습니다. 잠시 후 다시 시도하세요.':'Google 요청에 실패했습니다. 연결과 시트 주소를 확인하세요.',response.status===401?401:502);return data;}finally{clearTimeout(timeout);controllers.delete(controller);}}
  const tokenRequest=data=>remote('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,...data}).toString()});
  const account=uid=>db.prepare('SELECT * FROM google_accounts WHERE user_id=?').get(uid);
  async function access(uid){ready();live(uid);const before=account(uid);if(!before)throw fail('Google 계정을 먼저 연결하세요.',409);let credentials=unseal(before.credentials);if(credentials.expires<Date.now()+60000){const result=await tokenRequest({grant_type:'refresh_token',refresh_token:credentials.refreshToken});live(uid);if(account(uid)?.generation!==before.generation)throw fail('Google 연결이 변경되었습니다.',409);if(typeof result.access_token!=='string')throw fail('Google 계정을 다시 연결하세요.',401);credentials={...credentials,accessToken:result.access_token,expires:Date.now()+Math.min(Number(result.expires_in)||3600,86400)*1000};db.prepare('UPDATE google_accounts SET credentials=? WHERE user_id=? AND generation=?').run(seal(credentials),uid,before.generation);}return {token:credentials.accessToken,generation:before.generation};}
@@ -49,7 +51,7 @@ export async function googleSheetsService(db,{origin,dir,fetcher=fetch,clientId=
  }
  function sync(id){if(running.has(id))return running.get(id);const work=(async()=>{const link=db.prepare('SELECT * FROM google_sheet_links WHERE id=?').get(id);if(!link)return;try{await syncOne(link);}catch(error){if(!closed)db.prepare('UPDATE google_sheet_links SET error=? WHERE id=?').run(error.message,id);throw error;}})().finally(()=>running.delete(id));running.set(id,work);return work;}
  async function tick(){if(closed||!configured||ticking)return;ticking=true;try{for(const {id}of db.prepare('SELECT id FROM google_sheet_links').all()){if(closed)break;try{await sync(id);}catch{}}}finally{ticking=false;}}
- if(configured&&pollMs>0){timer=setInterval(()=>void tick(),pollMs);timer.unref();}
+ if(configured&&pollMs>0){timer=backgroundInterval(tick,pollMs,{label:'Sheets'});timer.unref();}
  const publicLink=link=>link?{id:link.id,title:link.title,url:sheetUrl(link.spreadsheet_id)+'#gid='+link.tab_id,lastSync:link.last_sync,error:link.error,pending:Boolean(link.pending)}:null;
  async function routes({path,url,req,res,session,json,readJson}){
   if(path==='/oauth/google/callback'&&req.method==='GET'){
@@ -79,5 +81,5 @@ export async function googleSheetsService(db,{origin,dir,fetcher=fetch,clientId=
   const route=path.match(/^\/api\/google\/sheets\/([A-Za-z0-9_-]+)(\/sync)?$/);if(route&&['POST','DELETE'].includes(req.method)){await readJson();sessionLive(session);const link=db.prepare('SELECT * FROM google_sheet_links WHERE id=?').get(route[1]);if(!link||link.scope_key!==collection(uid,link.organization_id))throw fail('시트 연결을 찾을 수 없습니다.',404);if(req.method==='DELETE'&&!route[2]){db.prepare('DELETE FROM google_sheet_links WHERE id=?').run(link.id);json(200,{ok:true});return true;}if(req.method==='POST'&&route[2]){await sync(link.id);sessionLive(session);json(200,{link:publicLink(db.prepare('SELECT * FROM google_sheet_links WHERE id=?').get(link.id))});return true;}}
   return false;
  }
- return {routes,sync,tick,credentialCodec:configured?{seal,unseal}:null,kick:()=>{if(configured&&!closed&&pollMs>0)void tick();},close:()=>{closed=true;clearInterval(timer);for(const controller of controllers)controller.abort();}};
+ return {routes,sync,tick,credentialCodec:configured?{seal,unseal}:null,kick:()=>{if(configured&&!closed&&pollMs>0)void tick().catch(()=>{});},close:()=>{closed=true;clearInterval(timer);for(const controller of controllers)controller.abort();}};
 }

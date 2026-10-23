@@ -26,7 +26,7 @@ export function adminProjectFileRoutes(db){return async({path,url,req,res,sessio
   db.exec('BEGIN IMMEDIATE');let response,file;
   try{const grade=actor(db,session),current=selected(db,owner,pid);
    if(req.method==='GET'){
-    if(!actualReferences(current.project).some(ref=>ref.id===fileId))fail(404,'Attachment not found');file=db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(fileId,owner);if(!file)fail(404,'Attachment not found');file.bytes=Buffer.from(file.bytes);if(typeof file.name!=='string'||!file.name.isWellFormed()||!types.includes(file.type)||!signature(file.type,file.bytes))fail(415,'Unsupported attachment');audit(db,session,grade,owner,pid,'file-read:'+fileId,current.revision,'');
+    if(!actualReferences(current.project).some(ref=>ref.id===fileId))fail(404,'Attachment not found');file=db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(fileId,owner);if(!file)fail(404,'Attachment not found');file.bytes=Buffer.from(file.bytes.buffer,file.bytes.byteOffset,file.bytes.byteLength);if(typeof file.name!=='string'||!file.name.isWellFormed()||!types.includes(file.type)||!signature(file.type,file.bytes))fail(415,'Unsupported attachment');audit(db,session,grade,owner,pid,'file-read:'+fileId,current.revision,'');
    }else{
     if(data.revision!==current.revision)fail(409,'Workspace changed. Reload before editing.');const item=entity(current.project,data.target);
     if(req.method==='POST'){
