@@ -33,3 +33,15 @@ test('custom names and ambiguously mapped old names are never inferred or rewrit
  const fresh={requiredCredits:null,semesters:[],courses:[]};
  setRequirementArea(fresh,{group:'major',creditCategory:'major-elective-required',requiredCredits:null},'new');assert.equal(fresh.graduation.areas[0].name,'전공선택(필수)');
 });
+
+test('custom stored requirement names can produce typo labels without changing canonical categories or course allocation',async()=>{
+ const {emptySchool,schoolCreditGroups}=await import('../src/domain/school.js');
+ const {graduationSummary}=await import('../src/domain/school-graduation.js');
+ const {schoolDashboard,graduationRequirements}=await import('../src/features/school-graduation.js');
+ const school={...emptySchool(),semesters:[{id:'term',name:'Term'}],courses:[{id:'course',semesterId:'term',name:'Fixture',credits:3,creditCategory:'major-elective-required',creditGroup:'',documents:[],tasks:[],events:[]}],graduation:{version:1,areas:[{id:'custom',name:'전공선태',group:'major',requiredCredits:6}],mappings:{'major-elective-required':'custom'},gpaCourseIds:[]}};
+ const before=structuredClone(school);
+ assert.match(schoolDashboard(school),/전공선태/);
+ assert.match(graduationRequirements(school),/연결된 요건: 전공선태/);
+ assert.equal(graduationSummary(school,schoolCreditGroups(school)).areas[0].earned,3);
+ assert.deepEqual(school,before);
+});
