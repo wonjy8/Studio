@@ -1,3 +1,4 @@
+import {scriptureImportRunner} from './scripture-import-runner.js';
 import {githubBibleSource} from './github-bible.js';
 import {bibleVersionStore,bibleVersionMetadata} from './bible-versions.js';
 import {qtReadingVerses,validVerseAnnotation} from '../src/domain/qt-journal.js';
@@ -6,7 +7,6 @@ import {validScriptureNote,newScriptureNote,qtDocument} from '../src/domain/scri
 import {validDate} from '../src/domain/calendar.js';
 import {newBlock} from '../src/domain/documents.js';
 import {bibleBooks,parseBiblePassage,parseBiblePassages} from '../src/domain/bible.js';
-import {readNotionZip,notionScriptureNotes,notionBibleVerses} from './notion-scripture-import.js';
 import {dailyQtService} from './daily-qt.js';
 const fail=(message,status=400)=>Object.assign(Error(message),{status});
 export function scriptureRoutes(db,{fetcher,bibleFetcher,githubToken=process.env.BIBLE_GITHUB_TOKEN,initialize=true}={}){
@@ -15,12 +15,13 @@ export function scriptureRoutes(db,{fetcher,bibleFetcher,githubToken=process.env
  CREATE TABLE IF NOT EXISTS scripture_annotations(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,book TEXT NOT NULL,chapter INTEGER NOT NULL,verse INTEGER NOT NULL,body TEXT NOT NULL,revision INTEGER NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(user_id,book,chapter,verse));
  CREATE TABLE IF NOT EXISTS scripture_bibles(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,title TEXT NOT NULL,fingerprint TEXT NOT NULL,imported_at INTEGER NOT NULL);`);
  if(initialize)db.exec('CREATE TABLE IF NOT EXISTS scripture_reading_positions(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,book TEXT NOT NULL,chapter INTEGER NOT NULL)');
- const versions=bibleVersionStore(db,{initialize}),github=githubBibleSource({token:githubToken,fetcher:bibleFetcher});
+ const importZip=scriptureImportRunner();
+ const versions=bibleVersionStore(db,{initialize}),github=githubBibleSource({token:githubToken,fetcher:bibleFetcher,parseZip:bytes=>importZip(()=>Promise.resolve(bytes))});
  const applied=new Map();
  const qt=dailyQtService({fetcher}),rowNote=row=>({...JSON.parse(row.body),revision:row.revision,createdAt:row.created_at,updatedAt:row.updated_at,externalId:row.external_id,automaticQt:Boolean(row.qt_date)}),read=(uid,id)=>db.prepare('SELECT * FROM scripture_notes WHERE user_id=? AND id=?').get(uid,id);
  const create=(uid,note,{externalId=null,qtDate=null}={})=>{if(!validScriptureNote(note))throw fail('말씀 노트 내용을 확인하세요.');if(db.prepare('SELECT count(*) n FROM scripture_notes WHERE user_id=?').get(uid).n>=5000)throw fail('노트는 최대 5000개입니다.');const now=Date.now();db.prepare('INSERT INTO scripture_notes VALUES(?,?,?,1,?,?,?,?)').run(note.document.id,uid,JSON.stringify(note),externalId,qtDate,now,now);return rowNote(read(uid,note.document.id));};
  const versesFor=(uid,passage)=>{const passages=parseBiblePassages(passage);if(!passages)return [];const found=new Map();for(const p of passages){const rows=db.prepare('SELECT book,chapter,verse,body text FROM scripture_verses WHERE user_id=? AND book=? AND chapter>=? AND chapter<=? AND (chapter<>? OR verse>=?) AND (chapter<>? OR verse<=?) ORDER BY chapter,verse LIMIT 501').all(uid,p.book,p.chapter,p.endChapter,p.chapter,p.start,p.endChapter,p.end);for(const row of rows)found.set(`${row.book}:${row.chapter}:${row.verse}`,row);if(found.size>500)throw fail('성경 본문은 한 번에 500절까지 선택하세요.');}return [...found.values()];};
- return async({path,url,req,session,json,readJson,readBody,assertLiveMutation})=>{
+ const handle=async({path,url,req,res,session,json,readJson,readBody,assertLiveMutation})=>{
   if(!path.startsWith('/api/scripture'))return false;if(!session){json(401,{error:'Login required'});return true;}const uid=session.user_id,match=path.match(/^\/api\/scripture\/notes\/([A-Za-z0-9_-]{1,80})$/);
   if(path==='/api/scripture/read-position'){
    if(req.method==='GET'){json(200,{position:db.prepare('SELECT book,chapter FROM scripture_reading_positions WHERE user_id=?').get(uid)||null});return true;}
@@ -43,10 +44,21 @@ export function scriptureRoutes(db,{fetcher,bibleFetcher,githubToken=process.env
   if(path==='/api/scripture/qt'&&req.method==='GET'){const date=url.searchParams.get('date');if(!validDate(date))throw fail('QT 날짜를 확인하세요.');const existing=db.prepare('SELECT * FROM scripture_notes WHERE user_id=? AND (qt_date=? OR (json_extract(body,\'$.kind\')=\'qt\' AND json_extract(body,\'$.date\')=?)) LIMIT 1').get(uid,date,date);if(existing){const note=rowNote(existing);json(200,{reading:{date,passage:note.passage,title:note.document.title,url:note.sourceUrl},note,verses:note.qtVerses||versesFor(uid,note.passage)});return true;}const reading=await qt.get(date);json(200,{reading,note:null,verses:versesFor(uid,reading.passage)});return true;}
   if(path==='/api/scripture/qt'&&req.method==='POST'){const data=await readJson(32768);if(!validDate(data.date))throw fail('QT 날짜를 확인하세요.');const prior=db.prepare('SELECT * FROM scripture_notes WHERE user_id=? AND (qt_date=? OR (json_extract(body,\'$.kind\')=\'qt\' AND json_extract(body,\'$.date\')=?)) LIMIT 1').get(uid,data.date,data.date);if(prior){const note=rowNote(prior);json(200,{note,reading:{date:data.date,passage:note.passage,title:note.document.title,url:note.sourceUrl},verses:note.qtVerses||versesFor(uid,note.passage)});return true;}const reading=await qt.get(data.date);assertLiveMutation();db.exec('BEGIN IMMEDIATE');try{const existing=db.prepare('SELECT * FROM scripture_notes WHERE user_id=? AND (qt_date=? OR (json_extract(body,\'$.kind\')=\'qt\' AND json_extract(body,\'$.date\')=?)) LIMIT 1').get(uid,data.date,data.date);const document=qtDocument(data.date,reading),verses=versesFor(uid,reading.passage),source=verses.length?verses.map(v=>({label:v.chapter+':'+v.verse,text:v.text})):reading.verses;let text='';const quotes=[];for(const verse of source){const line=verse.label+' '+verse.text+'\n';if(text.length+line.length>16000){quotes.push(newBlock('quote',text));text='';}text+=line;}if(text)quotes.push(newBlock('quote',text));document.blocks.splice(2,0,...quotes);const commentary=reading.commentary.flatMap(section=>{const blocks=[newBlock('h3',section.title)];for(let i=0;i<section.text.length;i+=16000)blocks.push(newBlock('paragraph',section.text.slice(i,i+16000)));return blocks;});document.blocks.splice(3+quotes.length,0,...commentary);const note=existing?rowNote(existing):create(uid,{...newScriptureNote('qt',data.date),document,passage:reading.passage,sourceUrl:reading.url,qtVerses:qtReadingVerses(reading,verses)},{qtDate:data.date});db.exec('COMMIT');json(200,{note,reading,verses:note.qtVerses||versesFor(uid,reading.passage)});return true;}catch(error){db.exec('ROLLBACK');throw error;}}
   if(path==='/api/scripture/import'&&req.method==='POST'){
-   if(!req.headers['content-type']?.startsWith('application/zip'))throw fail('노션 ZIP 파일을 선택하세요.',415);const bytes=await readBody(25*1024*1024),files=readNotionZip(bytes),bible=notionBibleVerses(files),fingerprint=createHash('sha256').update(bytes).digest('hex');
+   if(!req.headers['content-type']?.startsWith('application/zip'))throw fail('노션 ZIP 파일을 선택하세요.',415);
+   const controller=new AbortController(),cancel=()=>{if(!res?.writableEnded)controller.abort();};
+   req.once('aborted',cancel);res?.once('close',cancel);
+   let parsed;
+   try{parsed=await importZip(()=>readBody(25*1024*1024),{preview:url.searchParams.get('preview')==='1',signal:controller.signal});}
+   finally{req.removeListener('aborted',cancel);res?.removeListener('close',cancel);}
+   if(controller.signal.aborted)throw fail('ZIP 처리를 취소했습니다.',499);
+   assertLiveMutation();
+   if(url.searchParams.get('preview')==='1'){json(200,parsed.summary);return true;}
+   const {bible,fingerprint,notes}=parsed;
    if(bible){const summary={type:'bible',verses:bible.verses.length,books:new Set(bible.verses.map(v=>v.book)).size,...bibleVersionMetadata(bible)};if(url.searchParams.get('preview')==='1'){json(200,summary);return true;}db.exec('BEGIN IMMEDIATE');try{const saved=versions.save(uid,bible,fingerprint);db.exec('COMMIT');json(200,{...summary,...saved});return true;}catch(error){db.exec('ROLLBACK');throw error;}}
-   const notes=notionScriptureNotes(files);if(url.searchParams.get('preview')==='1'){json(200,{type:'notes',notes:notes.length,titles:notes.slice(0,10).map(n=>n.document.title)});return true;}db.exec('BEGIN IMMEDIATE');try{let added=0,skipped=0;for(const imported of notes){const {externalId,...note}=imported;if(db.prepare('SELECT 1 FROM scripture_notes WHERE user_id=? AND external_id=?').get(uid,externalId)){skipped++;continue;}create(uid,note,{externalId});added++;}db.exec('COMMIT');json(200,{type:'notes',added,skipped});return true;}catch(error){db.exec('ROLLBACK');throw error;}
+   db.exec('BEGIN IMMEDIATE');try{let added=0,skipped=0;for(const imported of notes){const {externalId,...note}=imported;if(db.prepare('SELECT 1 FROM scripture_notes WHERE user_id=? AND external_id=?').get(uid,externalId)){skipped++;continue;}create(uid,note,{externalId});added++;}db.exec('COMMIT');json(200,{type:'notes',added,skipped});return true;}catch(error){db.exec('ROLLBACK');throw error;}
   }
   json(404,{error:'말씀 기능을 찾을 수 없습니다.'});return true;
  };
+ handle.close=()=>{importZip.close();github.close();};
+ return handle;
 }

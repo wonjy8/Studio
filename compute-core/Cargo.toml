@@ -1,0 +1,16 @@
+[package]
+name = "studio-compute"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+[lib]
+crate-type = ["cdylib", "rlib"]
+[dependencies]
+flate2 = { version = "=1.1.9", default-features = false, features = ["rust_backend"] }
+serde_json = { version = "=1.0.149", features = ["preserve_order"] }
+memchr = "=2.8.3"
+[profile.release]
+lto = true
+opt-level = 3
+panic = "abort"

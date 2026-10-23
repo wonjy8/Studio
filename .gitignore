@@ -56,3 +56,5 @@ tmp/
 /backups/
 
 /image-preview/target/
+
+/compute-core/target/

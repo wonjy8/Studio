@@ -1,4 +1,4 @@
-import {matchesMaterialQuery,documentSearchText} from '../domain/material-index.js';
+import {createMaterialSearchIndex,documentSearchText} from '../domain/material-index.js';
 import {selectionToolbar,selectionControl,bindSelection} from './collection-selection.js';
 import {request,upload} from '../integrations/api.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
@@ -24,13 +24,17 @@ export async function bindMaterialsWorkspace({state,documentId,onSelectDocument,
  const current=++generation,alive=()=>root.isConnected&&generation===current;
  const gallery=root.querySelector('[data-material-gallery]'),message=root.querySelector('[data-material-message]'),dialog=root.querySelector('[data-material-dialog]');
  const search=root.querySelector('[data-material-search]'),category=root.querySelector('[data-material-category]'),date=root.querySelector('[data-material-date]'),sort=root.querySelector('[data-material-sort]'),linkForm=root.querySelector('[data-material-link-form]');
- const pendingPreviews=[];const selected=new Map();let items=[],docs=[],documentDates={},kind='all',busy=false;
+ const pendingPreviews=[];const selected=new Map();let items=[],docs=[],documentDates={},kind='all',busy=false,pageIndex=0,documentSnapshot=null,searchIndex=null;
+ const pageSize=60,pager=document.createElement('nav');pager.className='actions materials-pagination';pager.setAttribute('aria-label','자료 목록 페이지');gallery.after(pager);
+ const invalidateSearch=()=>{searchIndex?.dispose?.();documentSnapshot=searchIndex=null;};
+ const lifecycle=new MutationObserver(()=>{if(!alive()){searchIndex?.dispose?.();searchIndex=null;documentSnapshot=null;pendingPreviews.length=0;selected.clear();lifecycle.disconnect();}});lifecycle.observe(document.body,{childList:true,subtree:true});
  const workspaces=[state,...(state?.projects||[])].filter(project=>!project.project?.placeholder);
  const detail=(item)=>item.kind==='document'?(item.projectId?onOpenProject?.(item.projectId,item.documentId):onSelectDocument?.(item.documentId)):openItem(item);
  function documentItems(){
+  if(documentSnapshot)return documentSnapshot;
   const own=docs.map(doc=>({id:'doc-'+doc.id,kind:'document',title:doc.title,description:documentSearchText(doc,260),searchText:documentSearchText(doc),category:'내 문서',tags:[],uploadedAt:documentDates['account:'+doc.id]||null,documentId:doc.id,sourceDocument:doc,source:'내 문서'}));
   const project=workspaces.flatMap(space=>(space.documents||[]).map(doc=>({id:'doc-'+space.project.id+'-'+doc.id,kind:'document',title:doc.title,description:documentSearchText(doc,260),searchText:documentSearchText(doc),category:space.project.name,tags:[],uploadedAt:documentDates[space.project.id+':'+doc.id]||null,documentId:doc.id,sourceDocument:doc,projectId:space.project.id,source:space.project.name})));
-  return [...own,...project];
+  return documentSnapshot=[...own,...project];
  }
  function preview(item){
   const url='/api/files/'+encodeURIComponent(item.fileId);
@@ -55,17 +59,22 @@ export async function bindMaterialsWorkspace({state,documentId,onSelectDocument,
  function draw(){
   if(!alive())return;
   const query=search.value.trim().toLocaleLowerCase(),selectedDate=date.value,categoryValue=category.value;
-  const filtered=[...items,...documentItems()].filter(item=>(kind==='all'||(item.kind==='link'?kind==='link':item.kind==='document'?kind==='document':kindOf(item)===kind))&&(!categoryValue||item.category===categoryValue)&&(!selectedDate||item.uploadedAt&&dateValue(item.uploadedAt)===selectedDate)&&matchesMaterialQuery(item,query));
+  searchIndex??=createMaterialSearchIndex([...items,...documentItems()]);
+  const filtered=searchIndex(query).filter(item=>(kind==='all'||(item.kind==='link'?kind==='link':item.kind==='document'?kind==='document':kindOf(item)===kind))&&(!categoryValue||item.category===categoryValue)&&(!selectedDate||item.uploadedAt&&dateValue(item.uploadedAt)===selectedDate));
   filtered.sort((a,b)=>sort.value==='title'?a.title.localeCompare(b.title,'ko'):sort.value==='oldest'?(a.uploadedAt||Infinity)-(b.uploadedAt||Infinity):(b.uploadedAt||0)-(a.uploadedAt||0));
-  gallery.innerHTML=filtered.map(card).join('')||'<div class="workspace-empty">조건에 맞는 자료가 없습니다.</div>';
-  bindSelection({root,prefix:'material',items:filtered,selected,draw,onDelete:removeSelected,busy});gallery.querySelectorAll('button').forEach(button=>button.disabled=busy);[search,category,date,sort].forEach(input=>input.disabled=busy);
+  pageIndex=Math.min(pageIndex,Math.max(0,Math.ceil(filtered.length/pageSize)-1));
+  const pageItems=filtered.slice(pageIndex*pageSize,(pageIndex+1)*pageSize);
+  pager.innerHTML=`<button class="btn" type="button" data-material-page-prev ${pageIndex===0?'disabled':''}>이전</button><span role="status">${filtered.length.toLocaleString()}개 · ${pageIndex+1} / ${Math.max(1,Math.ceil(filtered.length/pageSize))}</span><button class="btn" type="button" data-material-page-next ${(pageIndex+1)*pageSize>=filtered.length?'disabled':''}>다음</button>`;
+  pager.querySelector('[data-material-page-prev]').onclick=()=>{pageIndex--;draw();};pager.querySelector('[data-material-page-next]').onclick=()=>{pageIndex++;draw();};
+  gallery.innerHTML=pageItems.map(card).join('')||'<div class="workspace-empty">조건에 맞는 자료가 없습니다.</div>';
+  bindSelection({root,prefix:'material',items:pageItems,selected,draw,onDelete:removeSelected,busy});gallery.querySelectorAll('button').forEach(button=>button.disabled=busy);[search,category,date,sort].forEach(input=>input.disabled=busy);
   gallery.querySelectorAll('[data-material-open]').forEach(button=>button.onclick=()=>detail(filtered.find(item=>item.id===button.dataset.materialOpen)));
   gallery.querySelectorAll('[data-material-edit]').forEach(button=>button.onclick=()=>edit(filtered.find(item=>item.id===button.dataset.materialEdit)));
   gallery.querySelectorAll('[data-material-delete]').forEach(button=>button.onclick=()=>void remove(filtered.find(item=>item.id===button.dataset.materialDelete)));
   gallery.querySelectorAll('[data-material-reference]').forEach(button=>button.onclick=()=>void addToReference(filtered.find(item=>item.id===button.dataset.materialReference)));
  }
  function setMessage(text,error=false){message.textContent=text;message.setAttribute('role',error?'alert':'status');}
- function refresh(){return Promise.all([request('materials'),request('document-library')]).then(([result,accountDocs])=>{items=result.items||[];docs=accountDocs.documents||[];documentDates=result.documentDates||{};for(const [id,prior] of selected){const now=[...items,...documentItems()].find(item=>item.id===id);if(!now||(now.kind==='document'?JSON.stringify(now.sourceDocument)!==JSON.stringify(prior.sourceDocument):now.updatedAt!==prior.updatedAt))selected.delete(id);}updateCategories();draw();});}
+ function refresh(){return Promise.all([request('materials'),request('document-library')]).then(([result,accountDocs])=>{if(!alive())return;items=result.items||[];docs=accountDocs.documents||[];documentDates=result.documentDates||{};invalidateSearch();for(const [id,prior] of selected){const now=[...items,...documentItems()].find(item=>item.id===id);if(!now||(now.kind==='document'?JSON.stringify(now.sourceDocument)!==JSON.stringify(prior.sourceDocument):now.updatedAt!==prior.updatedAt))selected.delete(id);}updateCategories();draw();});}
  function openItem(item){
   if(item.kind==='document'){detail(item);return;}
   const body=item.kind==='link'?(item.previewImage?'<img class="materials-dialog-image" src="/api/materials/'+esc(item.id)+'/preview-image" alt="">':'')+(item.previewTitle?'<h2>'+esc(item.previewTitle)+'</h2>':'<h2>'+esc(item.title)+'</h2>')+(item.previewDescription?'<p>'+esc(item.previewDescription)+'</p>':'')+'<a class="btn primary" href="'+esc(safeExternal(item.url))+'" target="_blank" rel="noopener noreferrer">링크 열기</a>':(item.mimeType||'').startsWith('image/')?'<img class="materials-dialog-image" src="/api/files/'+esc(item.fileId)+'" alt="'+esc(item.title)+'">':(item.mimeType||'').startsWith('video/')?'<video class="materials-dialog-video" controls autoplay src="/api/files/'+esc(item.fileId)+'"></video>':'<div class="materials-file-open">'+icon('tabler-file-text')+'<h2>'+esc(item.title)+'</h2><p>'+esc(item.mimeType||'파일')+' · '+(item.size||0)+' bytes</p><a class="btn primary" href="/api/files/'+esc(item.fileId)+'?download">다운로드</a></div>';
@@ -116,11 +125,11 @@ export async function bindMaterialsWorkspace({state,documentId,onSelectDocument,
   await request('reference-library',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   setMessage('자료로 레퍼런스를 만들었습니다.');
  }
- root.querySelectorAll('[data-material-kind]').forEach(button=>button.onclick=()=>{selected.clear();kind=button.dataset.materialKind;root.querySelectorAll('[data-material-kind]').forEach(tab=>{tab.setAttribute('aria-pressed',String(tab===button));tab.classList.toggle('active',tab===button);});draw();});
- [search,category,date,sort].forEach(input=>input.addEventListener('input',()=>{selected.clear();draw();}));
+ root.querySelectorAll('[data-material-kind]').forEach(button=>button.onclick=()=>{selected.clear();pageIndex=0;kind=button.dataset.materialKind;root.querySelectorAll('[data-material-kind]').forEach(tab=>{tab.setAttribute('aria-pressed',String(tab===button));tab.classList.toggle('active',tab===button);});draw();});
+ [search,category,date,sort].forEach(input=>input.addEventListener('input',()=>{selected.clear();pageIndex=0;draw();}));
  root.querySelector('[data-material-link-add]').onclick=()=>{linkForm.hidden=!linkForm.hidden;if(!linkForm.hidden)linkForm.elements.url.focus();};
  root.querySelector('[data-material-link-close]').onclick=()=>{linkForm.hidden=true;};
- linkForm.onsubmit=async event=>{event.preventDefault();const form=event.target,submit=form.querySelector('[type=submit]'),status=form.querySelector('[role=status]');submit.disabled=true;status.textContent='미리보기를 불러오는 중…';try{const data=Object.fromEntries(new FormData(form));const result=await request('materials',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});items.unshift(result.item);updateCategories();form.reset();form.hidden=true;draw();setMessage('링크를 자료에 추가했습니다.');}catch(error){status.textContent=error.message;}finally{submit.disabled=false;}};
+ linkForm.onsubmit=async event=>{event.preventDefault();const form=event.target,submit=form.querySelector('[type=submit]'),status=form.querySelector('[role=status]');submit.disabled=true;status.textContent='미리보기를 불러오는 중…';try{const data=Object.fromEntries(new FormData(form));const result=await request('materials',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});items.unshift(result.item);invalidateSearch();updateCategories();form.reset();form.hidden=true;draw();setMessage('링크를 자료에 추가했습니다.');}catch(error){status.textContent=error.message;}finally{submit.disabled=false;}};
  root.querySelector('[data-material-preview-retry]').onclick=async()=>{
   if(busy)return;busy=true;const button=root.querySelector('[data-material-preview-retry]');button.disabled=true;
   try{while(pendingPreviews.length){await pendingPreviews[0]();pendingPreviews.shift();}await refresh();setMessage('미리보기를 저장했습니다. 원본은 다시 업로드하지 않았습니다.');}catch(error){setMessage('원본은 저장되어 있습니다. 미리보기 저장 실패: '+error.message,true);}finally{busy=false;if(alive()){button.disabled=false;button.hidden=!pendingPreviews.length;}}
@@ -129,7 +138,7 @@ export async function bindMaterialsWorkspace({state,documentId,onSelectDocument,
  try{
   const [library,accountDocs]=await Promise.all([request('materials'),request('document-library')]);
   if(!alive())return;
-  items=library.items||[];documentDates=library.documentDates||{};docs=accountDocs.documents||[];
+  items=library.items||[];documentDates=library.documentDates||{};invalidateSearch();docs=accountDocs.documents||[];
   updateCategories();draw();
  }catch(error){if(alive())setMessage(error.message,true);}
 }
