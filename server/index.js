@@ -1,4 +1,4 @@
-import {filePreviewRoutes,previewUsage} from './file-previews.js';
+import {filePreviewRoutes,previewUsage,serveFilePreview} from './file-previews.js';
 import {privateNotModified} from './private-revalidation.js';
 import {installGracefulShutdown} from './shutdown.js';
 import {documentFileRoutes} from './document-files.js';
@@ -130,7 +130,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleInvitations({path,req,session,json,readJson}))return;
       if(await handleEquipmentSharing({path,url,req,session,json,readJson}))return;
       if(await handleWorkspaceHomeEvents({path,req,session,json,readJson,assertLiveMutation})){if(!['GET','HEAD'].includes(req.method)&&res.statusCode<400)calendar.kick(session.user_id);return;}
-      if(await handleSchool({path,req,session,json,readJson})){if(req.method!=='GET'&&res.statusCode>=200&&res.statusCode<300)calendar.kick(session.user_id);return;}
+      if(await handleSchool({path,req,res,session,json,readJson})){if(req.method!=='GET'&&res.statusCode>=200&&res.statusCode<300)calendar.kick(session.user_id);return;}
       if(await handleScripture({path,url,req,session,json,readJson,readBody:body,assertLiveMutation}))return;
       if(await handleDocumentLibrary({path,req,res,session,json,readJson}))return;
       if(await handleReferenceLibrary({path,req,session,json,readJson}))return;
@@ -179,6 +179,8 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         if(path==='/api/session'&&req.method==='GET') return json(200,{ok:true,appVersion:process.env.STUDIO_REVISION||'development',...siteCapabilities(db,uid),passwordChangeRequired:passwordChangeRequired(db,uid),account:db.prepare("SELECT u.id,u.username,COALESCE(p.name,'') name FROM users u LEFT JOIN account_profiles p ON p.user_id=u.id WHERE u.id=?").get(uid)});
         if(path==='/api/logout'&&req.method==='POST') {db.prepare('DELETE FROM sessions WHERE token=?').run(digest(cookie));setCookie('',0);return json(200,{ok:true});}
         if(path==='/api/workspace'&&req.method==='GET') {
+          const revision=db.prepare('SELECT revision FROM workspaces WHERE user_id=?').get(uid)?.revision||0;
+          if(privateNotModified(req,res,session,'workspace',revision))return;
           const row=db.prepare('SELECT revision,body FROM workspaces WHERE user_id=?').get(uid);
           return json(200,row?{revision:row.revision,state:reconcileEquipment(db,uid,linkedWorkspace(db,uid,JSON.parse(row.body)))}:{revision:0,state:null});
         }
@@ -187,8 +189,8 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           if(!validateWorkspace(data.state))return json(400,{error:'Invalid workspace'});
           try{const previous=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(uid),saved=writeWorkspace(db,uid,linkedWorkspace(db,uid,data.state),data.revision);registerNewProjectDocuments(db,uid,saved.state,previous?JSON.parse(previous.body):null);calendar.kick(uid);tasksGoogle.kick(uid);return json(200,saved);}catch(e){return json(e.status||500,{error:e.message});}
         }
-        if(await handleDocumentFiles({path,req,res,session,json,body,readJson}))return;
         if(await handleFilePreviews({path,req,session,json,body}))return;
+        if(await handleDocumentFiles({path,url,req,res,session,json,body,readJson}))return;
         if((path==='/api/files'||path==='/api/school/files')&&req.method==='POST') {
           const schoolPrivate=path==='/api/school/files';
           const type=req.headers['content-type'];
@@ -203,21 +205,14 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           return json(201,{id,url:`/api/${schoolPrivate?'school/':''}files/${id}`});
         }
         const schoolFile=path.match(/^\/api\/school\/files\/([a-f0-9-]{36})$/);
-        if(schoolFile&&req.method==='GET'){const file=db.prepare('SELECT id,name,type FROM school_files WHERE id=? AND user_id=?').get(schoolFile[1],uid);res.setHeader('Cache-Control','private, no-store');if(!file)return json(404,{error:'Not found'});if(privateNotModified(req,res,session,'school-file:'+file.id,1))return;res.setHeader('Content-Type',file.type);res.setHeader('Content-Disposition',`inline; filename*=UTF-8''${encodeURIComponent(file.name).replace(/'/g,'%27')}`);res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");return res.end(db.prepare('SELECT bytes FROM school_files WHERE id=? AND user_id=?').get(file.id,uid).bytes);}
+        if(schoolFile&&req.method==='GET'){const file=db.prepare('SELECT id,name,type FROM school_files WHERE id=? AND user_id=?').get(schoolFile[1],uid);res.setHeader('Cache-Control','private, no-store');if(!file)return json(404,{error:'Not found'});if(serveFilePreview(db,{resource:'school/files',file,req,res,session,url,json}))return;if(privateNotModified(req,res,session,'school-file:'+file.id,1))return;res.setHeader('Content-Type',file.type);res.setHeader('Content-Disposition',`inline; filename*=UTF-8''${encodeURIComponent(file.name).replace(/'/g,'%27')}`);res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");return res.end(db.prepare('SELECT bytes FROM school_files WHERE id=? AND user_id=?').get(file.id,uid).bytes);}
         const match=path.match(/^\/api\/files\/([a-f0-9-]{36})$/);
         if(match&&req.method==='GET') {
           let file=db.prepare('SELECT id,user_id,name,type FROM files WHERE id=? AND user_id=?').get(match[1],uid);
           if(!file){for(const link of db.prepare('SELECT owner_id,project_id FROM project_accounts WHERE user_id=?').all(uid)){const row=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(link.owner_id);if(!row)continue;const state=reconcileReferences(db,link.owner_id,JSON.parse(row.body)),project=[state,...(state.projects||[])].find(p=>(p.project.id||'project-main')===link.project_id);if(project?.refs.some(ref=>ref.libraryId&&(ref.images.includes('/api/files/'+match[1])||(ref.files||[]).includes(match[1])))){file=db.prepare('SELECT id,user_id,name,type FROM files WHERE id=? AND user_id=?').get(match[1],link.owner_id);if(file)break;}}}
           res.setHeader('Cache-Control','private, no-store');
           if(!file) return json(404,{error:'Not found'});
-          if(['1','reference'].includes(url.searchParams.get('preview'))){
-            const variant=url.searchParams.get('preview')==='reference'?'reference':'thumbnail';
-            const preview=db.prepare('SELECT type,digest FROM file_previews WHERE file_id=? AND variant=?').get(file.id,variant);
-            if(!preview)return json(404,{error:'Preview unavailable; open the original explicitly'});
-            if(privateNotModified(req,res,session,'file-preview:'+file.id+':'+variant,preview.digest))return;
-            res.setHeader('Content-Type',preview.type);res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");
-            return res.end(db.prepare('SELECT bytes FROM file_previews WHERE file_id=? AND variant=?').get(file.id,variant).bytes);
-          }
+          if(serveFilePreview(db,{resource:'files',file,req,res,session,url,json}))return;
           if(privateNotModified(req,res,session,'file:'+file.id,1))return;
           res.setHeader('Content-Type',file.type);
           res.setHeader('Content-Disposition',`${new URL(req.url,'http://localhost').searchParams.has('download')?'attachment':'inline'}; filename*=UTF-8''${encodeURIComponent(file.name).replace(/'/g,'%27')}`);

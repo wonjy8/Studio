@@ -1,6 +1,6 @@
 // These are display URLs only. Stored reference URLs continue to name originals.
 export function imageVariantUrl(url,variant='reference'){
- return /^\/api\/files\/[a-f0-9-]{36}$/i.test(url)?url+'?preview='+(variant==='thumbnail'?'1':'reference'):url;
+ return /^\/api\/(?:files|school\/files|document-files)\/[a-f0-9-]{36}$/i.test(url)?url+'?preview='+(variant==='thumbnail'?'1':'reference'):url;
 }
 
 const bound=new WeakSet();
