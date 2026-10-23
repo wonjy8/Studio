@@ -63,3 +63,9 @@ button.theme-mode-toggle[aria-checked=true]{background:var(--selected)}
 /* Document typing has no input box; a subtle focus wash keeps keyboard location visible. */
 .document-paper .document-editable:focus-visible{outline:none!important;box-shadow:none!important;background-image:linear-gradient(color-mix(in srgb,var(--accent) 4%,transparent),color-mix(in srgb,var(--accent) 4%,transparent))}
 @media(forced-colors:active){html .document-paper .document-editable:focus-visible,.document-tail:focus-visible{outline:2px solid Highlight!important;outline-offset:2px}}
+
+/* Reference module additions are actions, not compact list selectors. */
+.reference-module-inline button{min-height:var(--control-height);padding:var(--control-padding-y) var(--control-padding);font-size:var(--text-body);line-height:1.25rem;border-radius:var(--r-control)}
+
+.control-tooltip{position:fixed;z-index:1000;max-width:calc(100vw - 16px);padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-control);background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font-size:var(--text-support);line-height:1.5;overflow-wrap:anywhere}
+@media print{.control-tooltip{display:none!important}}
