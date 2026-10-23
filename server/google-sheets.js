@@ -1,3 +1,4 @@
+import {backgroundInterval} from './background-interval.js';
 import {limitedResponseText} from './limited-response.js';
 import {googleOAuthAttempts} from './google-oauth-attempts.js';
 import {randomBytes,createHash,createCipheriv,createDecipheriv,randomUUID} from 'node:crypto';
@@ -50,7 +51,7 @@ export async function googleSheetsService(db,{origin,dir,fetcher=fetch,clientId=
  }
  function sync(id){if(running.has(id))return running.get(id);const work=(async()=>{const link=db.prepare('SELECT * FROM google_sheet_links WHERE id=?').get(id);if(!link)return;try{await syncOne(link);}catch(error){if(!closed)db.prepare('UPDATE google_sheet_links SET error=? WHERE id=?').run(error.message,id);throw error;}})().finally(()=>running.delete(id));running.set(id,work);return work;}
  async function tick(){if(closed||!configured||ticking)return;ticking=true;try{for(const {id}of db.prepare('SELECT id FROM google_sheet_links').all()){if(closed)break;try{await sync(id);}catch{}}}finally{ticking=false;}}
- if(configured&&pollMs>0){timer=setInterval(()=>void tick(),pollMs);timer.unref();}
+ if(configured&&pollMs>0){timer=backgroundInterval(tick,pollMs,{label:'Sheets'});timer.unref();}
  const publicLink=link=>link?{id:link.id,title:link.title,url:sheetUrl(link.spreadsheet_id)+'#gid='+link.tab_id,lastSync:link.last_sync,error:link.error,pending:Boolean(link.pending)}:null;
  async function routes({path,url,req,res,session,json,readJson}){
   if(path==='/oauth/google/callback'&&req.method==='GET'){

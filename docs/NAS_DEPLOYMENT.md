@@ -116,3 +116,19 @@ Logging limits are not overridden without checking the existing driver and reten
 policy. Large logs consume storage and may contribute reclaimable filesystem cache;
 they are not alone evidence of a JavaScript memory leak. Preserve failure-time logs
 and process/container mapping before proposing operational changes.
+
+Background integration timers contain their own rejected promises, including failures
+in the initial database enumeration before a per-account sync starts. An unexpected
+cycle failure emits a static, rate-limited warning and retries on the existing next
+interval; it no longer becomes an unhandled rejection that exits Node. Provider and
+HTTP request failures still surface through their existing error paths. This is not
+a global uncaught-exception suppression or proof of the cause of any NAS restart.
+Shutdown also avoids writing integration error/diagnostic records after the DB closes.
+
+A local-only container regression is available as `node tools/qa-nas-container.mjs`
+after building a `studio-nas-candidate:<tag>` image and selecting it through
+`STUDIO_LOCAL_TEST_IMAGE`. It refuses a nonlocal Docker endpoint, creates its own
+synthetic data volume/bridge and loopback port, verifies health and origin access,
+signals SIGTERM during an upload, restarts with the same volume and verifies stored
+bytes/SQLite integrity. It removes only its own fixture resources. It never launches
+a real Cloudflare Tunnel or mounts an existing Studio data volume.
