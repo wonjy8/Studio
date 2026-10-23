@@ -1,3 +1,4 @@
+import {privateNotModified} from './private-revalidation.js';
 import {createHash,randomUUID} from 'node:crypto';
 const fail=(message,status)=>Object.assign(Error(message),{status});
 const uuid=value=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
@@ -36,7 +37,7 @@ export function documentFileRoutes(db){
    if(data.confirm!==true||!Array.isArray(data.ids)||!data.ids.length||data.ids.length>10000||new Set(data.ids).size!==data.ids.length||data.ids.some(id=>!uuid(id))||(typeof data.expectedSnapshot!=='string'||!/^[a-f0-9]{64}$/.test(data.expectedSnapshot)))throw fail('정리할 이미지와 영구 삭제 확인이 필요합니다.',400);
    db.exec('BEGIN IMMEDIATE');try{const preview=inspect(uid,data.protectedIds),candidates=new Set(preview.files.map(file=>file.id));if(preview.expectedSnapshot!==data.expectedSnapshot||data.ids.some(id=>!candidates.has(id)))throw fail('이미지 사용 상태가 변경되었습니다. 다시 확인하세요.',409);for(const id of data.ids)db.prepare('DELETE FROM document_files WHERE id=? AND user_id=?').run(id,uid);db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}json(200,{deleted:data.ids.length});return true;
   }
-  const match=path.match(/^\/api\/document-files\/([a-f0-9-]{36})$/i);if(match&&req.method==='GET'){const file=db.prepare('SELECT * FROM document_files WHERE id=? AND user_id=?').get(match[1].toLowerCase(),uid);res.setHeader('Cache-Control','private, no-store');if(!file){json(404,{error:'Not found'});return true;}res.setHeader('Content-Type',file.type);res.setHeader('Content-Disposition',"inline; filename*=UTF-8''"+encodeURIComponent(file.name).replace(/'/g,'%27'));res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");res.end(file.bytes);return true;}
+  const match=path.match(/^\/api\/document-files\/([a-f0-9-]{36})$/i);if(match&&req.method==='GET'){const file=db.prepare('SELECT id,name,type,digest FROM document_files WHERE id=? AND user_id=?').get(match[1].toLowerCase(),uid);res.setHeader('Cache-Control','private, no-store');if(!file){json(404,{error:'Not found'});return true;}if(privateNotModified(req,res,session,'document-file:'+file.id,file.digest))return true;res.setHeader('Content-Type',file.type);res.setHeader('Content-Disposition',"inline; filename*=UTF-8''"+encodeURIComponent(file.name).replace(/'/g,'%27'));res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");res.end(db.prepare('SELECT bytes FROM document_files WHERE id=? AND user_id=?').get(file.id,uid).bytes);return true;}
   json(405,{error:'Method not allowed'});return true;
  };
 }

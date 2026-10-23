@@ -1,3 +1,4 @@
+import {privateNotModified} from './private-revalidation.js';
 import {installGracefulShutdown} from './shutdown.js';
 import {documentFileRoutes} from './document-files.js';
 import {workspaceHomeEventRoutes} from './workspace-home-events.js';
@@ -130,7 +131,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleWorkspaceHomeEvents({path,req,session,json,readJson,assertLiveMutation})){if(!['GET','HEAD'].includes(req.method)&&res.statusCode<400)calendar.kick(session.user_id);return;}
       if(await handleSchool({path,req,session,json,readJson})){if(req.method!=='GET'&&res.statusCode>=200&&res.statusCode<300)calendar.kick(session.user_id);return;}
       if(await handleScripture({path,url,req,session,json,readJson,readBody:body,assertLiveMutation}))return;
-      if(await handleDocumentLibrary({path,req,session,json,readJson}))return;
+      if(await handleDocumentLibrary({path,req,res,session,json,readJson}))return;
       if(await handleReferenceLibrary({path,req,session,json,readJson}))return;
       if(await handleReferenceBoards({path,req,session,json,readJson}))return;
       if(await handleMaterials({path,req,res,session,json,readJson}))return;
@@ -200,17 +201,18 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           return json(201,{id,url:`/api/${schoolPrivate?'school/':''}files/${id}`});
         }
         const schoolFile=path.match(/^\/api\/school\/files\/([a-f0-9-]{36})$/);
-        if(schoolFile&&req.method==='GET'){const file=db.prepare('SELECT * FROM school_files WHERE id=? AND user_id=?').get(schoolFile[1],uid);res.setHeader('Cache-Control','private, no-store');if(!file)return json(404,{error:'Not found'});res.setHeader('Content-Type',file.type);res.setHeader('Content-Disposition',`inline; filename*=UTF-8''${encodeURIComponent(file.name).replace(/'/g,'%27')}`);res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");return res.end(file.bytes);}
+        if(schoolFile&&req.method==='GET'){const file=db.prepare('SELECT id,name,type FROM school_files WHERE id=? AND user_id=?').get(schoolFile[1],uid);res.setHeader('Cache-Control','private, no-store');if(!file)return json(404,{error:'Not found'});if(privateNotModified(req,res,session,'school-file:'+file.id,1))return;res.setHeader('Content-Type',file.type);res.setHeader('Content-Disposition',`inline; filename*=UTF-8''${encodeURIComponent(file.name).replace(/'/g,'%27')}`);res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");return res.end(db.prepare('SELECT bytes FROM school_files WHERE id=? AND user_id=?').get(file.id,uid).bytes);}
         const match=path.match(/^\/api\/files\/([a-f0-9-]{36})$/);
         if(match&&req.method==='GET') {
-          let file=db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(match[1],uid);
-          if(!file){for(const link of db.prepare('SELECT owner_id,project_id FROM project_accounts WHERE user_id=?').all(uid)){const row=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(link.owner_id);if(!row)continue;const state=reconcileReferences(db,link.owner_id,JSON.parse(row.body)),project=[state,...(state.projects||[])].find(p=>(p.project.id||'project-main')===link.project_id);if(project?.refs.some(ref=>ref.libraryId&&(ref.images.includes('/api/files/'+match[1])||(ref.files||[]).includes(match[1])))){file=db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(match[1],link.owner_id);if(file)break;}}}
+          let file=db.prepare('SELECT id,user_id,name,type FROM files WHERE id=? AND user_id=?').get(match[1],uid);
+          if(!file){for(const link of db.prepare('SELECT owner_id,project_id FROM project_accounts WHERE user_id=?').all(uid)){const row=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(link.owner_id);if(!row)continue;const state=reconcileReferences(db,link.owner_id,JSON.parse(row.body)),project=[state,...(state.projects||[])].find(p=>(p.project.id||'project-main')===link.project_id);if(project?.refs.some(ref=>ref.libraryId&&(ref.images.includes('/api/files/'+match[1])||(ref.files||[]).includes(match[1])))){file=db.prepare('SELECT id,user_id,name,type FROM files WHERE id=? AND user_id=?').get(match[1],link.owner_id);if(file)break;}}}
           res.setHeader('Cache-Control','private, no-store');
           if(!file) return json(404,{error:'Not found'});
+          if(privateNotModified(req,res,session,'file:'+file.id,1))return;
           res.setHeader('Content-Type',file.type);
           res.setHeader('Content-Disposition',`${new URL(req.url,'http://localhost').searchParams.has('download')?'attachment':'inline'}; filename*=UTF-8''${encodeURIComponent(file.name).replace(/'/g,'%27')}`);
           res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");
-          return res.end(file.bytes);
+          return res.end(db.prepare('SELECT bytes FROM files WHERE id=? AND user_id=?').get(file.id,file.user_id).bytes);
         }
         return json(404,{error:'Not found'});
       }

@@ -132,3 +132,19 @@ synthetic data volume/bridge and loopback port, verifies health and origin acces
 signals SIGTERM during an upload, restarts with the same volume and verifies stored
 bytes/SQLite integrity. It removes only its own fixture resources. It never launches
 a real Cloudflare Tunnel or mounts an existing Studio data volume.
+
+### Private file and document revalidation
+
+File and personal document GETs use session-bound opaque ETags and `private,
+no-cache, must-revalidate` with `Vary: Cookie`. Every reuse contacts Studio to
+check the current session and resource access; an unchanged file returns 304
+without selecting its BLOB. The browser manages its own bounded HTTP cache;
+Studio does not put private responses in a public service worker cache or enable
+offline access. Logout, another session, deleted files and revoked project access
+cannot validate the previous response. Existing downloaded local copies remain
+outside Studio's control.
+
+Opening a personal document from its list revalidates the library before mounting
+the editor. A failed check leaves the list open and allows an explicit retry;
+there is no background replacement of an active editor or unsaved draft. Project
+and School editor refresh paths are unchanged in this first unit.
