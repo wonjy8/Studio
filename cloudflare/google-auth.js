@@ -619,7 +619,7 @@ export function createGoogleAuth({ fetcher = fetch } = {}) {
           configured: ready,
           csrfToken: await sha256("login-csrf\0" + login),
           requiredScopes,
-          legacyProofIssuance: "separate-verified-process-required",
+          legacyLinking: "disabled",
         },
         200,
         [cookie("__Host-studio_login", login, 600)],
