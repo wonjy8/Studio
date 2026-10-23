@@ -153,16 +153,22 @@ export async function googleEdgeFixture(t) {
         "https://www.googleapis.com/calendar/v3/users/me/calendarList",
       )
     )
-      return flags.calendarUnavailable
-        ? json({ error: { code: 503 } }, 503)
-        : json({
-            items: [
-              {
-                id: "fixture-primary",
-                accessRole: flags.readonlyCalendar ? "reader" : "owner",
-              },
+      return flags.calendarPages
+        ? json(
+            flags.calendarPages[
+              new URL(url).searchParams.get("pageToken") || "first"
             ],
-          });
+          )
+        : flags.calendarUnavailable
+          ? json({ error: { code: 503 } }, 503)
+          : json({
+              items: [
+                {
+                  id: "fixture-primary",
+                  accessRole: flags.readonlyCalendar ? "reader" : "owner",
+                },
+              ],
+            });
     throw Error("Unexpected external URL in fixture");
   };
   const worker = createWorker({ googleFetcher: fetcher }),

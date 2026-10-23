@@ -35,3 +35,9 @@ Fixtures use generated test signing keys and fake tokens only. Node tests cover 
 Real local workerd/D1 exercises the OAuth callback with a mock Google provider, RSA/AES, PKCE/state/nonce, encrypted persistence, replay and refresh revocation. It also runs foundation concurrent/interleaved reads and writes. CI is PR-only and includes imported document/comment/emoji domain paths. No production identity or account was used. Production Google OAuth, browser onboarding and cross-browser behavior are not yet verified.
 
 Sources: https://developers.google.com/identity/openid-connect/openid-connect ; https://developers.google.com/identity/protocols/oauth2/web-server ; https://developers.google.com/workspace/drive/api/guides/api-specific-auth .
+
+## Updated deployment scope
+
+The Cloudflare service uses new Google registrations. Legacy NAS account linking is disabled at both start and callback, even for preexisting proof tickets. The preserved schema does not authorize migration. No legacy proof issuer or migration UI is planned in this scope. Administrator assignment remains an explicit reviewed operation, never a first-signup or email-match side effect.
+
+Every successful credential replacement rotates its connection generation, invalidating prior sessions. This fences delayed refresh and readiness failures from a newer sign-in. Calendar readiness follows up to 20 pages, rejects repeated/invalid cursors, and leaves setup incomplete if no writable calendar can be established.

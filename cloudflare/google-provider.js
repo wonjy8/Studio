@@ -101,22 +101,40 @@ export function googleProvider(fetcher = fetch) {
       }
     if (calendar !== "missing")
       try {
-        const list = await json(
-          "https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=250&fields=items(id,accessRole),nextPageToken",
-          { headers },
-        );
-        if (!Array.isArray(list.items))
-          throw failure("INVALID_GOOGLE_RESPONSE", 502);
-        if (
-          hasRefresh &&
-          list.items.some(
-            (c) =>
-              typeof c.id === "string" &&
-              ["owner", "writer"].includes(c.accessRole),
-          )
-        )
-          calendar = "verified";
-        else issue = "GOOGLE_WRITABLE_CALENDAR_REQUIRED";
+        let pageToken = null;
+        const seen = new Set();
+        for (let page = 0; page < 20; page++) {
+          const url = new URL(
+            "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+          );
+          url.searchParams.set("maxResults", "250");
+          url.searchParams.set("fields", "items(id,accessRole),nextPageToken");
+          if (pageToken) url.searchParams.set("pageToken", pageToken);
+          const list = await json(url.href, { headers });
+          if (!Array.isArray(list.items))
+            throw failure("INVALID_GOOGLE_RESPONSE", 502);
+          if (
+            hasRefresh &&
+            list.items.some(
+              (c) =>
+                typeof c.id === "string" &&
+                ["owner", "writer"].includes(c.accessRole),
+            )
+          ) {
+            calendar = "verified";
+            break;
+          }
+          const next = list.nextPageToken;
+          if (next === undefined || next === "") break;
+          if (typeof next !== "string" || next.length > 4096 || seen.has(next))
+            throw failure("INVALID_GOOGLE_RESPONSE", 502);
+          seen.add(next);
+          pageToken = next;
+          if (page === 19)
+            throw failure("GOOGLE_CALENDAR_PAGINATION_LIMIT", 502);
+        }
+        if (calendar !== "verified")
+          issue = "GOOGLE_WRITABLE_CALENDAR_REQUIRED";
       } catch (error) {
         if (error.code === "GOOGLE_GRANT_REVOKED") throw error;
         issue = error.code;

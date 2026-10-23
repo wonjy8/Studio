@@ -95,23 +95,23 @@ test("one-use verified legacy ticket preserves stable account and administrator 
       Date.now() + 60000,
     );
   const flow = await f.begin({
-      mode: "link",
-      linkTicket: ticket,
-      confirmLink: true,
-      confirmCreateAccount: false,
-    }),
-    response = await f.finish(flow);
-  assert.equal(response.status, 200, await response.clone().text());
-  assert.equal(f.accountId, "legacy");
-  assert.deepEqual((await f.session()).roles, ["highest_administrator"]);
-  assert.ok(
-    f.db.sqlite.prepare("SELECT consumed_at FROM cf_legacy_link_tickets").get()
-      .consumed_at,
+    mode: "link",
+    linkTicket: ticket,
+    confirmLink: true,
+  });
+  assert.equal(flow.response.status, 403);
+  assert.equal(
+    f.db.sqlite.prepare("SELECT count(*) n FROM cf_google_identities").get().n,
+    0,
   );
   assert.equal(
-    (await f.begin({ mode: "link", linkTicket: ticket, confirmLink: true }))
-      .response.status,
-    403,
+    f.db.sqlite.prepare("SELECT consumed_at FROM cf_legacy_link_tickets").get()
+      .consumed_at,
+    null,
+  );
+  assert.equal(
+    f.db.sqlite.prepare("SELECT role FROM cf_role_bindings").get().role,
+    "highest_administrator",
   );
 });
 test("partial/denied scopes, missing offline consent, readonly calendars and disabled services do not unlock the app", async (t) => {
@@ -252,47 +252,7 @@ test("start requires CSRF, configured secrets and durable rate budget", async (t
     false,
   );
 });
-test("legacy proof consumed during provider roundtrip cannot link or change administrator state", async (t) => {
-  const f = await googleEdgeFixture(t),
-    ticket = randomToken();
-  f.db.sqlite
-    .prepare("INSERT INTO cf_accounts VALUES(?,?,?,?)")
-    .run("legacy", "active", "Legacy", 1);
-  f.db.sqlite
-    .prepare("INSERT INTO cf_role_bindings VALUES(?,?,?)")
-    .run("legacy", "administrator", "reviewed_legacy_mapping");
-  f.db.sqlite
-    .prepare("INSERT INTO cf_legacy_link_tickets VALUES(?,?,?,?,NULL)")
-    .run(
-      await sha256(ticket),
-      "legacy",
-      "operator_reviewed",
-      Date.now() + 60000,
-    );
-  const flow = await f.begin({
-    mode: "link",
-    linkTicket: ticket,
-    confirmLink: true,
-  });
-  f.flags.beforeDrive = () =>
-    f.db.sqlite
-      .prepare("UPDATE cf_legacy_link_tickets SET consumed_at=1")
-      .run();
-  const response = await f.finish(flow);
-  assert.equal(response.status, 409);
-  assert.equal(
-    f.db.sqlite.prepare("SELECT count(*) n FROM cf_google_identities").get().n,
-    0,
-  );
-  assert.equal(
-    f.db.sqlite.prepare("SELECT count(*) n FROM cf_sessions").get().n,
-    0,
-  );
-  assert.equal(
-    f.db.sqlite.prepare("SELECT role FROM cf_role_bindings").get().role,
-    "administrator",
-  );
-});
+
 test("account disabled during provider checks is not recreated or authenticated", async (t) => {
   const f = await googleEdgeFixture(t),
     flow = await f.begin();
@@ -427,4 +387,47 @@ test("provider redirects are rejected without following or forwarding credential
     (e) => e.code === "GOOGLE_REDIRECT_REJECTED",
   );
   assert.equal(calls, 1);
+});
+test("late invalid_grant cannot revoke a newer successful signin", async (t) => {
+  const f = await googleEdgeFixture(t);
+  assert.equal((await f.finish(await f.begin())).status, 200);
+  f.db.sqlite.prepare("UPDATE cf_google_tokens SET access_expires_at=1").run();
+  let entered, release;
+  const waiting = new Promise((r) => (entered = r)),
+    blocked = new Promise((r) => (release = r));
+  f.flags.beforeRefresh = async () => {
+    entered();
+    await blocked;
+  };
+  const stale = f.protectedPost("/api/edge/auth/verify");
+  await waiting;
+  assert.equal(
+    (await f.finish(await f.begin({ confirmAccountSwitch: true }))).status,
+    200,
+  );
+  assert.equal((await f.session()).setup.ready, true);
+  f.flags.refreshRevoked = true;
+  release();
+  assert.equal((await stale).status, 401);
+  assert.equal((await f.session()).setup.ready, true);
+  assert.equal(
+    f.db.sqlite.prepare("SELECT count(*) n FROM cf_google_tokens").get().n,
+    1,
+  );
+});
+test("calendar readiness follows bounded pages and rejects repeated cursors", async (t) => {
+  const f = await googleEdgeFixture(t);
+  f.flags.calendarPages = {
+    first: {
+      items: [{ id: "read", accessRole: "reader" }],
+      nextPageToken: "next",
+    },
+    next: { items: [{ id: "write", accessRole: "writer" }] },
+  };
+  assert.equal((await f.finish(await f.begin())).status, 200);
+  assert.equal((await f.session()).setup.ready, true);
+  f.flags.calendarPages.next = { items: [], nextPageToken: "next" };
+  assert.equal((await f.protectedPost("/api/edge/auth/verify")).status, 200);
+  const state = await f.session();
+  assert.equal(state.setup.ready, false);
 });

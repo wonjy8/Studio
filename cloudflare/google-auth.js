@@ -102,6 +102,7 @@ export function createGoogleAuth({ fetcher = fetch } = {}) {
       )
     )
       throw failure("INVALID_AUTH_REQUEST");
+    if (mode === "link") throw failure("LEGACY_LINK_DISABLED", 403);
     const session = cookieToken(request),
       initialHash = session ? await sha256(session) : null,
       actor = await actorForStart(env.DB, session);
@@ -227,6 +228,7 @@ export function createGoogleAuth({ fetcher = fetch } = {}) {
         .bind(claim, hash, await sha256(browser))
         .first();
     if (!attempt) throw failure("AUTH_STATE_EXPIRED_OR_REPLAYED", 401);
+    if (attempt.mode === "link") throw failure("LEGACY_LINK_DISABLED", 403);
     try {
       const current = cookieToken(request),
         currentHash = current ? await sha256(current) : null;
@@ -376,14 +378,9 @@ export function createGoogleAuth({ fetcher = fetch } = {}) {
           setup.drive === "verified" &&
           setup.calendar === "verified" &&
           requiredScopes.every((scope) => scopes.includes(scope)),
-        preserve =
-          attempt.mode === "signin" &&
-          sameClient &&
-          ready &&
-          prior?.drive_status === "verified" &&
-          prior?.calendar_status === "verified" &&
-          prior.revoked_at === null,
-        generation = preserve ? prior.generation : randomToken(),
+        // Each credential replacement gets its own generation. A delayed refresh
+        // or readiness failure from an older login cannot revoke the new grant.
+        generation = randomToken(),
         session = randomToken(),
         sessionHash = await sha256(session),
         sealed = await seal(
