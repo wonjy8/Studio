@@ -3472,7 +3472,7 @@ zlib-rs 0.6.8 — Zlib
 https://github.com/trifectatechfoundation/zlib-rs
 
 LICENSE
-(C) 2024 Trifecta Tech Foundation 
+(C) 2024 Trifecta Tech Foundation
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -3997,4 +3997,3 @@ LICENSE-APACHE
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-
