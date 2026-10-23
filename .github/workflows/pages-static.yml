@@ -1,0 +1,54 @@
+name: Review and publish static Studio Pages
+on:
+  pull_request:
+    paths: ['pages/**', 'src/**', 'tools/build-pages.mjs', 'tests/pages-static.test.js', '.github/workflows/pages-static.yml']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the reviewed static-only site (no backend)
+        type: boolean
+        default: false
+      expected_sha:
+        description: Exact independently reviewed commit SHA
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: studio-pages-${{ github.event_name == 'pull_request' && github.event.number || 'deployment' }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --test tests/pages-static.test.js
+      - run: node tools/build-pages.mjs
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/pages
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: build
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the reviewed exact revision
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          ACTUAL_SHA: ${{ github.sha }}
+        run: test "$EXPECTED_SHA" = "$ACTUAL_SHA"
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: false
+      - id: deployment
+        uses: actions/deploy-pages@v4
