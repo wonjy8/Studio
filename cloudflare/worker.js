@@ -1,3 +1,4 @@
+import { page, css, script } from "./ui/page.js";
 import { createGoogleAuth } from "./google-auth.js";
 import { readBoundedJson } from "./http.js";
 import {
@@ -43,8 +44,56 @@ export function createWorker({ googleFetcher } = {}) {
         if (url.origin !== env.APP_ORIGIN)
           throw failure("ORIGIN_MISMATCH", 421);
         if (!env.DB) throw failure("D1_BINDING_REQUIRED", 503);
+        const uiHeaders = {
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+          "Referrer-Policy": "no-referrer",
+          "Content-Security-Policy":
+            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+        };
+        if (
+          request.method === "GET" &&
+          [
+            "/",
+            "/login",
+            "/setup",
+            "/auth/complete",
+            "/edge-ui.js",
+            "/edge-ui.css",
+          ].includes(url.pathname)
+        ) {
+          const js = url.pathname === "/edge-ui.js",
+            style = url.pathname === "/edge-ui.css";
+          return new Response(js ? script : style ? css : page, {
+            headers: {
+              ...uiHeaders,
+              "Content-Type": js
+                ? "text/javascript; charset=utf-8"
+                : style
+                  ? "text/css; charset=utf-8"
+                  : "text/html; charset=utf-8",
+            },
+          });
+        }
         const authResponse = await googleAuth(request, env);
-        if (authResponse) return authResponse;
+        if (authResponse) {
+          if (
+            url.pathname === "/oauth/google/callback" &&
+            request.headers.get("Accept")?.includes("text/html")
+          ) {
+            const handoff = new Headers(uiHeaders);
+            handoff.set(
+              "Location",
+              authResponse.ok
+                ? "/auth/complete"
+                : "/auth/complete?result=failed",
+            );
+            for (const cookie of authResponse.headers.getSetCookie())
+              handoff.append("Set-Cookie", cookie);
+            return new Response(null, { status: 303, headers: handoff });
+          }
+          return authResponse;
+        }
         if (
           !["/api/edge/session", "/api/edge/documents"].includes(url.pathname)
         )
@@ -53,7 +102,7 @@ export function createWorker({ googleFetcher } = {}) {
               error: "EDGE_RESOURCE_NOT_PORTED",
               implemented: ["session/setup-state", "own-document-library"],
               pending: [
-                "Google login/account linking",
+                "complete workspace UI",
                 "Drive storage",
                 "calendar/jobs",
                 "remaining Studio APIs/UI",

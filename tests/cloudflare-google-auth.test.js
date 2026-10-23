@@ -50,7 +50,7 @@ test("Google subject login binds state/PKCE/nonce, encrypts tokens, creates no a
   );
   assert.ok(!JSON.stringify(result).includes("access_token"));
 });
-test("unknown Google identity requires explicit signup or legacy proof and never auto-merges matching email", async (t) => {
+test("unknown Google identity requires explicit signup and never auto-merges matching email", async (t) => {
   const f = await googleEdgeFixture(t);
   f.db.sqlite
     .prepare("INSERT INTO cf_accounts VALUES(?,?,?,?)")
@@ -77,7 +77,7 @@ test("unknown Google identity requires explicit signup or legacy proof and never
     403,
   );
 });
-test("one-use verified legacy ticket preserves stable account and administrator roles", async (t) => {
+test("disabled legacy ticket cannot link an account or alter administrator roles", async (t) => {
   const f = await googleEdgeFixture(t),
     ticket = randomToken();
   f.db.sqlite

@@ -22,3 +22,12 @@ jobs:
 
       - name: Test Google identity with local D1 and a mock provider only
         run: STUDIO_MINIFLARE_MODULE="$RUNNER_TEMP/studio-edge-runtime/node_modules/miniflare/dist/src/index.js" node tools/qa-cloudflare-google-auth.mjs
+
+      - name: Install pinned isolated browser test runtime
+        run: |
+          npm install --prefix "$RUNNER_TEMP/studio-browser-runtime" playwright@1.56.1 --no-audit --no-fund
+          "$RUNNER_TEMP/studio-browser-runtime/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Test onboarding and D1 document UI with mocked provider
+        env:
+          STUDIO_PLAYWRIGHT_MODULE: ${{ runner.temp }}/studio-browser-runtime/node_modules/playwright/index.mjs
+        run: node tools/qa-cloudflare-onboarding.mjs
