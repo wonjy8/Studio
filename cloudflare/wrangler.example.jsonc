@@ -1,0 +1,14 @@
+{
+  "name": "studio-edge-foundation",
+  "main": "worker.js",
+  "compatibility_date": "2026-08-06",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {"APP_ORIGIN": "https://studio-edge.example.invalid"},
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "studio-edge-local-only",
+    "database_id": "00000000-0000-0000-0000-000000000000",
+    "migrations_dir": "migrations"
+  }]
+}
