@@ -1,7 +1,7 @@
 name: Validate isolated Cloudflare foundation
 on:
   pull_request:
-    paths: ['cloudflare/**', 'tests/cloudflare-*.test.js', 'tests/helpers/d1-local.js', 'tools/qa-cloudflare-foundation.mjs', 'tools/cloudflare-legacy-audit.mjs', '.github/workflows/cloudflare-foundation.yml']
+    paths: ['cloudflare/**', 'src/domain/documents.js', 'src/domain/document-comments.js', 'src/domain/emoji.js', 'tests/cloudflare-*.test.js', 'tests/helpers/d1-local.js', 'tests/helpers/google-edge-fixture.js', 'tools/qa-cloudflare-*.mjs', 'tools/cloudflare-legacy-audit.mjs', '.github/workflows/cloudflare-foundation.yml']
 permissions:
   contents: read
 jobs:
@@ -12,10 +12,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: node --test tests/cloudflare-foundation.test.js tests/cloudflare-legacy-audit.test.js
+      - run: node --test tests/cloudflare-*.test.js
       - name: Install pinned local-only Workers test runtime
         run: npm install --prefix "$RUNNER_TEMP/studio-edge-runtime" miniflare@4.20260730.0 --no-audit --no-fund
       - name: Test local workerd and D1; external calls denied by fixture
         env:
           WRANGLER_SEND_METRICS: 'false'
         run: STUDIO_MINIFLARE_MODULE="$RUNNER_TEMP/studio-edge-runtime/node_modules/miniflare/dist/src/index.js" node tools/qa-cloudflare-foundation.mjs
+
+      - name: Test Google identity with local D1 and a mock provider only
+        run: STUDIO_MINIFLARE_MODULE="$RUNNER_TEMP/studio-edge-runtime/node_modules/miniflare/dist/src/index.js" node tools/qa-cloudflare-google-auth.mjs
