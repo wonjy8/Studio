@@ -166,3 +166,22 @@ and session-bound ETag revalidation. Existing NAS network, restart and updater
 settings are unchanged. The synthetic comparison and supported-image limitations
 are recorded in image-preview/README.md; the Rust path is not claimed faster than
 native browser codecs or proven to fix the NAS OOM incident.
+
+### Google read traffic
+
+Calendar list requests that are simultaneously in flight for the same Studio
+user, Google subject and connection generation share one provider request chain.
+There is no completed metadata cache: the next read still checks Google for
+permission changes, failures are not retained, and connection/account guards run
+before and after waiting. Each caller gets its own result object. At most 64
+pending read keys are retained; this is a memory bound, not a new user quota.
+Existing per-calendar/date-range browser event caches and mutation invalidation
+remain unchanged.
+
+Browser-direct Calendar REST/CORS is supported by Google's GIS token model:
+https://developers.google.com/identity/oauth2/web/guides/use-token-model . Studio's
+current web-server OAuth flow retains refresh tokens and client credentials on
+the server. This change does not expose any access/refresh token to the browser,
+add a token relay, request new scopes or alter the OAuth client. Adopting GIS
+would require a separately reviewed browser consent/expiry UX; unattended token
+refresh is not promised. Server mediation therefore remains for this unit.
