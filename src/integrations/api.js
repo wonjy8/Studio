@@ -56,3 +56,6 @@ export function linkProjectReferences(projectId,referenceIds){return revisionMut
 export function unlinkProjectReference(projectId,referenceId){return revisionMutation(`projects/${encodeURIComponent(projectId)}/reference-library/${encodeURIComponent(referenceId)}`,'DELETE',{});}
 
 export const getWorkspaceRevision=()=>revision;
+
+// Capture the signed-in UI account for fencing asynchronous private pickers.
+export const getRequestAccount=()=>requestAccount;
