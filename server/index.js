@@ -1,3 +1,4 @@
+import {filePreviewRoutes,previewUsage} from './file-previews.js';
 import {privateNotModified} from './private-revalidation.js';
 import {installGracefulShutdown} from './shutdown.js';
 import {documentFileRoutes} from './document-files.js';
@@ -54,7 +55,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   const handleSiteRoles=siteRoleRoutes(db),handleAdminProjects=adminProjectRoutes(db),handleAdminProjectFiles=adminProjectFileRoutes(db);
   const handleSchool=schoolRoutes(db);let handleWorkspaceHomeEvents;
   const handleScripture=scriptureRoutes(db,scripture);
-  const handleDocumentLibrary=documentLibraryRoutes(db),handleDocumentFiles=documentFileRoutes(db);
+  const handleDocumentLibrary=documentLibraryRoutes(db),handleDocumentFiles=documentFileRoutes(db),handleFilePreviews=filePreviewRoutes(db);
   const handleEquipmentCatalog=equipmentCatalogRoutes(db);
   const handleInventory=inventoryRoutes(db),handleRentalVendors=rentalVendorRoutes(db),handleContacts=contactRoutes(db,{orgCanRead,equipmentProjectScope}),handleReferenceLibrary=referenceLibraryRoutes(db),handleMaterials=materialLibraryRoutes(db);
   const handleReferenceBoards=referenceBoardRoutes(db);
@@ -78,7 +79,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
     res.setHeader('Referrer-Policy','no-referrer');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'");
     if (secure) res.setHeader('Strict-Transport-Security','max-age=31536000');
     let session;let diagnosticPath='',diagnosticData,diagnosticDetails={},diagnosticReason='';
     res.once('finish',()=>diagnostics.record(diagnostics.stage(diagnosticPath,diagnosticData),res.statusCode,diagnosticReason,diagnosticDetails));
@@ -187,6 +188,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           try{const previous=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(uid),saved=writeWorkspace(db,uid,linkedWorkspace(db,uid,data.state),data.revision);registerNewProjectDocuments(db,uid,saved.state,previous?JSON.parse(previous.body):null);calendar.kick(uid);tasksGoogle.kick(uid);return json(200,saved);}catch(e){return json(e.status||500,{error:e.message});}
         }
         if(await handleDocumentFiles({path,req,res,session,json,body,readJson}))return;
+        if(await handleFilePreviews({path,req,session,json,body}))return;
         if((path==='/api/files'||path==='/api/school/files')&&req.method==='POST') {
           const schoolPrivate=path==='/api/school/files';
           const type=req.headers['content-type'];
@@ -194,7 +196,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           const bytes=await body(50*1024*1024);
           const signature=type==='application/pdf'?bytes.subarray(0,5).toString()==='%PDF-':type==='image/png'?bytes.subarray(0,8).toString('hex')==='89504e470d0a1a0a':type==='image/jpeg'?bytes.subarray(0,3).toString('hex')==='ffd8ff':type==='video/mp4'||type==='video/quicktime'?bytes.subarray(4,8).toString()==='ftyp':type==='video/webm'?bytes.subarray(0,4).toString('hex')==='1a45dfa3':type==='image/webp'?bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WEBP':['application/zip','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.openxmlformats-officedocument.presentationml.presentation'].includes(type)?bytes.subarray(0,4).toString('hex')==='504b0304':type==='audio/wav'?bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WAVE':type==='audio/ogg'?bytes.subarray(0,4).toString()==='OggS':type==='audio/mpeg'?bytes.subarray(0,3).toString()==='ID3'||(bytes[0]===0xff&&(bytes[1]&0xe0)===0xe0):(()=>{try{new TextDecoder('utf-8',{fatal:true}).decode(bytes);return !bytes.includes(0);}catch{return false;}})();
           if(!signature) return json(400,{error:'Invalid file'});
-          const usage=db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM files WHERE user_id=?').get(uid).size+db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM school_files WHERE user_id=?').get(uid).size+db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM document_files WHERE user_id=?').get(uid).size;
+          const usage=db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM files WHERE user_id=?').get(uid).size+db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM school_files WHERE user_id=?').get(uid).size+db.prepare('SELECT COALESCE(SUM(length(bytes)),0) AS size FROM document_files WHERE user_id=?').get(uid).size+previewUsage(db,uid);
           if(usage+bytes.length>250*1024*1024) return json(413,{error:'Storage quota reached'});
           const id=randomUUID(), name=decodeURIComponent(req.headers['x-file-name']||'file').slice(0,200);
           db.exec('BEGIN IMMEDIATE');try{if(schoolPrivate)db.prepare('INSERT INTO school_files VALUES(?,?,?,?,?)').run(id,uid,name,type,bytes);else{db.prepare('INSERT INTO files VALUES(?,?,?,?,?)').run(id,uid,name,type,bytes);registerMaterialFile(db,uid,{id,name,type});indexNewMaterialUpload(db,uid,{id,name,type,bytes,colors:req.headers['x-material-colors']});}db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}
@@ -208,6 +210,14 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           if(!file){for(const link of db.prepare('SELECT owner_id,project_id FROM project_accounts WHERE user_id=?').all(uid)){const row=db.prepare('SELECT body FROM workspaces WHERE user_id=?').get(link.owner_id);if(!row)continue;const state=reconcileReferences(db,link.owner_id,JSON.parse(row.body)),project=[state,...(state.projects||[])].find(p=>(p.project.id||'project-main')===link.project_id);if(project?.refs.some(ref=>ref.libraryId&&(ref.images.includes('/api/files/'+match[1])||(ref.files||[]).includes(match[1])))){file=db.prepare('SELECT id,user_id,name,type FROM files WHERE id=? AND user_id=?').get(match[1],link.owner_id);if(file)break;}}}
           res.setHeader('Cache-Control','private, no-store');
           if(!file) return json(404,{error:'Not found'});
+          if(['1','reference'].includes(url.searchParams.get('preview'))){
+            const variant=url.searchParams.get('preview')==='reference'?'reference':'thumbnail';
+            const preview=db.prepare('SELECT type,digest FROM file_previews WHERE file_id=? AND variant=?').get(file.id,variant);
+            if(!preview)return json(404,{error:'Preview unavailable; open the original explicitly'});
+            if(privateNotModified(req,res,session,'file-preview:'+file.id+':'+variant,preview.digest))return;
+            res.setHeader('Content-Type',preview.type);res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'");
+            return res.end(db.prepare('SELECT bytes FROM file_previews WHERE file_id=? AND variant=?').get(file.id,variant).bytes);
+          }
           if(privateNotModified(req,res,session,'file:'+file.id,1))return;
           res.setHeader('Content-Type',file.type);
           res.setHeader('Content-Disposition',`${new URL(req.url,'http://localhost').searchParams.has('download')?'attachment':'inline'}; filename*=UTF-8''${encodeURIComponent(file.name).replace(/'/g,'%27')}`);
@@ -218,10 +228,11 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       }
       // Explicit static allowlist prevents serving runtime DBs, server code or repository files.
       if(req.method!=='GET'&&req.method!=='HEAD') return json(405,{error:'Method not allowed'});
-      if(!(/^\/src\/[a-zA-Z0-9_/-]+\.(js|css)$/.test(path)||path==='/'||path==='/index.html'||path==='/src/rotation-cursor.svg'||isAppPath(path))) return json(404,{error:'Not found'});
+      if(!(/^\/src\/[a-zA-Z0-9_/-]+\.(js|css)$/.test(path)||path==='/'||path==='/index.html'||path==='/src/rotation-cursor.svg'||path==='/src/media/preview-licenses.txt'||/^\/src\/media\/preview-[a-f0-9]{12}\.wasm$/.test(path)||isAppPath(path))) return json(404,{error:'Not found'});
       const file=path==='/'||isAppPath(path)?'index.html':path.slice(1);
       const bytes=await readFile(root+file);
-      res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file==='src/rotation-cursor.svg'?'image/svg+xml':'text/html');
+      if(file.endsWith('.wasm'))res.setHeader('Cache-Control','public, max-age=31536000, immutable');
+      res.setHeader('Content-Type',file.endsWith('.txt')?'text/plain; charset=utf-8':file.endsWith('.wasm')?'application/wasm':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file==='src/rotation-cursor.svg'?'image/svg+xml':'text/html');
       res.end(req.method==='HEAD'?undefined:bytes);
     } catch(e) {if(['/oauth/token','/oauth/revoke'].includes(diagnosticPath)&&e.oauthClientDiagnostic)diagnosticDetails=diagnostics.clientAuthentication(e.oauthClientDiagnostic);if(!res.headersSent&&req.headers.accept?.includes('text/html')&&/^\/oauth\/google\/(?:calendar\/|tasks\/)?callback(?:\?|$)/.test(req.url)){const service=req.url.startsWith('/oauth/google/tasks/')?'Google Tasks':req.url.startsWith('/oauth/google/calendar/')?'Google Calendar':'Google';const status=e.status||500;res.writeHead(status,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+service+' 연결 확인</title><body><main><h1>'+service+' 연결을 완료하지 못했습니다</h1><p>연결 요청이 만료되었거나 로그인·동의 확인에 실패했습니다. 기존 연결은 유지됩니다.</p><p><a href="/settings/connections">연결 설정으로 돌아가기</a></p></main></body></html>');}else if(!res.headersSent) json(e.status|| (e.code==='ENOENT'?404:500),{error:e.status===413?'Request too large':(e.status&&pathForError(req.url)?e.message:'Request failed'),...(publicCalendarDiagnostic(e)?{calendarDiagnostic:publicCalendarDiagnostic(e)}:{})});else res.end();}
   });

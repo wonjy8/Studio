@@ -1,0 +1,18 @@
+[package]
+name = "studio-image-preview"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+image = { version = "=0.25.10", default-features = false, features = ["jpeg", "png"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

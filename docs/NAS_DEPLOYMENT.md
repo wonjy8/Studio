@@ -148,3 +148,21 @@ Opening a personal document from its list revalidates the library before mountin
 the editor. A failed check leaves the list open and allows an explicit retry;
 there is no background replacement of an active editor or unsaved draft. Project
 and School editor refresh paths are unchanged in this first unit.
+
+### Browser image derivatives
+
+New standard file uploads preserve exact original bytes and send a small
+thumbnail plus a <=600px-long-edge Reference preview generated in a bounded
+Rust/WASM module Worker. The paired derivatives commit in one SQLite transaction;
+a failed pair leaves the original intact and may be retried by its file ID.
+Materials shows thumbnails and References uses medium previews; neither silently
+fetches an original when a derivative is missing. Old files are not converted in
+bulk. All three stored representations count against the existing owner quota.
+
+No Rust runtime is needed on NAS: a content-hashed WASM code asset is checked in,
+with source, Cargo.lock, build script and dependency notices. Only this public
+code asset has immutable caching. Private image variants retain live authorization
+and session-bound ETag revalidation. Existing NAS network, restart and updater
+settings are unchanged. The synthetic comparison and supported-image limitations
+are recorded in image-preview/README.md; the Rust path is not claimed faster than
+native browser codecs or proven to fix the NAS OOM incident.

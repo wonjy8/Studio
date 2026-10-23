@@ -54,3 +54,5 @@ tmp/
 /docs/QA_OVERNIGHT.md
 /reports/
 /backups/
+
+/image-preview/target/
