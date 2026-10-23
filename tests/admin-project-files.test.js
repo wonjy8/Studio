@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -40,3 +40,5 @@ test('unlinking one selected reference preserves same-file links in other target
  assert.equal((await call(path+'/'+fileA,'DELETE',{revision:5,reason:'Fictional second unlink',target:{kind:'reference',entityId:'second-ref'}})).status,200);assert.equal((await call(path+'/'+fileA)).status,404);assert.equal((await call('/api/admin/projects/fictional-owner/fictional-b/files/'+fileA)).status,200);assert.ok(db.prepare('SELECT id FROM files WHERE id=?').get(fileA));
  db.prepare('INSERT INTO password_changes VALUES(?)').run('fictional-admin');assert.equal((await call('/api/admin/projects/fictional-owner/fictional-b/files/'+fileA)).status,403);db.prepare('DELETE FROM password_changes WHERE user_id=?').run('fictional-admin');db.prepare('INSERT INTO account_status VALUES(?,?,?)').run('fictional-admin',Date.now()+600000,null);assert.equal((await call('/api/admin/projects/fictional-owner/fictional-b/files/'+fileA)).status,401);
 });
+
+test('large managed binary read preserves complete bytes, headers and selected-project isolation',async t=>{const {db,path,call,fileA,fileOther}=await fixture(t);const bytes=Buffer.alloc(10*1024*1024,113);png.copy(bytes);db.prepare('UPDATE files SET bytes=? WHERE id=?').run(bytes,fileA);const response=await call(path+'/'+fileA);assert.equal(response.status,200);assert.equal(Number(response.headers.get('content-length')),bytes.length);assert.equal(createHash('sha256').update(response.bytes).digest('hex'),createHash('sha256').update(bytes).digest('hex'));assert.equal((await call(path+'/'+fileOther)).status,404);});
