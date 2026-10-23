@@ -903,7 +903,7 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 [data-workspace-calendar] .calendar-event{align-items:center}
 [data-workspace-calendar] .timeline-position>.calendar-event{align-items:flex-start}
 [data-workspace-calendar] .calendar-event-mark:empty{display:none}
-[data-workspace-calendar] .month-calendar .calendar-event{font-size:14.5px}
+[data-workspace-calendar] .month-calendar .calendar-event{font-size:13px}
 [data-workspace-calendar] .month-calendar .calendar-date{font-size:16px}
 /* Center safely, then compact short slots without pushing their first line above the clip. */
 .timeline-position{container-type:size;container-name:event-slot}
@@ -912,7 +912,7 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 @container event-slot (max-height:64px) and (max-width:90px){.timeline-position>.calendar-event.is-timed-event .calendar-event-time{display:none}}
 
 /* Balance compact calendar labels and prominent credit values by role. */
-[data-workspace-calendar] .month-calendar .calendar-event{font-size:var(--text-body)}
+[data-workspace-calendar] .month-calendar .calendar-event{font-size:13px}
 [data-workspace-calendar] .month-calendar .calendar-date{font-size:var(--text-title)}
 .school-graduation-table td{font-size:.875rem}
 .school-requirement-row [data-school-credit-input]{font-size:.875rem}
@@ -978,3 +978,11 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 
 .document-image-original{display:block;margin:6px 0 12px;text-align:center}
 @media print{.document-image-original{display:none!important}}
+
+/* Month cells retain scrolling while their surface fills the available viewport. */
+[data-workspace-calendar] .month-calendar{height:var(--calendar-month-height,calc(100dvh - 240px));grid-template-rows:28px repeat(var(--calendar-weeks,6),minmax(0,1fr))}
+[data-workspace-calendar] .month-cell{gap:3px;padding:4px}
+[data-workspace-calendar] .month-calendar .calendar-cell-events{gap:2px;scrollbar-width:none}
+[data-workspace-calendar] .month-calendar .calendar-cell-events::-webkit-scrollbar{display:none;width:0;height:0}
+[data-workspace-calendar] .month-calendar .calendar-cell-events:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+[data-workspace-calendar] .month-calendar .calendar-event{padding-block:2px;min-height:24px}
