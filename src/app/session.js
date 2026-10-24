@@ -20,7 +20,7 @@ export async function requireLogin() {
     };
     root.querySelector('form').onsubmit=async e=>{
       e.preventDefault();const form=e.target;const button=form.querySelector('[type=submit]');button.disabled=true;button.textContent='로그인 중…';form.setAttribute('aria-busy','true');root.querySelector('#login-error').textContent='';
-      let stage='login';const credentials=Object.fromEntries(new FormData(form));credentials.username=credentials.username.trim();form.elements.username.value=credentials.username;const message=root.querySelector('#login-error');delete message.dataset.loginStage;delete message.dataset.httpStatus;
+      let stage='login';const credentials=Object.fromEntries(new FormData(form));credentials.rememberMe=form.elements.rememberMe.checked;credentials.username=credentials.username.trim();form.elements.username.value=credentials.username;const message=root.querySelector('#login-error');delete message.dataset.loginStage;delete message.dataset.httpStatus;
       try {await request('login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(credentials)});stage='session';sessionInfo=await request('session');form.reset();resolve();}
       catch(error) {message.textContent=loginFailureMessage(error,stage);message.dataset.loginStage=stage;message.dataset.httpStatus=String(error.status||'network');}
       finally {button.disabled=false;button.textContent='로그인';form.removeAttribute('aria-busy');}
