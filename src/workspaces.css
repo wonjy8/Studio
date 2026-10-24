@@ -1042,3 +1042,10 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 .connection-account-body form{display:grid;gap:12px;margin-top:16px}.connection-account-body input{min-width:0;width:100%}
 .service-connections .connection-account-add{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;margin-top:8px;border:0;background:transparent;padding:12px;text-align:left}
 .connection-consent-summary{margin:12px 0;font-size:var(--text-support)}
+
+.calendar-event-editor [data-event-permission]:empty,.calendar-event-editor [data-event-error]:empty{display:none}
+.calendar-event-editor .edit-save-state{font-size:var(--text-support);margin:8px 20px}
+
+.calendar-event-editor [data-calendar-target-error]:empty{display:none}
+
+.calendar-event-editor label:has(>input[type=checkbox]){display:flex;align-items:center;gap:8px;min-height:44px}.calendar-event-editor label>input[type=checkbox]{width:18px;height:18px;min-height:0;flex:none}
