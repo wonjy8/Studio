@@ -1,6 +1,7 @@
 import {solidProjectIconPaths} from './solid-paths.js';
 // Vendored metadata: Tabler Icons 3.34.1 (MIT), Simple Icons 15.19.0 (CC0). See docs/PROJECT_ICONS.md.
 export const projectIconCatalog=[
+{"id":"soccer","name":"축구공","category":"스포츠","keywords":"축구 축구공 soccer football ball sport 스포츠"},
 {"id":"production","name":"클래퍼보드","category":"기본","keywords":"클래퍼보드"},
 {"id":"play","name":"재생","category":"기본","keywords":"재생"},
 {"id":"book","name":"책","category":"기본","keywords":"책"},
@@ -1905,7 +1906,7 @@ export const projectIconCatalog=[
 export const projectIconIds=projectIconCatalog.map(item=>item.id);
 const preferredIconIds=['production','play','book','camera','folder','sparkle','tabler-bookmark','tabler-key','tabler-gift','tabler-cake','tabler-backpack','tabler-ruler','tabler-file','tabler-wallet','tabler-cash','tabler-barbell','tabler-home','tabler-building','tabler-briefcase','tabler-tools','tabler-heart','tabler-star','tabler-circle','tabler-square','tabler-triangle'];
 const iconRank=item=>{const index=preferredIconIds.indexOf(item.id);return index>=0?index:item.category==='브랜드 · SNS'?200:100;};
-export const selectableProjectIcons=projectIconCatalog.filter(item=>['production','play','book','camera','folder','sparkle'].includes(item.id)||solidProjectIconPaths[item.id]).sort((a,b)=>iconRank(a)-iconRank(b));
+export const selectableProjectIcons=projectIconCatalog.filter(item=>['production','play','book','camera','folder','sparkle','soccer'].includes(item.id)||solidProjectIconPaths[item.id]).sort((a,b)=>iconRank(a)-iconRank(b));
 export const projectIconCategories=[...new Set(selectableProjectIcons.map(item=>item.category))];
 const byId=new Map(projectIconCatalog.map(item=>[item.id,item]));
 export function projectIconInfo(id){return byId.get(id);}

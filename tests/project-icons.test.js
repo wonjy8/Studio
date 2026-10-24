@@ -7,9 +7,9 @@ import {ionIconAliases,ionIconPaths} from '../src/design-system/icons/ionicons.j
 import {projectForm,projectIconPage,iconPageSize} from '../src/features/projects/project-form.js';
 import {emptyWorkspace,validateWorkspace,projectIcons} from '../src/domain/workspace.js';
 
-test('catalog has 1900 stable unique ids and matching safe vectors',()=>{
- assert.equal(projectIconCatalog.length,1900);
- assert.equal(new Set(projectIcons).size,1900);
+test('catalog has 1901 stable unique ids and matching safe vectors',()=>{
+ assert.equal(projectIconCatalog.length,1901);
+ assert.equal(new Set(projectIcons).size,1901);
  for(const item of projectIconCatalog){
   assert.match(item.id,/^[a-z0-9-]+$/);
   const svg=icon(item.id);
@@ -112,4 +112,16 @@ test('prayer hands use upright joined palms and diagonal cuffs in both variants'
 test('database glyph includes paired cylindrical SVG variants',()=>{
  assert.equal(ionIconAliases.database,'server');assert.match(ionIconPaths.server.outline,/<ellipse/);
  assert.ok(icon('database').includes(ionIconPaths.server.outline));assert.ok(icon('database',{solid:true}).includes(ionIconPaths.server.filled));
+});
+
+
+test('soccer identity is searchable, paired, accessible and survives workspace serialization',()=>{
+ for(const query of ['축구','축구공','soccer','football'])assert.ok(findProjectIcons(query,'스포츠').some(item=>item.id==='soccer'));
+ assert.equal(ionIconAliases.soccer,'football');
+ const outline=icon('soccer'),filled=icon('soccer',{solid:true});
+ assert.ok(outline.includes(ionIconPaths.football.outline));assert.ok(filled.includes(ionIconPaths.football.filled));assert.notEqual(outline,filled);
+ for(const svg of [outline,filled]){assert.match(svg,/viewBox="0 0 512 512"/);assert.match(svg,/aria-hidden="true" focusable="false"/);assert.match(svg,/currentColor/);assert.doesNotMatch(svg,/#000|#fff|<image|href=/);}
+ const state=emptyWorkspace();state.project.icon='soccer';assert.ok(validateWorkspace(state));const restored=JSON.parse(JSON.stringify(state));assert.ok(validateWorkspace(restored));assert.equal(restored.project.icon,'soccer');
+ const html=projectForm(restored.project);assert.match(html,/name="icon" value="soccer"/);assert.match(html,/title="축구공"/);
+ assert.ok(projectIconInfo('tabler-ball-football'));assert.ok(icon('tabler-ball-football').includes(projectIconPaths['tabler-ball-football']));
 });
