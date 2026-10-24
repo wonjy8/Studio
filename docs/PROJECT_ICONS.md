@@ -2,14 +2,17 @@
 
 ## Rationale and flow
 
-Project identity must be recognizable across the sidebar and settings without adding visual noise. The project form offers **617 filled choices**, including the six original identities. All 1,900 legacy IDs remain valid for saved projects; outline-only identities are retained for compatibility but excluded from new selections. Search supports English icon names/tags, category names, and Korean aliases for common production and social icons. Korean aliases are not full translations of the upstream catalog.
+Project identity must be recognizable across the sidebar and settings without adding visual noise. The project form offers **618 filled choices**, including the six original identities. All 1,900 legacy IDs remain valid for saved projects; outline-only identities are retained for compatibility but excluded from new selections. Search supports English icon names/tags, category names, and Korean aliases for common production and social icons. Korean aliases are not full translations of the upstream catalog.
 
 Choose a color and click the circular icon preview to open a compact native popover. Search or filter within the popover, browse 48 results at a time, then select an icon. Selection closes the popover and returns focus to the trigger; Escape and outside clicks dismiss it. The selected identity remains in a separate form field while searching or paging; filtering cannot accidentally replace it. Native radio controls provide keyboard selection; search, category and paging controls have labels. Creation and project settings reuse the same form and binder.
 
 Only the icon id is stored in the project. The domain allowlist uses the same catalog as the picker, so UI, server workspace validation and external command validation agree. Unknown ids remain rejected. The original `production`, `play`, `book`, `camera`, `folder`, and `sparkle` ids remain unchanged.
 
+The added `soccer` identity is named 축구공 and appears under 스포츠; search accepts 축구, 축구공, soccer and football. It uses the shared renderer’s paired Ionicons vectors. Existing saved identities are unchanged.
+
 ## Sources and licenses
 
+- Ionicons **8.0.13**, https://github.com/ionic-team/ionicons/tree/v8.0.13/src/svg: `football-outline.svg` and `football.svg`, with black strokes normalized to `currentColor`. MIT license retained in `src/design-system/icons/IONICONS-LICENSE.txt`.
 - Tabler Icons **3.34.1**, https://github.com/tabler/tabler-icons and npm `@tabler/icons@3.34.1`: 1,893 outline SVG bodies, names, categories and search tags. MIT license retained in `src/design-system/icons/TABLER-LICENSE.txt`.
 - Simple Icons **15.19.0**, https://github.com/simple-icons/simple-icons and npm `simple-icons@15.19.0`: KakaoTalk SVG. CC0 license retained in `src/design-system/icons/SIMPLE-ICONS-LICENSE.txt`.
 - Six preexisting Studio originals retain their original rendering. Filled variants from the same pinned Tabler package and solid brand vectors from the same pinned Simple Icons package are vendored in `solid-paths.js`. Brand outlines keep their identifying negative space; none are made solid by merely filling an outline SVG.
