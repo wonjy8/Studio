@@ -475,7 +475,7 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 }
 .personal-tasks{margin-bottom:24px}.personal-tasks code{overflow-wrap:anywhere}.personal-tasks>div>details{margin:16px 0}.personal-tasks summary{min-height:44px;padding:12px 0}.personal-tasks [data-tasks-project]{display:grid;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)}.personal-tasks h3{font-size:var(--text-title);margin:0}.tasks-choices{padding:12px;border:1px solid var(--line);border-radius:var(--r-control);max-height:300px;overflow-y:auto}.tasks-choices label{display:flex;align-items:start;gap:8px;min-height:44px;padding:8px 0;overflow-wrap:anywhere}.tasks-issue{padding:16px 0;border-bottom:1px solid var(--line)}.personal-tasks .actions{flex-wrap:wrap}.personal-tasks [data-tasks-project]>label:not(.field){display:flex;gap:8px;align-items:start;min-height:44px}.personal-tasks select{min-width:0;width:100%}
 
-.service-connections{display:grid;gap:20px;max-width:900px;margin:0 auto}.service-connections>section{margin:0;padding:20px;border:1px solid var(--line);border-radius:var(--r-panel);min-width:0}.service-connections h2,.service-connections h3{font-size:var(--text-title);font-weight:500;color:var(--ink);margin:0;padding:0;border:0}.service-connections .section-head{margin:0 0 12px}.service-connections .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.service-connections code{display:block;overflow-wrap:anywhere;white-space:normal}.service-connections summary{cursor:pointer;min-height:44px;padding:12px 0}.service-connections .property-value{min-width:0;flex-wrap:wrap;overflow-wrap:anywhere}.service-connections .connection-guide,.service-connections .google-setup{margin:12px 0 0}.service-connections .personal-calendar .calendar-project-links{margin-bottom:0}.service-connections [role=status]:empty,.service-connections [role=alert]:empty{display:none}@media(max-width:900px){.service-connections>section{padding:18px}.service-connections .section-head{align-items:flex-start;flex-wrap:wrap}.service-connections .actions>span{flex-basis:100%;overflow-wrap:anywhere}}
+.service-connections{display:block;max-width:900px;margin:0 auto}.service-connections>section{margin:0;padding:20px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;min-width:0}.service-connections h2,.service-connections h3{font-size:var(--text-title);font-weight:500;color:var(--ink);margin:0;padding:0;border:0}.service-connections .section-head{margin:0 0 12px}.service-connections .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.service-connections code{display:block;overflow-wrap:anywhere;white-space:normal}.service-connections summary{cursor:pointer;min-height:44px;padding:12px 0}.service-connections .property-value{min-width:0;flex-wrap:wrap;overflow-wrap:anywhere}.service-connections .connection-guide,.service-connections .google-setup{margin:12px 0 0}.service-connections .personal-calendar .calendar-project-links{margin-bottom:0}.service-connections [role=status]:empty,.service-connections [role=alert]:empty{display:none}@media(max-width:900px){.service-connections>section{padding:20px 0}.service-connections .section-head{align-items:flex-start;flex-wrap:wrap}.service-connections .actions>span{flex-basis:100%;overflow-wrap:anywhere}}
 
 .home-workspace-columns{align-items:start}
 .home-collection{display:grid;gap:20px}
@@ -990,3 +990,16 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 
 .school-graduation-table tr.school-area-group-start>:is(th,td){padding-top:calc(12px + var(--space-2))}
 @media(max-width:600px){.school-graduation-table tr.school-area-group-start>:is(th,td){padding-top:calc(10px + var(--space-2))}}
+
+/* Connection providers form a quiet logo/title/action list; details retain their original controls. */
+.connection-service-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:16px;min-width:0}
+.connection-service-logo{display:grid;place-items:center;width:44px;height:44px;border:1px solid var(--line);border-radius:var(--r-surface);background:var(--surface);color:var(--ink)}
+.connection-service-logo>.icon{width:26px;height:26px}
+.connection-service-identity{min-width:0;overflow-wrap:anywhere}
+.connection-service-identity>.sub{margin:4px 0 0}
+.connection-service-add{justify-self:end;flex:none}
+.service-connections .connection-service-management{margin-top:8px;min-width:0}
+.service-connections .connection-service-management>summary{font-size:var(--text-support);color:var(--muted)}
+.service-connections .connection-service-management>details{margin-top:8px}
+.service-connections .service-connection [hidden]{display:none!important}
+@media(max-width:600px){.connection-service-row{gap:12px}}
