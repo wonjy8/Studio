@@ -1,3 +1,4 @@
+import {bindEditAutosave} from './edit-autosave.js';
 import {request} from '../integrations/api.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
 import {icon} from '../design-system/primitives/icons.js';
@@ -25,7 +26,7 @@ export async function bindRentalVendors(){
   if(!editorOpen){editor.replaceChildren();baseline='';return;}
   const formFields=fields.map(([key,label])=>'<label class="field">'+label+(key==='notes'?'<textarea name="'+key+'" maxlength="2000">'+esc(selected?.[key]||'')+'</textarea>':'<input name="'+key+'" value="'+esc(selected?.[key]||'')+'" maxlength="2000" '+(key==='name'?'required ':'')+(key==='website'?'type="url"':key==='email'?'type="email"':'' )+'>')+'</label>').join('');
   editor.innerHTML='<section class="card rental-vendor-editor"><div class="section-head"><h2>'+esc(selected?.name||'대여소 추가')+'</h2><button class="btn" type="button" data-vendor-close>닫기</button></div><form class="form catalog-edit-form" data-vendor-form>'+formFields+'<div class="actions"><button class="btn primary" type="submit">저장</button>'+(selected?'<button class="btn danger" type="button" data-delete-vendor>삭제</button>':'')+'</div></form></section>';
-  const form=editor.querySelector('form');baseline=snapshot();form.onsubmit=event=>{event.preventDefault();void mutate('POST',Object.fromEntries(new FormData(form)));};
+  const form=editor.querySelector('form');baseline=snapshot();form.onsubmit=event=>{event.preventDefault();void mutate('POST',Object.fromEntries(new FormData(form)));};if(selected){form.querySelector('[type=submit]').remove();const target=selected;bindEditAutosave(form,{save:async values=>{const result=await request('rental-vendors/'+target.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...values,revision:target.revision})});Object.assign(target,result.vendor);vendors=vendors.map(v=>v.id===target.id?target:v);baseline=JSON.stringify(values);drawList();editor.querySelector('h2').textContent=target.name;}});}
   editor.querySelector('[data-vendor-close]').onclick=()=>{if(!leave())return;editorOpen=false;selected=null;draw();search.focus();};
   editor.querySelector('[data-delete-vendor]')?.addEventListener('click',()=>{if(confirm('대여소를 삭제할까요? 프로젝트의 기존 대여소 이름은 유지됩니다.'))void mutate('DELETE',{});});
  }

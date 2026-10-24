@@ -1,3 +1,4 @@
+import {bindEditAutosave} from './edit-autosave.js';
 import {createMaterialSearchIndex,documentSearchText} from '../domain/material-index.js';
 import {selectionToolbar,selectionControl,bindSelection} from './collection-selection.js';
 import {request,upload} from '../integrations/api.js';
@@ -84,7 +85,7 @@ export async function bindMaterialsWorkspace({state,documentId,onSelectDocument,
  function edit(item){
   dialog.innerHTML='<form class="form materials-edit-form"><header><h2>자료 정보</h2><button class="btn" type="button" data-dialog-close>닫기</button></header><label class="field">제목<input name="title" maxlength="300" required value="'+esc(item.title)+'"></label><label class="field">분류<input name="category" maxlength="80" value="'+esc(item.category||'')+'"></label><label class="field">태그<input name="tags" maxlength="800" value="'+esc((item.tags||[]).join(', '))+'"></label><label class="field">메모<textarea name="description" maxlength="1000">'+esc(item.description||'')+'</textarea></label><p class="sub">업로드 날짜 · '+dateLabel(item.uploadedAt)+'</p><div class="actions"><button class="btn primary" type="submit">저장</button><button class="btn" type="button" data-dialog-close>취소</button></div><p role="status"></p></form>';
   dialog.querySelectorAll('[data-dialog-close]').forEach(button=>button.onclick=()=>dialog.close());
-  dialog.querySelector('form').onsubmit=async event=>{event.preventDefault();const form=event.target;form.querySelector('[type=submit]').disabled=true;try{await request('materials/'+encodeURIComponent(item.id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...Object.fromEntries(new FormData(form)),tags:form.elements.tags.value})});dialog.close();await refresh();setMessage('자료 정보를 저장했습니다.');}catch(error){form.querySelector('[role=status]').textContent=error.message;form.querySelector('[type=submit]').disabled=false;}};
+  const form=dialog.querySelector('form');form.querySelector('[type=submit]').remove();bindEditAutosave(form,{save:async values=>{const result=await request('materials/'+encodeURIComponent(item.id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(values)});Object.assign(item,result.item);items=items.map(row=>row.id===item.id?{...row,...result.item}:row);invalidateSearch();updateCategories();draw();}});
   dialog.showModal();
  }
  async function deleteItem(item){
