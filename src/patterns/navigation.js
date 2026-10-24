@@ -1,6 +1,6 @@
 import {navigationIcon as icon} from '../design-system/primitives/icons.js';
 import {escapeHtml as esc} from '../design-system/primitives/html.js';
-export const projectTabs=[['home','홈','home'],['schedule','일정','calendar'],['tasks','할 일','book'],['references','문서','book'],['members','멤버','people'],['project-settings','설정','settings']];
+export const projectTabs=[['home','홈','home'],['schedule','일정','calendar'],['tasks','할 일','tabler-checklist'],['references','문서','book'],['members','멤버','people'],['project-settings','설정','settings']];
 export function projectNavigation(state,view,open,session={}){
  const projects=[state,...(state.projects||[])].map(p=>p.project).filter(p=>!p.placeholder).sort((a,b)=>(a.order||0)-(b.order||0));
  const homeWorkspace=['workspace-home','workspace-schedule','workspace-tasks'].includes(view);
