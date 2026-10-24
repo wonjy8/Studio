@@ -15,6 +15,7 @@ function adoptMutation(data){
   revision=data.revision;return data;
 }
 function revisionMutation(path,method,values){return serializeMutation(async()=>adoptMutation(await request(path,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify({...values,revision})})));}
+function providerScope(path){const match=/^google\/accounts\/(calendar|tasks|sheets)\/([^/?]+)\//.exec(path),service=match?.[1]||/^google\/(calendar|tasks|sheets)\//.exec(path)?.[1];return service?{service,providerAccountId:match?.[2]||'primary'}:{};}
 export async function request(path,options={}) {
   const headers=new Headers(options.headers||{});if(requestAccount&&options.method&&!['GET','HEAD'].includes(options.method.toUpperCase())&&path!=='login')headers.set('X-Studio-Account',requestAccount);
   const response=await fetch(`/api/${path}`,{credentials:'same-origin',...options,headers:Object.fromEntries(headers)});
@@ -28,9 +29,9 @@ export async function request(path,options={}) {
       if(sessionCheck.status===401)authLossReason='unauthorized';
     }catch{} // An inconclusive check must not discard another surface's draft.
   }
-  if(response.status===401&&typeof window!=='undefined')await clearCalendarCache({reason:authLossReason});
+  if(response.status===401&&typeof window!=='undefined')await clearCalendarCache({reason:authLossReason,...providerScope(path),providerFailure:authLossReason==='provider-change'});
   if(!response.ok){const calendarDiagnostic=path.startsWith('google/')&&data?.calendarDiagnostic&&/^[A-Z_]{1,50}$/.test(data.calendarDiagnostic.code||'')?data.calendarDiagnostic:null;const error=Error(calendarDiagnostic?data.error:response.status===401?(authLossReason==='provider-change'?'Google 연결을 확인하고 필요한 경우 다시 승인하세요.':'로그인이 필요합니다. 새로고침 후 로그인해 주세요.'):data?.error==='ACCOUNT_CHANGED'?'로그인 계정이 변경되었습니다. 현재 내용을 보관한 뒤 새로고침해 주세요.':response.status===409?'다른 화면에서 변경되었습니다. 현재 내용을 보관한 뒤 새로고침해 주세요.':data?.error||'요청에 실패했습니다.');error.status=response.status;if(calendarDiagnostic)error.calendarDiagnostic=calendarDiagnostic;error.code=calendarDiagnostic?.code||(typeof data?.error==='string'?data.error:undefined);throw error;}
-  if(typeof window!=='undefined'&&options.method==='POST'&&['logout','google/calendar/disconnect','google/unified/disconnect','google/calendar/connect','google/unified/connect'].includes(path))await clearCalendarCache({reason:path==='logout'?'logout':'provider-change'});
+  if(typeof window!=='undefined'&&options.method==='POST'&&['logout','google/calendar/disconnect','google/unified/disconnect','google/calendar/connect','google/unified/connect'].includes(path))await clearCalendarCache({reason:path==='logout'?'logout':'provider-change',...providerScope(path)});
   if(path==='session'&&data.account?.id&&!requestAccount)requestAccount=data.account.id;if(path==='logout')requestAccount=null;
   return data;
 }
