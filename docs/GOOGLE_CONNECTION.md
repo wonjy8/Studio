@@ -36,3 +36,6 @@ The current logo/title/[+] presentation is covered by `tools/qa-connection-servi
 
 ## App-specific management screens
 Settings → Connections lists Google Calendar, Tasks, Sheets, Docs and Forms separately using unchanged official product artwork (see `src/design-system/assets/google/ATTRIBUTION.md`). Selecting a row navigates inside Studio to `/settings/connections/{service}`; it does not start OAuth or open a dialog. Browser Back/Forward, reload and keyboard focus are preserved. Calendar/Tasks/Sheets remain a shared connection request/disconnect, explicitly labeled on every management screen; partial grants remain visible. Docs/Forms retain separate existing read consent. Drive has no implemented API/scope and is omitted. No scope or credential changes.
+
+## Docs and Forms account rows
+Docs/Forms details now show actual connected accounts with explicit Add, identity-bound reconnect, selected-account verification and scoped disconnect. Setup help is collapsed while broad-read consent and errors remain visible. See [GOOGLE_MULTI_ACCOUNT.md](GOOGLE_MULTI_ACCOUNT.md) for the versioned account API, preserved legacy default, account isolation and rollback/backup behavior. Calendar/Tasks/Sheets additional accounts remain unimplemented until their source/link/worker identities are separated; no UI-only Add control is provided for them.
