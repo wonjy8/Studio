@@ -83,3 +83,6 @@ button.theme-mode-toggle[aria-checked=true]{background:var(--selected)}
 .connection-account-summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-surface)}
 
 @media(pointer:coarse){.reference-module-inline .reference-module-action,.reference-module-inline .reference-module-arrangement select,.reference-module-head button{min-height:44px;min-width:44px}}
+
+/* Quiet calendar autosave only exposes actionable failures. */
+.edit-save-state[hidden]{display:none!important}

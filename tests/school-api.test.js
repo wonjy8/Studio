@@ -26,3 +26,5 @@ test('registered course credits survive save/edit/reload without status and pres
  stored.school.courses[0].credits=3;response=await f.call('alpha','PUT',stored);assert.equal(response.status,200);
  stored=await (await f.call()).json();assert.equal(schoolCredits(stored.school).earned,15.5);assert.equal(graduationSummary(stored.school,stored.school.courses.map(c=>[c.id])).unallocated,15.5);assert.equal(stored.school.courses[1].status,'planned');assert.equal(Object.hasOwn(stored.school.courses[0],'status'),false);
 });
+
+test('optional cached-editor read-account constraint rejects another session before returning private school data',async t=>{const f=await fixture(t);const wrong=await fetch(f.base+'/api/school',{headers:{Cookie:f.cookies.beta,'X-Studio-Read-Account':'alpha'}});assert.equal(wrong.status,409);assert.deepEqual(await wrong.json(),{error:'ACCOUNT_CHANGED'});const own=await fetch(f.base+'/api/school',{headers:{Cookie:f.cookies.alpha,'X-Studio-Read-Account':'alpha'}});assert.equal(own.status,200);assert.equal((await own.json()).revision,0);});
