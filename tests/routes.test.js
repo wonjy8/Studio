@@ -69,3 +69,24 @@ test('dedicated shooting tabs and nested task editor preserve project context wi
  const legacy=modalFromRoute(parseRoute('/crew/project/project/p/home/dialog/content/s'),state);assert.equal(routePath({username:'crew',view:'home',project,modal:legacy}),'/crew/project/project/p/home/shoot/s/info');
 });
 test('reference dedicated pages and tabs roundtrip with account namespace',()=>{for(const referenceId of ['new','ref-123']){const url=routePath({view:'library',username:'owner',referenceId,referencePageId:'page-v2'});assert.equal(url,'/owner/dataspace/references/'+referenceId+'?page=page-v2');const route=parseRoute(url);assert.equal(route.view,'library');assert.equal(route.referenceId,referenceId);assert.equal(route.referencePageId,'page-v2');assert.equal(routeBelongsToAccount(route,{id:'other'}),false);}assert.equal(parseRoute('/owner/dataspace/references?page=page-v2').valid,false);assert.equal(parseRoute('/owner/dataspace/references/ref?page=../bad').valid,false);});
+
+
+test('connection service pages roundtrip without modal state and retain account namespace',()=>{
+ for(const connectionService of ['calendar','tasks','sheets','docs','forms','chatgpt']){
+  for(const username of [undefined,'crew','api']){
+   const options={view:'settings',settingsSection:'connections',connectionService,...(username?{username}:{})};
+   const path=routePath(options),expected=(username?'/'+(username==='api'?'@':'')+username:'')+'/settings/connections/'+connectionService;
+   assert.equal(path,expected);
+   assert.deepEqual(parseRoute(path),{valid:true,...options});
+   assert.equal(routePath(parseRoute(path)),path);
+   assert.equal(isAppPath(path),true);
+   assert.equal(safeLoginReturn(path),path);
+   assert.equal(modalFromRoute(parseRoute(path),{}),null);
+  }
+ }
+ assert.equal(routePath({view:'settings',settingsSection:'account',connectionService:'docs'}),'/settings/account');
+ assert.equal(routePath({view:'settings',settingsSection:'connections',connectionService:'unknown'}),'/settings/connections');
+ for(const path of ['/settings/connections/drive','/crew/settings/connections/drive','/settings/connections/unknown','/crew/settings/connections/unknown','/settings/connections/constructor','/settings/connections/docs/extra','/settings/account/docs','/settings/connections/docs%2Fforms']){
+  assert.equal(parseRoute(path).valid,false,path);assert.equal(safeLoginReturn(path),null,path);
+ }
+});

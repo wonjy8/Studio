@@ -475,7 +475,7 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 }
 .personal-tasks{margin-bottom:24px}.personal-tasks code{overflow-wrap:anywhere}.personal-tasks>div>details{margin:16px 0}.personal-tasks summary{min-height:44px;padding:12px 0}.personal-tasks [data-tasks-project]{display:grid;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)}.personal-tasks h3{font-size:var(--text-title);margin:0}.tasks-choices{padding:12px;border:1px solid var(--line);border-radius:var(--r-control);max-height:300px;overflow-y:auto}.tasks-choices label{display:flex;align-items:start;gap:8px;min-height:44px;padding:8px 0;overflow-wrap:anywhere}.tasks-issue{padding:16px 0;border-bottom:1px solid var(--line)}.personal-tasks .actions{flex-wrap:wrap}.personal-tasks [data-tasks-project]>label:not(.field){display:flex;gap:8px;align-items:start;min-height:44px}.personal-tasks select{min-width:0;width:100%}
 
-.service-connections{display:block;max-width:900px;margin:0 auto}.service-connections>section{margin:0;padding:20px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;min-width:0}.service-connections h2,.service-connections h3{font-size:var(--text-title);font-weight:500;color:var(--ink);margin:0;padding:0;border:0}.service-connections .section-head{margin:0 0 12px}.service-connections .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.service-connections code{display:block;overflow-wrap:anywhere;white-space:normal}.service-connections summary{cursor:pointer;min-height:44px;padding:12px 0}.service-connections .property-value{min-width:0;flex-wrap:wrap;overflow-wrap:anywhere}.service-connections .connection-guide,.service-connections .google-setup{margin:12px 0 0}.service-connections .personal-calendar .calendar-project-links{margin-bottom:0}.service-connections [role=status]:empty,.service-connections [role=alert]:empty{display:none}@media(max-width:900px){.service-connections>section{padding:20px 0}.service-connections .section-head{align-items:flex-start;flex-wrap:wrap}.service-connections .actions>span{flex-basis:100%;overflow-wrap:anywhere}}
+.service-connections{display:block;max-width:900px;margin:0 auto}.service-connections>section{margin:0;padding:20px 0;border:0;border-bottom:0;border-radius:0;min-width:0}.service-connections h2,.service-connections h3{font-size:var(--text-title);font-weight:500;color:var(--ink);margin:0;padding:0;border:0}.service-connections .section-head{margin:0 0 12px}.service-connections .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.service-connections code{display:block;overflow-wrap:anywhere;white-space:normal}.service-connections summary{cursor:pointer;min-height:44px;padding:12px 0}.service-connections .property-value{min-width:0;flex-wrap:wrap;overflow-wrap:anywhere}.service-connections .connection-guide,.service-connections .google-setup{margin:12px 0 0}.service-connections .personal-calendar .calendar-project-links{margin-bottom:0}.service-connections [role=status]:empty,.service-connections [role=alert]:empty{display:none}@media(max-width:900px){.service-connections>section{padding:20px 0}.service-connections .section-head{align-items:flex-start;flex-wrap:wrap}.service-connections .actions>span{flex-basis:100%;overflow-wrap:anywhere}}
 
 .home-workspace-columns{align-items:start}
 .home-collection{display:grid;gap:20px}
@@ -1003,3 +1003,18 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 .service-connections .connection-service-management>details{margin-top:8px}
 .service-connections .service-connection [hidden]{display:none!important}
 @media(max-width:600px){.connection-service-row{gap:12px}}
+
+/* Service selection navigates to an app screen; no list separators or popup. */
+.connection-directory{display:grid;gap:8px}
+.connection-directory-entry{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:16px;align-items:center;width:100%;text-align:left;border:0;background:transparent;color:var(--ink);padding:16px 0;border-radius:var(--r-control);cursor:pointer;font:inherit}
+.connection-directory-entry:hover{background:var(--surface-2)}
+.connection-directory-entry .connection-service-identity>strong{display:block;font-size:var(--text-title);font-weight:500}
+.connection-directory-entry .sub{display:block;color:var(--muted);font-size:var(--text-support);line-height:1.6}
+.connection-directory-entry .connection-service-add{display:grid;place-items:center;width:36px;height:36px}
+.connection-service-logo img{width:26px;height:26px;object-fit:contain}
+.service-connections>[data-connection-heading]{margin:20px 0;font-size:var(--text-section)}
+.connection-brand-attribution{margin-top:24px;font-size:var(--text-meta);overflow-wrap:anywhere}
+@media(max-width:900px){.connection-directory-entry .connection-service-add{width:44px;height:44px}}
+@media(max-width:600px){.connection-directory-entry{gap:12px}}
+
+.service-connections .connection-directory [hidden]{display:none!important}
