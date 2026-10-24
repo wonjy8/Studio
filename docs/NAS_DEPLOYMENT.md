@@ -58,6 +58,7 @@ Container publication now depends on Node tests, production image build and cont
 
 
 ## Connecting ChatGPT as a private MCP app
+See [connection setup and automatic registration](MCP_CONNECTION_SETUP.md) for the normal OAuth/DCR handoff and the separate user/plugin-owner steps.
 After the image update, add `https://studio.wonjongyou.com/mcp` as a custom remote app in ChatGPT's developer/app settings and select OAuth. Availability depends on the account, plan and workspace policy; this does not publish Studio to a public app directory. The person connecting signs into Studio and explicitly grants read-only or read/write access. No OpenAI API key or separate in-app AI subscription is needed. This chat cannot change the user's ChatGPT account settings on their behalf.
 
 The existing tunnel still routes to the Studio service. If Cloudflare Access blocks back-channel requests, allow external reachability for `/mcp`, `/.well-known/oauth-protected-resource`, `/.well-known/oauth-protected-resource/mcp`, `/.well-known/oauth-authorization-server`, `/oauth/register`, `/oauth/authorize`, `/oauth/token` and `/oauth/revoke` while retaining Studio's OAuth checks. Do not disable edge protection for unrelated routes. The consent/login UI and `/api/connections/*` remain cookie-authenticated. Proxy logs must not capture token bodies, Authorization headers or authorization callback query strings. Validate the actual ChatGPT redirect URI against the supported exact HTTPS hosts if connection errors occur; do not broaden it to arbitrary hosts.

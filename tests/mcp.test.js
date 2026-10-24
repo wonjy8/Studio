@@ -8,7 +8,7 @@ import {createApp} from '../server/index.js';
 import {token,digest} from '../server/auth.js';
 import {emptyWorkspace} from '../src/domain/workspace.js';
 async function fixture(t,options={}){
- const dir=await mkdtemp('/tmp/studio-mcp-'),origin='http://localhost';const {server,db}=await createApp({dir,origin,secure:false,...options});
+ const dir=await mkdtemp('/tmp/studio-mcp-'),origin=options.origin||'http://localhost';const {server,db}=await createApp({dir,origin,secure:false,...options});
  const cookies={};for(const uid of ['alpha','beta']){db.prepare('INSERT INTO users VALUES(?,?,?)').run(uid,uid,'fictional-hash');const raw=token();db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),uid,Date.now()+3600000);cookies[uid]='studio_session='+raw;const state=emptyWorkspace();state.project.id=uid+'-project';state.project.name='Fictional '+uid;db.prepare('INSERT INTO workspaces VALUES(?,?,?)').run(uid,1,JSON.stringify(state));}
  await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(async()=>{await new Promise(r=>server.close(r));await rm(dir,{recursive:true,force:true});});
  const base=`http://127.0.0.1:${server.address().port}`;
@@ -506,4 +506,32 @@ test('MCP annotations and scopes distinguish all existing reads, proposals and c
  for(const tool of all){const read=readNames.has(tool.name);assert.equal(tool.annotations.readOnlyHint,read);assert.equal(tool.annotations.destructiveHint,tool.name==='studio_apply_changes');assert.equal(tool.annotations.idempotentHint,read);assert.equal(tool.annotations.openWorldHint,tool.name==='studio_apply_changes');assert.deepEqual(tool.securitySchemes,tool._meta.securitySchemes);assert.deepEqual(tool.securitySchemes[0].scopes,read?['studio:read']:['studio:read','studio:write']);}
  const reads=(await f.rpc(reader,'tools/list')).data.result.tools;assert.deepEqual(new Set(reads.map(tool=>tool.name)),readNames);
  for(const tool of all.filter(tool=>!readNames.has(tool.name)))assert.equal((await f.rpc(reader,tool.name,{})).data.error.code,-32602);
+});
+
+test('connection setup is read-only, uses configured origin and advertises DCR without credentials',async t=>{
+ const f=await fixture(t),counts=()=>Object.fromEntries(['oauth_clients','oauth_requests','oauth_codes','oauth_grants','oauth_manual_clients'].map(table=>[table,f.db.prepare('SELECT count(*) n FROM '+table).get().n]));
+ assert.equal((await f.call('/api/connections/setup')).status,401);
+ const before=counts();
+ const r=await f.call('/api/connections/setup','GET',undefined,{Cookie:f.cookies.alpha,'X-Forwarded-Host':'untrusted.example.invalid','X-Forwarded-Proto':'https'});assert.equal(r.status,200);const setup=await r.json();
+ assert.equal(setup.endpoint,f.resource);assert.equal(setup.authorizationServer,f.origin);assert.equal(setup.registration.mode,'dynamic');assert.equal(setup.registration.manualCredentialsRequired,false);assert.equal(setup.pkce,'S256');assert.equal(setup.requiresLogin,true);assert.equal(setup.requiresConsent,true);assert.deepEqual(setup.requiredScopes,['studio:read']);assert.deepEqual(setup.optionalScopes,['studio:write']);
+ const resource=await(await f.call(new URL(setup.protectedResourceMetadata).pathname)).json(),server=await(await f.call(new URL(setup.authorizationServerMetadata).pathname)).json();assert.equal(resource.resource,setup.endpoint);assert.deepEqual(resource.authorization_servers,[setup.authorizationServer]);assert.equal(server.issuer,setup.authorizationServer);assert.equal(server.registration_endpoint,setup.registration.endpoint);assert.ok(server.code_challenge_methods_supported.includes(setup.pkce));assert.equal(server.authorization_response_iss_parameter_supported,true);
+ assert.equal(JSON.stringify(setup).includes('untrusted.example.invalid'),false);for(const key of ['access_token','refresh_token','client_id','client_secret'])assert.equal(Object.hasOwn(setup,key),false);assert.deepEqual(counts(),before);
+});
+
+test('automatic DCR connection preserves login, state, PKCE, denial and independent reconnect scopes',async t=>{
+ const f=await fixture(t),client=await f.register();assert.equal(client.token_endpoint_auth_method,'none');assert.equal(client.client_secret,undefined);assert.equal(f.db.prepare('SELECT count(*) n FROM oauth_manual_clients').get().n,0);
+ const denied=await f.pending(client);assert.equal((await f.call('/api/connections/requests/'+denied.id)).status,401);const refusal=await f.consent(denied,'alpha',false,false);assert.equal(refusal.searchParams.get('error'),'access_denied');assert.equal(refusal.searchParams.get('state'),denied.params.state);assert.equal(refusal.searchParams.get('iss'),f.origin);assert.equal(f.db.prepare('SELECT count(*) n FROM oauth_grants').get().n,0);
+ const link=async write=>{const pending=await f.pending(client),redirect=await f.consent(pending,'alpha',write);assert.equal(redirect.searchParams.get('iss'),f.origin);assert.equal(redirect.searchParams.get('state'),pending.params.state);const data={client_id:client.client_id,redirect_uri:f.callback,grant_type:'authorization_code',code:redirect.searchParams.get('code'),code_verifier:pending.verifier};assert.equal((await f.form({...data,code_verifier:token()})).status,400);const response=await f.form(data);assert.equal(response.status,200);return response.json();};
+ const reader=await link(false),writer=await link(true);assert.equal((await f.rpc(reader,'tools/list')).data.result.tools.length,5);assert.equal((await f.rpc(writer,'tools/list')).data.result.tools.length,9);assert.equal((await f.rpc(reader,'studio_propose_changes',{})).data.error.code,-32602);
+ assert.equal(f.db.prepare('SELECT count(*) n FROM oauth_clients').get().n,1);assert.equal(f.db.prepare('SELECT count(*) n FROM oauth_grants WHERE revoked=0').get().n,2);assert.equal((await f.rpc(reader,'studio_list_projects')).response.status,200);
+ const p=await f.pending(client);assert.equal((await f.call('/oauth/authorize?'+new URLSearchParams({...p.params,redirect_uri:'https://chatgpt.com/unregistered-callback'}))).status,400);assert.equal((await f.call('/oauth/authorize?'+new URLSearchParams({...p.params,resource:f.origin+'/wrong-resource'}))).status,400);assert.equal((await f.call('/oauth/authorize?'+new URLSearchParams({...p.params,code_challenge_method:'plain'}))).status,400);
+});
+
+
+test('HTTPS proxy configuration remains canonical during setup and OAuth discovery',async t=>{
+ const f=await fixture(t,{origin:'https://studio.example.invalid',secure:true});
+ const setup=await(await f.call('/api/connections/setup','GET',undefined,{Cookie:f.cookies.alpha,Host:'internal:8080','X-Forwarded-Host':'attacker.invalid','X-Forwarded-Proto':'http'})).json();
+ assert.equal(setup.endpoint,'https://studio.example.invalid/mcp');assert.equal(setup.authorizationServer,'https://studio.example.invalid');
+ const metadata=await(await f.call('/.well-known/oauth-authorization-server','GET',undefined,{'X-Forwarded-Proto':'http'})).json();for(const key of ['issuer','authorization_endpoint','token_endpoint','registration_endpoint'])assert.ok(metadata[key].startsWith('https://studio.example.invalid'));
+ const client=await f.register(),pending=await f.pending(client);assert.ok(pending.id);assert.equal(new URL((await f.consent(pending,'alpha',false,false)).href).searchParams.get('iss'),'https://studio.example.invalid');
 });
