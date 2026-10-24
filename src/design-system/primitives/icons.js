@@ -3,7 +3,11 @@ import {solidProjectIconPaths} from '../icons/solid-paths.js';
 import {projectIconPaths} from '../icons/paths.js';
 import {editorIconPaths} from '../icons/editor-paths.js';
 
+// Semantic feature mapping: status checkboxes and project identity IDs stay separate.
+export const featureIcons=Object.freeze({todo:'tabler-checklist'});
+
 export function icon(name,{solid=false,outline=false}={}){
+ name=featureIcons[name]||name;
  const ionName=ionIconAliases[name]||name;
  const variants=ionIconPaths[ionName];
  if(variants){
