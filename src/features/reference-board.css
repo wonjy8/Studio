@@ -101,7 +101,7 @@
 .reference-module-items.module-kind-heading,.reference-module-items.module-kind-divider{display:block;min-height:0}.module-kind-divider hr{border:0;border-top:1px solid var(--line);margin:12px 0}
 .reference-page .reference-board-card{min-height:0;border:0;box-shadow:none;background:transparent}.reference-page .reference-board-card-body{height:auto;min-height:0;padding:0}
 .reference-page .reference-board-image,.reference-page .reference-board-video{width:100%;height:auto;max-height:none;object-fit:contain}
-.reference-page .reference-module-head input{font-size:18px;font-weight:600}.reference-page [data-board-status]{font-size:12px;margin-top:24px}
+.reference-page .reference-module-head input{font-size:14px;font-weight:500}.reference-page [data-board-status]{font-size:12px;margin-top:24px}
 @media(max-width:900px){.reference-page{padding:8px 0 32px}.reference-page-header{gap:8px}.reference-page-header .btn{white-space:nowrap}.reference-module-items{grid-template-columns:repeat(min(var(--gallery-columns,1),2),minmax(0,1fr))}.reference-module-picker{top:64px;bottom:16px}.reference-page-tabs button{min-height:44px}.reference-page .reference-module-tools{flex-wrap:wrap}}
 .reference-module:is([data-module-kind=heading],[data-module-kind=divider])>.reference-module-inline{display:none}
 .reference-page-open>.collection-selection{display:none}
@@ -111,3 +111,13 @@
 .reference-image-preview{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
 .reference-image-preview img.reference-board-image{width:100%;height:auto;object-fit:contain}
 .reference-image-preview>.btn{flex:none;white-space:nowrap}
+
+/* Module controls: small visible chips, full action hit areas. */
+.reference-module-tag-field[hidden]{display:none}
+.reference-module-head [data-module-remove]{font-size:18px}
+@media(hover:hover) and (pointer:fine){.reference-module-head [data-module-remove]{opacity:0;pointer-events:none}.reference-module:hover [data-module-remove],.reference-module:focus-within [data-module-remove]{opacity:1;pointer-events:auto}}
+.reference-module-inline{gap:4px;position:relative}
+.reference-module-arrangement{min-height:36px;gap:2px!important}
+.reference-module-arrangement select{width:auto;max-width:76px;font-size:12px;padding:2px 4px}
+.reference-module-tag-field{flex-basis:100%;display:flex;gap:8px;align-items:center}
+@media(max-width:900px),(pointer:coarse){.reference-module-arrangement{min-height:44px}.reference-module-arrangement select{font-size:16px}.reference-page .reference-module-head input{font-size:16px}}
