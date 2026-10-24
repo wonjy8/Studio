@@ -1049,3 +1049,6 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 .calendar-event-editor [data-calendar-target-error]:empty{display:none}
 
 .calendar-event-editor label:has(>input[type=checkbox]){display:flex;align-items:center;gap:8px;min-height:44px}.calendar-event-editor label>input[type=checkbox]{width:18px;height:18px;min-height:0;flex:none}
+
+.calendar-event-management{margin-top:12px}.calendar-event-management>summary{cursor:pointer;min-height:36px;display:list-item}.calendar-project-link-choices{display:grid;gap:4px;max-height:240px;overflow:auto}.calendar-project-link-choices label{display:flex;align-items:center;gap:8px;min-height:44px;overflow-wrap:anywhere}.calendar-project-link-choices input{width:18px;height:18px;flex:none}.calendar-event-management [data-project-link-error]:empty,[data-workspace-link-message]:empty{display:none}
+@media(max-width:900px),(pointer:coarse){.calendar-event-management>summary{min-height:44px}}
