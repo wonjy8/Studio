@@ -1,3 +1,4 @@
+import {backNavigation} from '../design-system/primitives/back-navigation.js';
 import {newRecordDraft} from './new-record-draft.js';
 import {request} from '../integrations/api.js';
 import {icon} from '../design-system/primitives/icons.js';
@@ -38,7 +39,7 @@ export async function bindDocumentWorkspace({state,namespace,documentId,onSelect
  function edit(id,initialDirty=false){
   opening++;
   tabHost?.replaceChildren();
-  root.innerHTML=`<div class="document-browse-back"><button class="btn ghost" data-documents-back>문서 목록</button><span class="sub">내 문서</span></div>${documentsPage()}`;onSelect(id);
+  root.innerHTML=`<div class="document-browse-back">${backNavigation('문서 목록으로 돌아가기','data-documents-back')}<span class="sub">내 문서</span></div>${documentsPage()}`;onSelect(id);
   bindDocuments({project:{id:'account-documents',name:'문서'},documents:data.documents,refs:references},{namespace:namespace+':library',initialDocumentId:id,initialDirty,onDocumentSelect:onSelect,onPersist:async documents=>{const saved=await request('document-library',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({documents,revision:data.revision})});data=saved;return {refs:references};},onPickReference:async libraryId=>{const result=await request('reference-library');references=result.references.map(ref=>({...ref,libraryId:ref.id}));const ref=references.find(r=>r.id===libraryId);if(!ref)throw Error('레퍼런스를 찾을 수 없습니다.');return ref;}});
   root.querySelector('[data-documents-back]').onclick=async()=>{try{await flushDocuments();if(!alive())return;onSelect(null);browse();releaseDocuments();}catch{/* Editor retains the unsaved text and retry control. */}};
  }
