@@ -1,5 +1,5 @@
 /* One workspace layout contract; feature-specific canvases keep their own behavior. */
-:root{--workspace-width:1440px;--workspace-gutter:24px;--workspace-gap:20px;--workspace-list-width:280px;--workspace-panel-padding:20px}
+:root{--workspace-width:1440px;--workspace-gutter:24px;--page-gutter:var(--workspace-gutter);--workspace-gap:20px;--workspace-list-width:280px;--workspace-panel-padding:20px}
 .production-app .content{max-width:var(--workspace-width);padding:28px var(--workspace-gutter) 64px;margin:0 auto}
 .production-app .save-content{min-width:0}
 .production-app :is(.inventory-workspace,.managed-projects,.settings-page,.member-directory,[data-rental-vendors],[data-admin-organizations],[data-admin-panel]){max-width:none;width:100%;margin-left:0;margin-right:0;min-width:0}
@@ -28,8 +28,11 @@
 .production-app .project-list .project-item{min-height:38px;border-radius:var(--r-control)}
 .production-app .inventory-collection-picker{margin-bottom:24px}
 .production-app :is(.master-search,.master-choice,.managed-project-card):focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-@media(max-width:900px){:root{--workspace-gutter:20px;--workspace-panel-padding:20px}.production-app .master-list{top:88px}}
-@media(max-width:760px){:root{--workspace-gutter:16px;--workspace-gap:16px;--workspace-panel-padding:18px}.production-app .content{padding-top:20px;padding-bottom:40px}.production-app :is(.hero,.page-heading){align-items:flex-start;flex-wrap:wrap;margin-bottom:20px;gap:12px}.production-app :is(.hero,.page-heading) h2{font-size:var(--text-page)}.production-app :is(.master-detail,.managed-projects-grid){grid-template-columns:minmax(0,1fr)}.production-app .master-list{position:static;max-height:240px}.production-app :is(.inventory-create-actions,.schedule-add-actions,.layout-actions){justify-content:flex-start;max-width:100%}.production-app .hero>div:has(>.btn){flex-wrap:wrap}.production-app .inventory-summary{gap:12px}.production-app .inventory-facts{gap:16px}}
+@media(max-width:900px){:root{--workspace-gutter:28px;--workspace-panel-padding:20px}.production-app .master-list{top:88px}}
+@media(max-width:760px){:root{--workspace-gap:16px;--workspace-panel-padding:18px}.production-app .content{padding-top:20px;padding-bottom:40px}.production-app :is(.hero,.page-heading){align-items:flex-start;flex-wrap:wrap;margin-bottom:20px;gap:12px}.production-app :is(.hero,.page-heading) h2{font-size:var(--text-page)}.production-app :is(.master-detail,.managed-projects-grid){grid-template-columns:minmax(0,1fr)}.production-app .master-list{position:static;max-height:240px}.production-app :is(.inventory-create-actions,.schedule-add-actions,.layout-actions){justify-content:flex-start;max-width:100%}.production-app .hero>div:has(>.btn){flex-wrap:wrap}.production-app .inventory-summary{gap:12px}.production-app .inventory-facts{gap:16px}}
+/* Phone content owns its extra gutter inside main; navigation and dialogs keep their own insets. */
+@media(max-width:600px){.production-app .main{--workspace-gutter:32px;--page-gutter:var(--workspace-gutter)}}
+@media(max-width:359.98px){:root{--workspace-gutter:24px}.production-app .main{--workspace-gutter:28px}}
 .production-app [data-master-id][hidden]{display:none!important}
 .production-app :is(.master-list,.master-pane){corner-shape:squircle}
 @media(max-width:600px){.production-app .master-search{font-size:16px}}
@@ -605,7 +608,6 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
 .bible-secondary-verse .scripture-verse-text,.bible-secondary-verse .scripture-scalable-text,[data-bible-panel="right"] .scripture-verse-text,[data-bible-panel="right"] .scripture-scalable-text{color:var(--bible-secondary-ink,#54545d)}
 :root[data-theme="dark"]{--bible-secondary-ink:#bcbcc5}
 @media(max-width:900px){
- :root{--workspace-gutter:24px;--page-gutter:24px}
  .production-app .project-sidebar{padding-left:max(var(--workspace-gutter),env(safe-area-inset-left,0px));padding-right:max(var(--workspace-gutter),env(safe-area-inset-right,0px))}
 }
 .bible-reading-layout.is-split>.scripture-reader+section{border-left:0}
@@ -672,7 +674,6 @@ textarea.document-title{resize:none;overflow:hidden;line-height:1.35!important;m
  .mobile-workspace-pill[data-single-tab]{flex:0 0 var(--mobile-nav-height);width:var(--mobile-nav-height)}
  [data-mobile-admin-settings] .project-sidebar [data-settings-section],[data-mobile-admin-settings] .project-sidebar [data-admin-settings-divider]{display:none}
 }
-@media(min-width:360px) and (max-width:900px){:root{--workspace-gutter:28px;--page-gutter:28px}}
 
 .home-collection>[data-workspace-calendar],.home-collection>[data-workspace-schedule-list]{min-width:0}
 [data-google-read] form{display:grid;gap:12px;margin-top:16px}
