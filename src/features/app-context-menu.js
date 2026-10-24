@@ -46,7 +46,10 @@ function fireInput(target,text){
   target.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertFromPaste',data:text}));
 }
 async function runAction(action,target,menu){
-  if(action==='copy'){
+  if(action==='module-remove'){
+    const remove=target.closest('[data-module-id]')?.querySelector('[data-module-remove]');
+    closeMenu();if(remove&&!remove.disabled)remove.click();return;
+  }else if(action==='copy'){
     await writeClipboard(selectedText(target),target);
   }else if(action==='copy-link'){
     await writeClipboard(target.closest('a[href]')?.href||'',target);
@@ -140,6 +143,8 @@ function handleContextMenu(event){
   if(link)items.push({label:'링크 주소 복사',icon:'tabler-link',action:'copy-link'});
   if(imageTarget)items.push({label:'이미지 주소 복사',icon:'tabler-photo',action:'copy-image'});
   if(editable&&navigator.clipboard?.readText)items.push({label:'붙여넣기',icon:'tabler-clipboard',action:'paste'});
+  const moduleRemove=target.closest('[data-module-id]')?.querySelector('[data-module-remove]');
+  if(moduleRemove&&!moduleRemove.disabled)items.push({label:'모듈 삭제',icon:'trash',action:'module-remove'});
   items.push({label:'모두 선택',icon:'tabler-checklist',action:'select-all'});
   if(items.length)items.push({separator:true});
   items.push({label:'새로고침',action:'reload'});
