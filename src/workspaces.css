@@ -1024,3 +1024,21 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
  .production-app .main{padding-left:0;padding-right:0}
  .production-app .content,.production-app:has([data-home-schedule]) .content,.production-app .topbar,.production-app .project-tabs{padding-left:max(var(--workspace-gutter),env(safe-area-inset-left,0px));padding-right:max(var(--workspace-gutter),env(safe-area-inset-right,0px))}
 }
+
+/* Connection detail: compact account rows, one explicit add action, secondary help. */
+.connection-service-heading{grid-template-columns:44px minmax(0,1fr)}
+.connection-accounts-section{margin-top:24px;min-width:0}
+.service-connections .connection-accounts-section>h3{font-size:var(--text-support);color:var(--muted);margin-bottom:8px}
+.connection-account-list{display:grid;gap:8px;min-width:0}
+.connection-account-card{background:var(--surface-2);border:0;border-radius:var(--r-surface);min-width:0}
+.service-connections .connection-account-summary{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px;list-style:none}
+.connection-account-summary::-webkit-details-marker{display:none}
+.connection-account-avatar{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:50%;background:var(--selected);color:var(--accent)}
+.connection-account-identity{display:grid;gap:4px;flex:1;min-width:0;overflow-wrap:anywhere}
+.connection-account-identity strong{font-weight:500}.connection-account-identity small{color:var(--muted);font-size:var(--text-support)}
+.connection-account-summary>.icon{flex:none;width:18px;height:18px}
+.connection-account-card[open]>.connection-account-summary>.icon{transform:rotate(90deg)}
+.connection-account-body{padding:4px 12px 16px;min-width:0}
+.connection-account-body form{display:grid;gap:12px;margin-top:16px}.connection-account-body input{min-width:0;width:100%}
+.service-connections .connection-account-add{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;margin-top:8px;border:0;background:transparent;padding:12px;text-align:left}
+.connection-consent-summary{margin:12px 0;font-size:var(--text-support)}
