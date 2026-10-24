@@ -1,8 +1,8 @@
 import {openCalendarEventEditor} from './calendar-event-editor.js';
-import {request} from '../integrations/api.js';
+import {googleAccountRequest} from './google-account-selection.js';
 import {dateKey} from '../domain/calendar.js';
 export function editHomeCalendarEvent({id,trigger,onSaved,namespace,initial={}}){
- let record,editContext,target,savedRecord,savedTarget;const newId=id||crypto.randomUUID();
+ const request=googleAccountRequest('calendar');let record,editContext,target,savedRecord,savedTarget;const newId=id||crypto.randomUUID();
  return openCalendarEventEditor({trigger,load:async()=>{
   const result=await request('workspace-events/home'+(id?'/'+id:''));
   if(namespace&&result.accountId!==namespace)throw Error('로그인 계정이 변경되었습니다. 새로고침하세요.');

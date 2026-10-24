@@ -1,3 +1,4 @@
+import {googleSyncManagement} from './google-sync-management.js';
 import {filePreviewRoutes,previewUsage,serveFilePreview} from './file-previews.js';
 import {privateNotModified} from './private-revalidation.js';
 import {installGracefulShutdown} from './shutdown.js';
@@ -70,6 +71,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
   const diagnostics=connectionDiagnostics(db);
   const googleUnified=googleUnifiedService(db,{origin,...google,codec:googleSheets.credentialCodec,attempts:googleAttempts});
   const googleRead=googleReadService(db,{origin,...google,codec:googleSheets.credentialCodec,attempts:googleAttempts});
+  const googleSync=googleSyncManagement(db,{origin,...google,codec:googleSheets.credentialCodec,attempts:googleAttempts,services:{calendar,tasks:tasksGoogle,sheets:googleSheets,homeEvents:handleWorkspaceHomeEvents}});
   const handleInvitations=invitationRoutes(db,origin);
   const oauth=oauthService(db,origin),handleMcp=mcpService(db,origin,oauth,{workspaces:contentWorkspaces});
   const attempts = new Map();
@@ -118,6 +120,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(path==='/api/connections/diagnostics'&&req.method==='GET'){if(!session)return json(401,{error:'Login required'});if(!isAdmin(db,session.user_id))return json(403,{error:'Administrator required'});return json(200,{version:'connection-diagnostics-1',toolSchemaVersion,serverRevision:/^[a-f0-9]{7,40}$/.test(process.env.STUDIO_REVISION||'')?process.env.STUDIO_REVISION:'development',issuerIdentification:true,events:diagnostics.list()});}
       if(path==='/oauth/google/tasks/callback'&&await tasksGoogle.routes({path,url,req,res,session,json,readJson}))return;
       if(path==='/oauth/google/calendar/callback'&&await calendar.routes({path,url,req,res,session,json,readJson}))return;
+      if(path==='/oauth/google/callback'&&await googleSync.routes({path,url,req,res,session,json,readJson,assertLiveMutation}))return;
       if(path==='/oauth/google/callback'&&await googleRead.routes({path,url,req,res,session,json,readJson}))return;
       if(path==='/oauth/google/callback'&&await googleUnified.routes({path,url,req,res,session,json,readJson}))return;
       if(path==='/oauth/google/callback'&&await googleSheets.routes({path,url,req,res,session,json,readJson}))return;
@@ -138,6 +141,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleMaterials({path,req,res,session,json,readJson}))return;
       if(await handleContacts({path,req,session,json,readJson}))return;
       if(await handleRentalVendors({path,req,session,json,readJson}))return;
+      if(await googleSync.routes({path,url,req,res,session,json,readJson,assertLiveMutation}))return;
       if(await googleRead.routes({path,url,req,res,session,json,readJson}))return;
       if(await googleUnified.routes({path,url,req,res,session,json,readJson}))return;
       if(await tasksGoogle.routes({path,url,req,res,session,json,readJson}))return;
@@ -230,7 +234,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
     } catch(e) {if(['/oauth/token','/oauth/revoke'].includes(diagnosticPath)&&e.oauthClientDiagnostic)diagnosticDetails=diagnostics.clientAuthentication(e.oauthClientDiagnostic);if(!res.headersSent&&req.headers.accept?.includes('text/html')&&/^\/oauth\/google\/(?:calendar\/|tasks\/)?callback(?:\?|$)/.test(req.url)){const service=req.url.startsWith('/oauth/google/tasks/')?'Google Tasks':req.url.startsWith('/oauth/google/calendar/')?'Google Calendar':'Google';const status=e.status||500;res.writeHead(status,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+service+' 연결 확인</title><body><main><h1>'+service+' 연결을 완료하지 못했습니다</h1><p>연결 요청이 만료되었거나 로그인·동의 확인에 실패했습니다. 기존 연결은 유지됩니다.</p><p><a href="/settings/connections">연결 설정으로 돌아가기</a></p></main></body></html>');}else if(!res.headersSent) json(e.status|| (e.code==='ENOENT'?404:500),{error:e.status===413?'Request too large':(e.status&&pathForError(req.url)?e.message:'Request failed'),...(publicCalendarDiagnostic(e)?{calendarDiagnostic:publicCalendarDiagnostic(e)}:{})});else res.end();}
   });
   server.requestTimeout=30000;server.headersTimeout=10000;
-  server.on('close',()=>{handleScripture.close();handleMcp.close();googleRead.close();googleUnified.close();googleAttempts.close();tasksGoogle.close();calendar.close();googleSheets.close();db.close();});
+  server.on('close',()=>{handleScripture.close();handleMcp.close();googleSync.close();googleRead.close();googleUnified.close();googleAttempts.close();tasksGoogle.close();calendar.close();googleSheets.close();db.close();});
   return {server,db,googleSheets,calendar,tasksGoogle};
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)) {
