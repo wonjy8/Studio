@@ -110,6 +110,11 @@ export function oauthService(db,origin){
   if(path==='/api/connections'||path.startsWith('/api/connections/')){
    liveSession(session);
    if(req.method!=='GET'&&req.headers.origin!==origin)throw fail('Origin rejected',403);
+   if(path==='/api/connections/setup'&&req.method==='GET'){
+    // Configuration only: no client, request, code or grant is created here.
+    // APP_ORIGIN remains authoritative behind HTTPS proxies; never trust forwarded hosts.
+    json(200,{endpoint:resource,authorizationServer:origin,protectedResourceMetadata:origin+'/.well-known/oauth-protected-resource/mcp',authorizationServerMetadata:origin+'/.well-known/oauth-authorization-server',registration:{mode:'dynamic',endpoint:origin+'/oauth/register',manualCredentialsRequired:false},pkce:'S256',requiredScopes:['studio:read'],optionalScopes:['studio:write'],requiresLogin:true,requiresConsent:true});return true;
+   }
    if(path==='/api/connections/clients'&&req.method==='GET'){
     if(!isAdmin(db,session.user_id))throw fail('Administrator required',403);
     cleanup();json(200,{clients:db.prepare('SELECT c.id,c.redirects,m.created_at,p.redirect_uri AS pending_callback FROM oauth_clients c JOIN oauth_manual_clients m ON m.client_id=c.id LEFT JOIN oauth_callback_mismatches p ON p.client_id=c.id WHERE m.owner_id=? AND m.revoked=0 ORDER BY m.created_at DESC').all(session.user_id).map(c=>({id:c.id,redirectUris:JSON.parse(c.redirects),createdAt:c.created_at,pendingCallback:c.pending_callback||null}))});return true;
