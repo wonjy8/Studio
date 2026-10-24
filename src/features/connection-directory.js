@@ -4,9 +4,9 @@ import {escapeHtml as esc} from '../design-system/primitives/html.js';
 import {request} from '../integrations/api.js';
 
 export const connectionServices=[
- {id:'calendar',title:'Google Calendar',shared:true},
- {id:'tasks',title:'Google Tasks',shared:true},
- {id:'sheets',title:'Google Sheets',shared:true},
+ {id:'calendar',title:'Google Calendar'},
+ {id:'tasks',title:'Google Tasks'},
+ {id:'sheets',title:'Google Sheets'},
  {id:'docs',title:'Google Docs'},
  {id:'forms',title:'Google Forms'},
  {id:'chatgpt',title:'ChatGPT'}
@@ -38,7 +38,7 @@ export function bindConnectionDirectory(onOpen){
      const service=status.services.find(item=>item.service===id);if(!service)throw Error('Invalid connection status');
      const state=service.connected?(service.email||'연결됨'):(status.configured?'연결 안 됨':'서버 설정 필요');
      const permission=service.latestGranted===false?' · 최근 동의 미허용'+(service.connected?' · 기존 연결 유지':''):service.connected&&service.permission!=='approved'?' · 권한 확인 필요':'';
-     mark(id,googleNavigationState(service,status.configured));summary(id,state+permission+(!status.configured&&service.connected?' · 서버 설정 필요':'')+(service.error?' · '+service.error:'')+' · Calendar·Tasks·Sheets 공동 연결');
+     mark(id,googleNavigationState(service,status.configured));summary(id,state+permission+(!status.configured&&service.connected?' · 서버 설정 필요':'')+(service.error?' · '+service.error:''));
     }
    }else if(group==='chatgpt'){
     const data=await request('connections');if(!Array.isArray(data.connections))throw Error('Invalid connection status');
