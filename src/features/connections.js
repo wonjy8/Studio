@@ -1,3 +1,4 @@
+import {backNavigation} from '../design-system/primitives/back-navigation.js';
 import {serviceConnectionHeading} from '../design-system/primitives/service-connection.js';
 import {manualClientPanel,bindManualOAuth} from './manual-oauth.js';
 import {request} from '../integrations/api.js';
@@ -53,6 +54,6 @@ export async function connectionConsent(){
    try{const data=await request('connections/authorize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId:id,approve,allowFullContent:approve,allowWrite:approve&&Boolean(root.querySelector('[name=write]')?.checked)})});location.assign(data.redirect);}catch{root.querySelector('#consent-error').textContent='연결을 승인하지 못했습니다. ChatGPT에서 다시 연결해 주세요.';root.querySelectorAll('button').forEach(b=>b.disabled=false);}
   };
   root.querySelector('form').onsubmit=e=>{e.preventDefault();finish(true);};root.querySelector('#consent-deny').onclick=()=>finish(false);
- }catch{root.innerHTML='<main class="login-page"><section class="login-panel"><h1>연결 요청을 확인할 수 없습니다.</h1><p>요청이 만료되었거나 사용할 수 없습니다. ChatGPT에서 다시 연결해 주세요.</p><a class="btn" href="/">Studio로 돌아가기</a></section></main>';}
+ }catch{root.innerHTML='<main class="login-page"><section class="login-panel"><h1>연결 요청을 확인할 수 없습니다.</h1><p>요청이 만료되었거나 사용할 수 없습니다. ChatGPT에서 다시 연결해 주세요.</p>'+backNavigation('Studio로 돌아가기','',{href:'/'})+'</section></main>';}
  return true;
 }

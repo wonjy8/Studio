@@ -71,3 +71,6 @@ button.theme-mode-toggle[aria-checked=true]{background:var(--selected)}
 @media print{.control-tooltip{display:none!important}}
 
 .edit-save-state{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}.edit-save-state [hidden]{display:none!important}
+
+/* Return navigation: one contextual icon action, preserving the existing destination. */
+.back-navigation>.icon{transform:rotate(180deg)}.back-navigation[hidden]{display:none!important}

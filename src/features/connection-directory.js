@@ -38,14 +38,14 @@ export function bindConnectionDirectory(onOpen){
      const service=status.services.find(item=>item.service===id);if(!service)throw Error('Invalid connection status');
      const state=service.connected?(service.email||'연결됨'):(status.configured?'연결 안 됨':'서버 설정 필요');
      const permission=service.latestGranted===false?' · 최근 동의 미허용'+(service.connected?' · 기존 연결 유지':''):service.connected&&service.permission!=='approved'?' · 권한 확인 필요':'';
-     mark(id,googleNavigationState(service,status.configured));summary(id,state+permission+(service.error?' · '+service.error:'')+' · Calendar·Tasks·Sheets 공동 연결');
+     mark(id,googleNavigationState(service,status.configured));summary(id,state+permission+(!status.configured&&service.connected?' · 서버 설정 필요':'')+(service.error?' · '+service.error:'')+' · Calendar·Tasks·Sheets 공동 연결');
     }
    }else if(group==='chatgpt'){
     const data=await request('connections');if(!Array.isArray(data.connections))throw Error('Invalid connection status');
     const connection=chatgptNavigationState(data.connections);mark(group,connection.state);summary(group,connection.active?connection.active+'개 연결 · 권한별 관리'+(connection.expired?' · '+connection.expired+'개 만료·확인 필요':''):connection.expired?'만료·권한 확인 필요 · 다시 연결하세요.':'연결 안 됨');
    }else{
     const status=await request('google/read/'+group+'/status');
-    mark(group,readNavigationState(status));summary(group,status.connected?(status.email||'연결됨')+(status.reconnectRequired?' · 다시 연결 필요':' · 읽기 권한 승인됨'):status.configured?'연결 안 됨 · 읽기 전용':'서버 설정 필요');
+    mark(group,readNavigationState(status));summary(group,status.connected?(status.email||'연결됨')+(!status.configured?' · 서버 설정 필요':status.reconnectRequired?' · 다시 연결 필요':' · 읽기 권한 승인됨'):status.configured?'연결 안 됨 · 읽기 전용':'서버 설정 필요');
    }
    if(root.isConnected)for(const id of ids)root.querySelector(`[data-connection-retry="${id}"]`).hidden=true;
   }catch{
