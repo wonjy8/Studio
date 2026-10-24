@@ -45,3 +45,8 @@ test('custom stored requirement names can produce typo labels without changing c
  assert.equal(graduationSummary(school,schoolCreditGroups(school)).areas[0].earned,3);
  assert.deepEqual(school,before);
 });
+
+test('area display groups major/liberal/general stably without mutating requirements or dropping unallocated credits',()=>{
+ const school=fixture();school.graduation.areas=[{id:'g1',name:'General first',group:'elective',requiredCredits:1},{id:'l1',name:'Liberal first',group:'liberal',requiredCredits:2},{id:'m1',name:'Major first',group:'major',requiredCredits:3},{id:'m2',name:'Major second',group:'major',requiredCredits:4},{id:'l2',name:'Liberal second',group:'liberal',requiredCredits:5}];school.graduation.mappings={};const before=structuredClone(school),html=schoolDashboard(school);
+ const groups=[...html.matchAll(/data-school-area-group="([^"]+)"/g)].map(match=>match[1]);assert.deepEqual(groups,['major','major','liberal','liberal','elective']);assert.equal((html.match(/class="school-area-group-start"/g)||[]).length,2);assert.ok(html.indexOf('Major first')<html.indexOf('Major second'));assert.ok(html.indexOf('Liberal first')<html.indexOf('Liberal second'));assert.match(html,/요건 미배정/);assert.deepEqual(school,before);assert.equal(graduationSummary(school,schoolCreditGroups(school)).unallocated,8.5);
+});

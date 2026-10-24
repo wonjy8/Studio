@@ -986,3 +986,6 @@ html[data-theme=dark]{--scripture-highlight-color-1:#c2c6d0;--scripture-highligh
 [data-workspace-calendar] .month-calendar .calendar-cell-events::-webkit-scrollbar{display:none;width:0;height:0}
 [data-workspace-calendar] .month-calendar .calendar-cell-events:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 [data-workspace-calendar] .month-calendar .calendar-event{padding-block:2px;min-height:24px}
+
+.school-graduation-table tr.school-area-group-start>:is(th,td){padding-top:calc(12px + var(--space-2))}
+@media(max-width:600px){.school-graduation-table tr.school-area-group-start>:is(th,td){padding-top:calc(10px + var(--space-2))}}

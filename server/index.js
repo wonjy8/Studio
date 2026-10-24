@@ -113,7 +113,7 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
         if(!db.prepare('SELECT id FROM users WHERE id=?').get(session.user_id)||!accountActive(db,session.user_id)||!db.prepare('SELECT token FROM sessions WHERE token=? AND user_id=? AND expires>?').get(session.token,session.user_id,Date.now()))throw Object.assign(Error('Session changed. Sign in again'),{status:401});
         if(path!=='/api/account/password'&&passwordChangeRequired(db,session.user_id))throw Object.assign(Error('PASSWORD_CHANGE_REQUIRED'),{status:403});
       }
-      const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${secure?'; Secure':''}`);
+      const setCookie=(value,age)=>res.setHeader('Set-Cookie',`studio_session=${value}; Path=/; HttpOnly; SameSite=Strict${age===undefined?'':'; Max-Age='+age}${secure?'; Secure':''}`);
       if(session&&passwordChangeRequired(db,session.user_id)&&!['/api/session','/api/logout','/api/account/password'].includes(path)&&path.startsWith('/api/'))return json(403,{error:'PASSWORD_CHANGE_REQUIRED'});
       if(path==='/api/connections/diagnostics'&&req.method==='GET'){if(!session)return json(401,{error:'Login required'});if(!isAdmin(db,session.user_id))return json(403,{error:'Administrator required'});return json(200,{version:'connection-diagnostics-1',toolSchemaVersion,serverRevision:/^[a-f0-9]{7,40}$/.test(process.env.STUDIO_REVISION||'')?process.env.STUDIO_REVISION:'development',issuerIdentification:true,events:diagnostics.list()});}
       if(path==='/oauth/google/tasks/callback'&&await tasksGoogle.routes({path,url,req,res,session,json,readJson}))return;
@@ -149,8 +149,8 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
       if(await handleAccounts({path,url,req,session,json,readJson}))return;
       if (path==='/api/login' && req.method==='POST') {
         const data = await readJson();
-        if (typeof data.username!=='string'||data.username.length>64||typeof data.password!=='string'||data.password.length>256) return json(400,{error:'Invalid input'});
-        const now=Date.now();
+        if (!data||typeof data!=='object'||Array.isArray(data)||(data.rememberMe!==undefined&&typeof data.rememberMe!=='boolean')||typeof data.username!=='string'||data.username.length>64||typeof data.password!=='string'||data.password.length>256) return json(400,{error:'Invalid input'});
+        const now=Date.now(),sessionSeconds=data.rememberMe===true?30*24*60*60:12*60*60;
         for(const [key,v] of attempts) if(v.until<now) attempts.delete(key);
         // Global plus account budgets: do not trust spoofable proxy/IP headers.
         const keys=['*',data.username.toLowerCase()];
@@ -167,11 +167,11 @@ export async function createApp({dir=process.env.DATA_DIR || './data', origin=pr
           db.prepare("INSERT OR IGNORE INTO site_settings VALUES('admin_user_id',?)").run(user.id);
           claimFirstSiteAdministrator(db,user.id);syncRepresentatives(db);
           db.prepare('DELETE FROM sessions WHERE expires<=?').run(now);
-          db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),user.id,now+43200000);
+          db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(raw),user.id,now+sessionSeconds*1000);
           db.exec('COMMIT');
         }catch(error){db.exec('ROLLBACK');throw error;}
         attempts.delete(keys[1]);
-        setCookie(raw,43200);return json(200,{ok:true,passwordChangeRequired:passwordChangeRequired(db,user.id)});
+        setCookie(raw,data.rememberMe===true?sessionSeconds:undefined);return json(200,{ok:true,passwordChangeRequired:passwordChangeRequired(db,user.id)});
       }
       if(path.startsWith('/api/')) {
         if(!session) return json(401,{error:'Login required'});
